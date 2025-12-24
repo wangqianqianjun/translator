@@ -1170,18 +1170,10 @@
       const directText = getDirectText(element);
       const hasDirectText = directText.length >= 2;
 
-      // 对于容器元素，即使有直接文本，如果有可翻译的子元素，也应该递归处理
-      if (containerTags.includes(tagName) && hasTranslatableChildren(element)) {
-        // 递归处理子元素，不把容器作为整体翻译
-        for (const child of element.children) {
-          processElement(child);
-        }
-        return;
-      }
-
-      // 对于任何有多个可翻译直接子元素的元素，应该递归而非整体翻译
-      // 这修复了导航菜单被整体翻译的问题
-      if (hasMultipleTranslatableDirectChildren(element)) {
+      // 对于非文本容器元素（不在 blockTags 和 inlineTags 中），如果有可翻译的子元素，应该递归处理
+      // 这包括：div, nav, section, aside, ul, ol, 以及任何自定义元素/Web Components
+      // 目的是确保导航菜单等结构的每个项被单独翻译，而不是整体翻译
+      if (!blockTags.includes(tagName) && !inlineTags.includes(tagName) && hasTranslatableChildren(element)) {
         for (const child of element.children) {
           processElement(child);
         }
