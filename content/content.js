@@ -1191,14 +1191,38 @@
     
     function processNode(node) {
       if (node.nodeType === Node.TEXT_NODE) {
-        text += node.textContent;
+        let content = node.textContent;
+        if (content) {
+          // 过滤掉 CSS 样式文本（如 .fa-secondary{opacity:.4}）
+          content = content.replace(/\.[\w-]+\s*\{[^}]*\}/g, '');
+          // 过滤掉 CSS 选择器残留
+          content = content.replace(/\.fa-[\w-]+/g, '');
+          if (content.trim()) {
+            text += content;
+          }
+        }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
-        // 跳过 script 标签
-        if (node.tagName === 'SCRIPT') return;
-        
+        // 跳过 script 和 style 标签
+        if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+
+        // 跳过 SVG 图标
+        if (node.tagName === 'SVG' || node.tagName === 'svg') return;
+
+        // 跳过 Font Awesome 和其他图标元素
+        const classList = node.classList;
+        if (classList) {
+          // Font Awesome 图标类
+          const iconClasses = ['fa', 'fas', 'far', 'fal', 'fad', 'fab', 'fa-solid', 'fa-regular',
+            'fa-light', 'fa-duotone', 'fa-brands', 'fa-icon', 'icon', 'iconfont', 'material-icons',
+            'glyphicon', 'bi', 'feather'];
+          if (iconClasses.some(cls => classList.contains(cls))) return;
+          // 检查是否包含 fa- 开头的类
+          if (Array.from(classList).some(cls => cls.startsWith('fa-'))) return;
+        }
+
         // 跳过隐藏的辅助元素
-        if (hiddenClasses.some(cls => node.classList?.contains(cls))) return;
-        
+        if (hiddenClasses.some(cls => classList?.contains(cls))) return;
+
         // 跳过 display:none
         const style = window.getComputedStyle(node);
         if (style.display === 'none') return;
