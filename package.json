@@ -1,0 +1,19 @@
+{
+  "name": "ai-translator",
+  "version": "1.0.0",
+  "description": "AI 驱动的 Chrome 智能翻译插件",
+  "scripts": {
+    "icons": "node scripts/generate-icons.js",
+    "build": "echo 'No build required - load directly in Chrome'",
+    "zip": "zip -r ai-translator.zip manifest.json background/ content/ popup/ icons/*.png -x '*.DS_Store'"
+  },
+  "optionalDependencies": {
+    "canvas": "^2.11.2"
+  },
+  "keywords": [
+    "chrome-extension",
+    "translator",
+    "ai"
+  ],
+  "license": "MIT"
+}
