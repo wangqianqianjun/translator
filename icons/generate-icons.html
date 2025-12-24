@@ -9,6 +9,7 @@
       background: #1a1a24;
       color: #f0f0f5;
     }
+    h2 { margin-top: 40px; }
     .icons {
       display: flex;
       gap: 20px;
@@ -21,6 +22,11 @@
       border: 1px solid #333;
       border-radius: 8px;
     }
+    .light-preview {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 8px;
+    }
     button {
       margin-top: 20px;
       padding: 12px 24px;
@@ -30,6 +36,10 @@
       color: white;
       font-size: 14px;
       cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      opacity: 0.9;
     }
     a {
       display: block;
@@ -40,8 +50,9 @@
 </head>
 <body>
   <h1>AI Translator 图标生成器</h1>
-  <p>点击按钮下载各尺寸的 PNG 图标</p>
+  <p>点击按钮下载各尺寸的 PNG 图标（深色 + 浅色两套）</p>
   
+  <h2>🌙 深色模式图标</h2>
   <div class="icons">
     <div class="icon-container">
       <canvas id="icon16" width="16" height="16"></canvas>
@@ -65,12 +76,41 @@
     </div>
   </div>
 
-  <button onclick="downloadAll()">下载全部图标</button>
+  <h2>☀️ 浅色模式图标</h2>
+  <div class="icons light-preview">
+    <div class="icon-container">
+      <canvas id="icon16-light" width="16" height="16"></canvas>
+      <p>16x16</p>
+      <a id="download16-light" download="icon16-light.png">下载</a>
+    </div>
+    <div class="icon-container">
+      <canvas id="icon32-light" width="32" height="32"></canvas>
+      <p>32x32</p>
+      <a id="download32-light" download="icon32-light.png">下载</a>
+    </div>
+    <div class="icon-container">
+      <canvas id="icon48-light" width="48" height="48"></canvas>
+      <p>48x48</p>
+      <a id="download48-light" download="icon48-light.png">下载</a>
+    </div>
+    <div class="icon-container">
+      <canvas id="icon128-light" width="128" height="128"></canvas>
+      <p>128x128</p>
+      <a id="download128-light" download="icon128-light.png">下载</a>
+    </div>
+  </div>
+
+  <div style="margin-top: 30px;">
+    <button onclick="downloadDark()">下载深色图标</button>
+    <button onclick="downloadLight()">下载浅色图标</button>
+    <button onclick="downloadAll()">下载全部图标</button>
+  </div>
 
   <script>
     const sizes = [16, 32, 48, 128];
 
-    function drawIcon(canvas, size) {
+    // 深色模式图标（紫蓝渐变背景 + 白字）
+    function drawDarkIcon(canvas, size) {
       const ctx = canvas.getContext('2d');
       const centerX = size / 2;
       const centerY = size / 2;
@@ -87,7 +127,7 @@
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      // Draw "T" letter
+      // Draw "译" letter
       ctx.fillStyle = 'white';
       ctx.font = `bold ${size * 0.5}px -apple-system, sans-serif`;
       ctx.textAlign = 'center';
@@ -95,23 +135,75 @@
       ctx.fillText('译', centerX, centerY + size * 0.02);
     }
 
-    // Draw all icons
+    // 浅色模式图标（白色背景 + 紫蓝渐变文字 + 渐变边框）
+    function drawLightIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const radius = size * 0.44;
+      const borderWidth = Math.max(1, size * 0.06);
+
+      // 渐变色定义
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#7c5cff');
+      gradient.addColorStop(1, '#5c8cff');
+
+      // Draw border circle (gradient)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Draw inner white circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius - borderWidth, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+
+      // Draw "译" letter with gradient
+      ctx.save();
+      ctx.font = `bold ${size * 0.45}px -apple-system, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = gradient;
+      ctx.fillText('译', centerX, centerY + size * 0.02);
+      ctx.restore();
+    }
+
+    // Draw all dark icons
     sizes.forEach(size => {
       const canvas = document.getElementById(`icon${size}`);
-      drawIcon(canvas, size);
+      drawDarkIcon(canvas, size);
       
-      // Set download link
       const link = document.getElementById(`download${size}`);
       link.href = canvas.toDataURL('image/png');
     });
 
-    function downloadAll() {
+    // Draw all light icons
+    sizes.forEach(size => {
+      const canvas = document.getElementById(`icon${size}-light`);
+      drawLightIcon(canvas, size);
+      
+      const link = document.getElementById(`download${size}-light`);
+      link.href = canvas.toDataURL('image/png');
+    });
+
+    function downloadDark() {
       sizes.forEach(size => {
-        const link = document.getElementById(`download${size}`);
-        link.click();
+        document.getElementById(`download${size}`).click();
       });
+    }
+
+    function downloadLight() {
+      sizes.forEach(size => {
+        document.getElementById(`download${size}-light`).click();
+      });
+    }
+
+    function downloadAll() {
+      downloadDark();
+      setTimeout(downloadLight, 500);
     }
   </script>
 </body>
 </html>
-

@@ -11,8 +11,14 @@ const elements = {
 const defaultSettings = {
   apiKey: '',
   showFloatBall: true,
-  targetLang: 'zh-CN'
+  targetLang: 'zh-CN',
+  theme: 'dark'
 };
+
+// Apply theme
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
 
 // Current UI language
 let currentUILang = 'en';
@@ -46,6 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkStatus() {
   try {
     const settings = await chrome.storage.sync.get(defaultSettings);
+    
+    // Apply theme
+    applyTheme(settings.theme || 'dark');
     
     // Apply i18n based on target language
     applyI18n(settings.targetLang);
