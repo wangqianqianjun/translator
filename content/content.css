@@ -255,6 +255,14 @@ button.ai-translator-inline-block {
   cursor: default !important;
 }
 
+/* 水平 flex 布局中的内嵌翻译（如顶部导航） */
+.ai-translator-inline-child {
+  display: block !important;
+  font-size: 0.85em !important;
+  margin-top: 2px !important;
+  opacity: 0.75 !important;
+}
+
 /* ==================== Page Translation Progress ==================== */
 
 /* ==================== Progress Bar (位于翻译球下方) ==================== */

@@ -1112,6 +1112,22 @@
       return false;
     }
 
+    // 检查元素是否有多个可翻译的直接子元素（用于判断是否应该递归而非整体翻译）
+    // 这对于导航菜单等结构很重要，避免将整个菜单作为一个块翻译
+    function hasMultipleTranslatableDirectChildren(element) {
+      let count = 0;
+      for (const child of element.children) {
+        const childTag = child.tagName;
+        // 如果子元素是块级或内联可翻译元素，且有文本内容
+        if ((blockTags.includes(childTag) || inlineTags.includes(childTag)) &&
+            child.textContent.trim().length >= 2) {
+          count++;
+          if (count >= 2) return true;
+        }
+      }
+      return false;
+    }
+
     // 获取元素的直接文本内容（不包括子元素的文本）
     function getDirectText(element) {
       let text = '';
@@ -1157,6 +1173,15 @@
       // 对于容器元素，即使有直接文本，如果有可翻译的子元素，也应该递归处理
       if (containerTags.includes(tagName) && hasTranslatableChildren(element)) {
         // 递归处理子元素，不把容器作为整体翻译
+        for (const child of element.children) {
+          processElement(child);
+        }
+        return;
+      }
+
+      // 对于任何有多个可翻译直接子元素的元素，应该递归而非整体翻译
+      // 这修复了导航菜单被整体翻译的问题
+      if (hasMultipleTranslatableDirectChildren(element)) {
         for (const child of element.children) {
           processElement(child);
         }
@@ -1332,17 +1357,35 @@
     return text;
   }
 
+  // 检测父元素是否是水平 flex 布局
+  function isHorizontalFlexParent(element) {
+    const parent = element.parentElement;
+    if (!parent) return false;
+
+    const style = window.getComputedStyle(parent);
+    const display = style.display;
+    const flexDirection = style.flexDirection;
+
+    // 检查是否是水平 flex 布局（flex-direction: row 或 row-reverse）
+    if ((display === 'flex' || display === 'inline-flex') &&
+        (flexDirection === 'row' || flexDirection === 'row-reverse' || flexDirection === '')) {
+      return true;
+    }
+
+    return false;
+  }
+
   // 插入翻译块
   function insertTranslationBlock(block, translation) {
     const element = block.element;
     if (!element || !element.parentNode) return;
-    
+
     // 检查是否已经翻译过，防止重复
     if (element.classList.contains('ai-translator-translated')) return;
-    
+
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
-    
+
     // 还原数学公式：将占位符替换回原始 HTML
     let finalTranslation = translation;
     if (block.mathElements && block.mathElements.length > 0) {
@@ -1351,20 +1394,9 @@
       }
     }
 
-    // 创建翻译元素，继承原元素的样式
-    const translationEl = document.createElement(element.tagName);
-    translationEl.className = 'ai-translator-inline-block';
-
-    // 如果包含数学公式，使用 innerHTML；否则使用 textContent
-    if (block.mathElements && block.mathElements.length > 0) {
-      translationEl.innerHTML = finalTranslation;
-    } else {
-      translationEl.textContent = translation;
-    }
-    
     // 复制所有关键样式，包括颜色
     const computedStyle = window.getComputedStyle(element);
-    translationEl.style.cssText = `
+    const baseStyle = `
       font-size: ${computedStyle.fontSize};
       font-family: ${computedStyle.fontFamily};
       font-weight: ${computedStyle.fontWeight};
@@ -1372,13 +1404,51 @@
       text-align: ${computedStyle.textAlign};
       color: ${computedStyle.color};
       letter-spacing: ${computedStyle.letterSpacing};
-      margin: 0;
-      padding: 0;
       opacity: 0.85;
     `;
-    
-    // 插入到原元素后面
-    element.after(translationEl);
+
+    // 检测是否在水平 flex 布局中
+    const isHorizontalFlex = isHorizontalFlexParent(element);
+
+    if (isHorizontalFlex) {
+      // 对于水平 flex 布局（如顶部导航），将翻译插入到元素内部
+      // 创建一个 span 来包裹翻译，显示在原文下方
+      const translationEl = document.createElement('span');
+      translationEl.className = 'ai-translator-inline-block ai-translator-inline-child';
+
+      if (block.mathElements && block.mathElements.length > 0) {
+        translationEl.innerHTML = finalTranslation;
+      } else {
+        translationEl.textContent = translation;
+      }
+
+      translationEl.style.cssText = baseStyle + `
+        display: block;
+        margin: 0;
+        padding: 0;
+      `;
+
+      // 将翻译作为子元素追加到原元素内部
+      element.appendChild(translationEl);
+    } else {
+      // 对于非水平 flex 布局（如侧边栏），插入为同级元素
+      const translationEl = document.createElement(element.tagName);
+      translationEl.className = 'ai-translator-inline-block';
+
+      if (block.mathElements && block.mathElements.length > 0) {
+        translationEl.innerHTML = finalTranslation;
+      } else {
+        translationEl.textContent = translation;
+      }
+
+      translationEl.style.cssText = baseStyle + `
+        margin: 0;
+        padding: 0;
+      `;
+
+      // 插入到原元素后面
+      element.after(translationEl);
+    }
   }
 
   function showPageTranslationProgress() {
