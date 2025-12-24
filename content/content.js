@@ -901,16 +901,24 @@
       // 跳过代码块容器
       if (element.closest('.highlight, .codehilite, .sourceCode, .code-block, [class*="language-"], [class*="highlight"]')) return;
       
+      // 跳过数学公式的隐藏辅助元素（只跳过重复的隐藏版本）
+      if (element.classList.contains('MJX_Assistive_MathML') ||
+          element.classList.contains('katex-mathml') ||
+          element.classList.contains('sr-only') ||
+          element.classList.contains('visually-hidden') ||
+          element.classList.contains('MathJax_Preview')) return;
+      
       // 检查是否是块级元素且有直接文本内容
       const hasDirectText = Array.from(element.childNodes).some(
         child => child.nodeType === Node.TEXT_NODE && child.textContent.trim().length >= 2
       );
       
       if (blockTags.includes(tagName) || hasDirectText) {
-        const text = getDirectTextContent(element);
+        const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 2000) {
-          // 跳过看起来像代码的文本
-          if (looksLikeCode(text)) {
+          // 跳过看起来像代码的文本（排除数学占位符后判断）
+          const textWithoutMath = text.replace(/【MATH_\d+】/g, '');
+          if (textWithoutMath && looksLikeCode(textWithoutMath)) {
             // 递归处理子元素，可能有非代码的部分
             for (const child of element.children) {
               processElement(child);
@@ -921,7 +929,8 @@
           blocks.push({
             element: element,
             text: text,
-            tagName: tagName
+            tagName: tagName,
+            mathElements: mathElements // 保存公式信息
           });
           return; // 不再递归处理子元素
         }
@@ -937,21 +946,87 @@
     return blocks;
   }
 
-  // 获取元素的直接文本内容（不包括子元素的深层文本）
-  function getDirectTextContent(element) {
+  // 检测元素是否是数学公式
+  function isMathElement(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    
+    // 检查标签名
+    const mathTags = ['MATH', 'MJX-CONTAINER', 'MJX-MATH'];
+    if (mathTags.includes(el.tagName)) return true;
+    
+    // 检查常见的数学公式类名
+    const mathClasses = [
+      'MathJax', 'MathJax_Display', 'MathJax_Preview',
+      'mjx-math', 'mjx-chtml', 'mjx-container',
+      'katex', 'katex-display',
+      'math', 'equation'
+    ];
+    if (mathClasses.some(cls => el.classList?.contains(cls))) return true;
+    
+    // 检查 data 属性
+    if (el.hasAttribute?.('data-mathml') || el.hasAttribute?.('data-latex')) return true;
+    
+    return false;
+  }
+
+  // 获取元素内容，用占位符替换数学公式
+  // 返回 { text: string, mathElements: Array<{placeholder: string, html: string}> }
+  function getTextWithMathPlaceholders(element) {
     let text = '';
-    for (const child of element.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        text += child.textContent;
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        // 对于内联元素，包含其文本
-        const display = window.getComputedStyle(child).display;
-        if (display === 'inline' || display === 'inline-block') {
-          text += child.textContent;
+    const mathElements = [];
+    let mathIndex = 0;
+    
+    // 跳过的隐藏类名
+    const hiddenClasses = [
+      'MJX_Assistive_MathML', 'katex-mathml', 'sr-only', 
+      'visually-hidden', 'MathJax_Preview'
+    ];
+    
+    function processNode(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // 跳过 script 标签
+        if (node.tagName === 'SCRIPT') return;
+        
+        // 跳过隐藏的辅助元素
+        if (hiddenClasses.some(cls => node.classList?.contains(cls))) return;
+        
+        // 跳过 display:none
+        const style = window.getComputedStyle(node);
+        if (style.display === 'none') return;
+        
+        // 检测是否是数学公式
+        if (isMathElement(node)) {
+          // 用占位符替换公式，保存原始 HTML
+          const placeholder = `【MATH_${mathIndex}】`;
+          mathElements.push({
+            placeholder: placeholder,
+            html: node.outerHTML
+          });
+          text += placeholder;
+          mathIndex++;
+          return; // 不再递归处理公式内部
+        }
+        
+        // 递归处理子节点
+        for (const child of node.childNodes) {
+          processNode(child);
         }
       }
     }
-    return text.trim();
+    
+    for (const child of element.childNodes) {
+      processNode(child);
+    }
+    
+    return { text: text.trim(), mathElements };
+  }
+
+  // 获取元素的直接文本内容（向后兼容）
+  function getDirectTextContent(element) {
+    const { text } = getTextWithMathPlaceholders(element);
+    return text;
   }
 
   // 插入翻译块
@@ -965,10 +1040,24 @@
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
     
+    // 还原数学公式：将占位符替换回原始 HTML
+    let finalTranslation = translation;
+    if (block.mathElements && block.mathElements.length > 0) {
+      for (const math of block.mathElements) {
+        finalTranslation = finalTranslation.replace(math.placeholder, math.html);
+      }
+    }
+    
     // 创建翻译元素，继承原元素的样式
     const translationEl = document.createElement(element.tagName);
     translationEl.className = 'ai-translator-inline-block';
-    translationEl.textContent = translation;
+    
+    // 如果包含数学公式，使用 innerHTML；否则使用 textContent
+    if (block.mathElements && block.mathElements.length > 0) {
+      translationEl.innerHTML = finalTranslation;
+    } else {
+      translationEl.textContent = translation;
+    }
     
     // 复制所有关键样式，包括颜色
     const computedStyle = window.getComputedStyle(element);
