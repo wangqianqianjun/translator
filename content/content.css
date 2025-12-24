@@ -600,13 +600,13 @@ button.ai-translator-inline-block {
 #ai-translator-float-ball-container.docked-right {
   display: flex;
   /* Capsule shape: full round on left, flat on right */
-  border-radius: 25px 0 0 25px;
+  border-radius: 22px 0 0 22px;
 }
 
 #ai-translator-float-ball-container.docked-left {
   display: flex;
   /* Capsule shape: flat on left, full round on right */
-  border-radius: 0 25px 25px 0;
+  border-radius: 0 22px 22px 0;
 }
 
 #ai-translator-float-ball {
@@ -614,8 +614,8 @@ button.ai-translator-inline-block {
   bottom: 80px;
   right: 24px;
   z-index: 2147483646;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -623,7 +623,7 @@ button.ai-translator-inline-block {
   border: 2px solid transparent;
   border-radius: 50%;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(124, 92, 255, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
@@ -669,9 +669,9 @@ button.ai-translator-inline-block {
 }
 
 #ai-translator-float-ball svg {
-  width: 20px;
-  height: 20px;
-  filter: drop-shadow(0 2px 6px rgba(124, 92, 255, 0.4));
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 2px 4px rgba(124, 92, 255, 0.4));
   transition: transform 0.3s ease;
 }
 
