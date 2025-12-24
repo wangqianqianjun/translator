@@ -27,10 +27,16 @@
   init();
 
   async function init() {
-    await loadSettings();
-    setupSelectionListener();
-    setupMessageListener();
-    createFloatBall();
+    console.log('AI Translator: Initializing...');
+    try {
+      await loadSettings();
+      setupSelectionListener();
+      setupMessageListener();
+      createFloatBall();
+      console.log('AI Translator: Initialization complete, showFloatBall =', settings.showFloatBall);
+    } catch (error) {
+      console.error('AI Translator: Initialization failed', error);
+    }
   }
 
   // Load settings from storage
@@ -44,9 +50,18 @@
         theme: 'dark'
       });
       settings = result;
+      console.log('AI Translator: Settings loaded', { showFloatBall: settings.showFloatBall, theme: settings.theme });
       applyTheme(settings.theme);
     } catch (error) {
       console.error('AI Translator: Failed to load settings', error);
+      // Use default settings on error
+      settings = {
+        enableSelection: true,
+        showFloatBall: true,
+        autoDetect: true,
+        targetLang: 'zh-CN',
+        theme: 'dark'
+      };
     }
   }
 
@@ -59,6 +74,12 @@
 
   function createFloatBall() {
     if (floatBall) return;
+
+    // Ensure document.body exists
+    if (!document.body) {
+      console.error('AI Translator: document.body not available');
+      return;
+    }
 
     floatBall = document.createElement('div');
     floatBall.id = 'ai-translator-float-ball';
@@ -76,15 +97,24 @@
     `;
 
     // Load saved position or use default
-    const savedPosition = localStorage.getItem('ai-translator-float-position');
-    if (savedPosition) {
-      const { x, y } = JSON.parse(savedPosition);
-      floatBall.style.right = 'auto';
-      floatBall.style.left = `${x}px`;
-      floatBall.style.top = `${y}px`;
+    try {
+      const savedPosition = localStorage.getItem('ai-translator-float-position');
+      if (savedPosition) {
+        const { x, y } = JSON.parse(savedPosition);
+        if (typeof x === 'number' && typeof y === 'number') {
+          floatBall.style.right = 'auto';
+          floatBall.style.left = `${x}px`;
+          floatBall.style.top = `${y}px`;
+        }
+      }
+    } catch (error) {
+      console.warn('AI Translator: Failed to load saved position, using default', error);
+      // Clear corrupted data
+      localStorage.removeItem('ai-translator-float-position');
     }
 
     document.body.appendChild(floatBall);
+    console.log('AI Translator: Float ball created');
 
     // Setup drag and click handling
     setupFloatBallInteraction();
@@ -429,7 +459,10 @@
 
   function updateFloatBallVisibility() {
     if (floatBall) {
-      floatBall.style.display = settings.showFloatBall ? 'flex' : 'none';
+      // Ensure showFloatBall has a valid boolean value
+      const shouldShow = settings.showFloatBall !== false;
+      floatBall.style.display = shouldShow ? 'flex' : 'none';
+      console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display);
     }
   }
 
