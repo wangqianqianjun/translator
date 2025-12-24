@@ -257,51 +257,85 @@ button.ai-translator-inline-block {
 
 /* ==================== Page Translation Progress ==================== */
 
+/* ==================== Progress Bar (位于翻译球下方) ==================== */
+
 #ai-translator-progress {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   z-index: 2147483647;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #1a1a24 0%, #0f0f14 100%);
-  border-bottom: 1px solid #2a2a3a;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  width: 160px;
+  padding: 12px 14px;
+  background: linear-gradient(145deg, #1a1a24 0%, #12121a 100%);
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(34, 197, 94, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  animation: ai-translator-slide-down 0.3s ease;
+  animation: ai-translator-progress-in 0.2s ease;
 }
 
-@keyframes ai-translator-slide-down {
+/* 渐变边框效果（与翻译球一致） */
+#ai-translator-progress::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(135deg, #22c55e 0%, #10b981 50%, #22c55e 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+}
+
+@keyframes ai-translator-progress-in {
   from {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-8px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 #ai-translator-progress.ai-translator-progress-done {
-  animation: ai-translator-slide-up 0.3s ease forwards;
+  animation: ai-translator-progress-out 0.3s ease forwards;
 }
 
-@keyframes ai-translator-slide-up {
+@keyframes ai-translator-progress-out {
   from {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-8px) scale(0.95);
   }
 }
 
-.ai-translator-progress-inner {
-  flex: 1;
+.ai-translator-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ai-translator-progress-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #a0a0b0;
+}
+
+.ai-translator-progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+.ai-translator-progress-track {
+  width: 100%;
   height: 6px;
   background: #252532;
   border-radius: 3px;
@@ -311,16 +345,54 @@ button.ai-translator-inline-block {
 .ai-translator-progress-bar {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #7c5cff 0%, #5c8cff 100%);
+  background: linear-gradient(90deg, #22c55e 0%, #10b981 50%, #34d399 100%);
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
 }
 
-.ai-translator-progress-text {
+/* 成功状态 */
+.ai-translator-progress-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #22c55e;
+  animation: ai-translator-success-bounce 0.4s ease;
+}
+
+.ai-translator-progress-success svg {
+  color: #22c55e;
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5));
+}
+
+.ai-translator-progress-success span {
   font-size: 13px;
-  font-weight: 500;
-  color: #9090a0;
-  white-space: nowrap;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+#ai-translator-progress.ai-translator-progress-success-state {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+#ai-translator-progress.ai-translator-progress-success-state::before {
+  background: linear-gradient(135deg, #22c55e 0%, #10b981 50%, #22c55e 100%);
+  opacity: 0.8;
+}
+
+@keyframes ai-translator-success-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ==================== Selection Button ==================== */
@@ -567,17 +639,37 @@ button.ai-translator-inline-block {
 /* .ai-translator-inline-block 继承原元素颜色，无需主题特定样式 */
 
 [data-ai-translator-theme="light"] #ai-translator-progress {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f7 100%);
-  border-bottom-color: #e0e0e5;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(145deg, #ffffff 0%, #f5f5f7 100%);
+  border-color: #e0e0e5;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(34, 197, 94, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-[data-ai-translator-theme="light"] .ai-translator-progress-inner {
-  background: #e0e0e5;
+[data-ai-translator-theme="light"] .ai-translator-progress-track {
+  background: #e5e5ea;
 }
 
 [data-ai-translator-theme="light"] .ai-translator-progress-text {
   color: #6e6e73;
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-percent {
+  color: #16a34a;
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-success {
+  color: #16a34a;
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-success svg {
+  color: #16a34a;
+  filter: drop-shadow(0 0 6px rgba(22, 163, 74, 0.4));
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-success span {
+  color: #16a34a;
 }
 
 [data-ai-translator-theme="light"] #ai-translator-float-ball {

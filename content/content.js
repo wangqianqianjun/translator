@@ -529,9 +529,10 @@
 
   // ==================== Page Translation ====================
 
-  const BATCH_SIZE = 100; // 每批处理100个文本段落
-  const CONCURRENCY = 5; // 并发数
-  const DELIMITER = '<<<>>>'; // 更可靠的分隔符
+  const MAX_BATCH_CHARS = 2500; // 每批次最大字符数
+  const MAX_BATCH_ITEMS = 25;   // 每批次最大段落数
+  const CONCURRENCY = 8;        // 并发数
+  const DELIMITER = '<<<>>>';   // 分隔符
 
   async function translatePage() {
     if (isTranslatingPage) {
@@ -552,20 +553,15 @@
         return;
       }
 
-      // 按批次分组
-      const batches = [];
-      for (let i = 0; i < translatableBlocks.length; i += BATCH_SIZE) {
-        batches.push(translatableBlocks.slice(i, i + BATCH_SIZE));
-      }
+      // 按字符数和段落数智能分批
+      const batches = createSmartBatches(translatableBlocks);
+      
+      console.log(`AI Translator: ${translatableBlocks.length} blocks, ${batches.length} batches, concurrency: ${CONCURRENCY}`);
 
       let processedCount = 0;
       const totalCount = translatableBlocks.length;
 
-      // 并行处理多个批次
-      const concurrency = Math.min(CONCURRENCY, batches.length);
-      const batchQueue = [...batches];
-      const activePromises = [];
-
+      // 使用 Promise 池进行并发控制
       const processBatch = async (batch) => {
         const texts = batch.map(item => item.text);
         
@@ -592,19 +588,8 @@
         updatePageTranslationProgress(processedCount, totalCount);
       };
 
-      // 启动并行处理
-      while (batchQueue.length > 0 || activePromises.length > 0) {
-        while (activePromises.length < concurrency && batchQueue.length > 0) {
-          const batch = batchQueue.shift();
-          const promise = processBatch(batch).then(() => {
-            activePromises.splice(activePromises.indexOf(promise), 1);
-          });
-          activePromises.push(promise);
-        }
-        if (activePromises.length > 0) {
-          await Promise.race(activePromises);
-        }
-      }
+      // 并发执行所有批次
+      await runWithConcurrency(batches, processBatch, CONCURRENCY);
 
       hidePageTranslationProgress();
     } catch (error) {
@@ -615,11 +600,103 @@
     }
   }
 
+  // 智能分批：根据字符数和段落数限制
+  function createSmartBatches(blocks) {
+    const batches = [];
+    let currentBatch = [];
+    let currentChars = 0;
+
+    for (const block of blocks) {
+      const textLen = block.text.length;
+      
+      // 如果当前批次加入这个 block 后会超限，先保存当前批次
+      if (currentBatch.length > 0 && 
+          (currentChars + textLen > MAX_BATCH_CHARS || currentBatch.length >= MAX_BATCH_ITEMS)) {
+        batches.push(currentBatch);
+        currentBatch = [];
+        currentChars = 0;
+      }
+      
+      currentBatch.push(block);
+      currentChars += textLen;
+    }
+    
+    // 保存最后一个批次
+    if (currentBatch.length > 0) {
+      batches.push(currentBatch);
+    }
+    
+    return batches;
+  }
+
+  // 并发控制函数
+  async function runWithConcurrency(items, processor, concurrency) {
+    const results = [];
+    let index = 0;
+    
+    async function runNext() {
+      const currentIndex = index++;
+      if (currentIndex >= items.length) return;
+      
+      await processor(items[currentIndex]);
+      results[currentIndex] = true;
+      
+      // 继续处理下一个
+      await runNext();
+    }
+    
+    // 启动 concurrency 个并发任务
+    const workers = [];
+    for (let i = 0; i < Math.min(concurrency, items.length); i++) {
+      workers.push(runNext());
+    }
+    
+    await Promise.all(workers);
+    return results;
+  }
+
   // 收集可翻译的块级元素
   function collectTranslatableBlocks(root) {
     const blocks = [];
-    const blockTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'DIV', 'SPAN', 'A', 'LABEL', 'BUTTON', 'FIGCAPTION', 'BLOCKQUOTE', 'DT', 'DD'];
-    const skipTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'TEXTAREA', 'INPUT', 'SELECT', 'CODE', 'PRE', 'SVG', 'CANVAS'];
+    const blockTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'FIGCAPTION', 'BLOCKQUOTE', 'DT', 'DD'];
+    const skipTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'TEXTAREA', 'INPUT', 'SELECT', 'CODE', 'PRE', 'SVG', 'CANVAS', 'KBD', 'SAMP', 'VAR'];
+    // 用于检测代码/脚本内容的模式
+    const codePatterns = [
+      /^[\s\S]*<script[\s>]/i,       // 包含 <script 标签
+      /^[\s\S]*<\/script>/i,         // 包含 </script> 标签
+      /^[\s\S]*<noscript[\s>]/i,     // 包含 <noscript 标签
+      /function\s*\([^)]*\)\s*\{/,   // JavaScript 函数定义
+      /var\s+\w+\s*=/,               // var 声明
+      /const\s+\w+\s*=/,             // const 声明
+      /let\s+\w+\s*=/,               // let 声明
+      /document\.(getElementById|querySelector|createElement)/, // DOM 操作
+      /^\s*(import|export)\s+/m,     // ES6 模块
+      /^\s*def\s+\w+\s*\(/m,         // Python 函数
+      /^\s*class\s+\w+[\s:(]/m,      // 类定义
+      /^\s*@\w+\s*$/m,               // 装饰器
+      /^\s*#\s*(include|define|ifdef)/m, // C/C++ 预处理
+      /\{\s*"[^"]+"\s*:\s*/,         // JSON 对象
+      /^\s*```/m,                     // Markdown 代码块标记
+      /self\.\w+\s*=/,               // Python self
+      /super\(\)/,                   // super 调用
+      /nn\.Module/,                  // PyTorch
+      /torch\.\w+/,                  // PyTorch
+      /np\.\w+/,                     // NumPy
+    ];
+    
+    // 检查文本是否看起来像代码
+    function looksLikeCode(text) {
+      // 如果包含大量特殊字符，可能是代码
+      const specialCharRatio = (text.match(/[{}()\[\];=<>]/g) || []).length / text.length;
+      if (specialCharRatio > 0.1) return true;
+      
+      // 检查代码模式
+      for (const pattern of codePatterns) {
+        if (pattern.test(text)) return true;
+      }
+      
+      return false;
+    }
     
     function processElement(element) {
       if (!element || element.nodeType !== Node.ELEMENT_NODE) return;
@@ -632,6 +709,12 @@
       if (element.closest('.ai-translator-popup, .ai-translator-translated, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
       if (element.classList.contains('ai-translator-translated')) return;
       
+      // 跳过被 skipTags 包含的元素
+      if (element.closest(skipTags.map(t => t.toLowerCase()).join(','))) return;
+      
+      // 跳过代码块容器
+      if (element.closest('.highlight, .codehilite, .sourceCode, .code-block, [class*="language-"], [class*="highlight"]')) return;
+      
       // 检查是否是块级元素且有直接文本内容
       const hasDirectText = Array.from(element.childNodes).some(
         child => child.nodeType === Node.TEXT_NODE && child.textContent.trim().length >= 2
@@ -640,6 +723,15 @@
       if (blockTags.includes(tagName) || hasDirectText) {
         const text = getDirectTextContent(element);
         if (text && text.length >= 2 && text.length <= 2000) {
+          // 跳过看起来像代码的文本
+          if (looksLikeCode(text)) {
+            // 递归处理子元素，可能有非代码的部分
+            for (const child of element.children) {
+              processElement(child);
+            }
+            return;
+          }
+          
           blocks.push({
             element: element,
             text: text,
@@ -709,35 +801,79 @@
   }
 
   function showPageTranslationProgress() {
-    let progressBar = document.getElementById('ai-translator-progress');
-    if (!progressBar) {
-      progressBar = document.createElement('div');
-      progressBar.id = 'ai-translator-progress';
-      progressBar.innerHTML = `
-        <div class="ai-translator-progress-inner">
+    let progressEl = document.getElementById('ai-translator-progress');
+    if (!progressEl) {
+      progressEl = document.createElement('div');
+      progressEl.id = 'ai-translator-progress';
+      progressEl.innerHTML = `
+        <div class="ai-translator-progress-header">
+          <span class="ai-translator-progress-text">正在翻译...</span>
+          <span class="ai-translator-progress-percent">0%</span>
+        </div>
+        <div class="ai-translator-progress-track">
           <div class="ai-translator-progress-bar"></div>
         </div>
-        <span class="ai-translator-progress-text">正在翻译...</span>
       `;
-      document.body.appendChild(progressBar);
+      document.body.appendChild(progressEl);
+      
+      // 定位到翻译球下方
+      positionProgressBar();
     }
+  }
+
+  function positionProgressBar() {
+    const progressEl = document.getElementById('ai-translator-progress');
+    if (!progressEl || !floatBall) return;
+    
+    const ballRect = floatBall.getBoundingClientRect();
+    const progressWidth = 160;
+    
+    let left = ballRect.left + (ballRect.width / 2) - (progressWidth / 2);
+    let top = ballRect.bottom + 12;
+    
+    // 确保不超出屏幕
+    if (left < 10) left = 10;
+    if (left + progressWidth > window.innerWidth - 10) {
+      left = window.innerWidth - progressWidth - 10;
+    }
+    if (top + 60 > window.innerHeight) {
+      top = ballRect.top - 70;
+    }
+    
+    progressEl.style.left = `${left}px`;
+    progressEl.style.top = `${top}px`;
   }
 
   function updatePageTranslationProgress(current, total) {
     const progressBar = document.querySelector('#ai-translator-progress .ai-translator-progress-bar');
-    const progressText = document.querySelector('#ai-translator-progress .ai-translator-progress-text');
-    if (progressBar && progressText) {
+    const progressPercent = document.querySelector('#ai-translator-progress .ai-translator-progress-percent');
+    if (progressBar && progressPercent) {
       const percent = Math.round((current / total) * 100);
       progressBar.style.width = `${percent}%`;
-      progressText.textContent = `翻译进度: ${percent}%`;
+      progressPercent.textContent = `${percent}%`;
     }
   }
 
   function hidePageTranslationProgress() {
-    const progressBar = document.getElementById('ai-translator-progress');
-    if (progressBar) {
-      progressBar.classList.add('ai-translator-progress-done');
-      setTimeout(() => progressBar.remove(), 500);
+    const progressEl = document.getElementById('ai-translator-progress');
+    if (progressEl) {
+      // 显示成功状态
+      progressEl.innerHTML = `
+        <div class="ai-translator-progress-success">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>翻译完成</span>
+        </div>
+      `;
+      progressEl.classList.add('ai-translator-progress-success-state');
+      
+      // 5秒后自动关闭
+      setTimeout(() => {
+        progressEl.classList.add('ai-translator-progress-done');
+        setTimeout(() => progressEl.remove(), 300);
+      }, 5000);
     }
   }
 
