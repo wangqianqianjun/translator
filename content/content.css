@@ -583,13 +583,41 @@ button.ai-translator-inline-block {
 
 /* ==================== Float Ball ==================== */
 
+/* Float Ball Container - for docked state background */
+#ai-translator-float-ball-container {
+  position: fixed;
+  z-index: 2147483645;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 30, 46, 0.95);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+#ai-translator-float-ball-container.docked-right {
+  display: flex;
+  padding: 8px;
+  padding-right: 0;
+  border-radius: 16px 0 0 16px;
+}
+
+#ai-translator-float-ball-container.docked-left {
+  display: flex;
+  padding: 8px;
+  padding-left: 0;
+  border-radius: 0 16px 16px 0;
+}
+
 #ai-translator-float-ball {
   position: fixed;
   bottom: 80px;
   right: 24px;
   z-index: 2147483646;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -601,8 +629,7 @@ button.ai-translator-inline-block {
     0 0 0 1px rgba(124, 92, 255, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
-  /* Only transition visual effects, not position */
-  transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
   overflow: visible;
 }
@@ -618,37 +645,7 @@ button.ai-translator-inline-block {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0.6;
-  transition: opacity 0.3s ease, border-radius 0.2s ease;
-}
-
-/* Docked to right edge */
-#ai-translator-float-ball.docked-right {
-  width: 44px;
-  height: 44px;
-  border-radius: 22px 0 0 22px;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(124, 92, 255, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-#ai-translator-float-ball.docked-right::before {
-  border-radius: 24px 0 0 24px;
-}
-
-/* Docked to left edge */
-#ai-translator-float-ball.docked-left {
-  width: 44px;
-  height: 44px;
-  border-radius: 0 22px 22px 0;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(124, 92, 255, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-#ai-translator-float-ball.docked-left::before {
-  border-radius: 0 24px 24px 0;
+  transition: opacity 0.3s ease;
 }
 
 #ai-translator-float-ball:hover {
@@ -659,8 +656,7 @@ button.ai-translator-inline-block {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-#ai-translator-float-ball.docked-right:hover,
-#ai-translator-float-ball.docked-left:hover {
+#ai-translator-float-ball.docked:hover {
   transform: scale(1.05);
 }
 
@@ -675,16 +671,10 @@ button.ai-translator-inline-block {
 }
 
 #ai-translator-float-ball svg {
-  width: 24px;
-  height: 24px;
-  filter: drop-shadow(0 2px 8px rgba(124, 92, 255, 0.4));
-  transition: transform 0.3s ease, width 0.2s ease, height 0.2s ease;
-}
-
-#ai-translator-float-ball.docked-right svg,
-#ai-translator-float-ball.docked-left svg {
   width: 22px;
   height: 22px;
+  filter: drop-shadow(0 2px 8px rgba(124, 92, 255, 0.4));
+  transition: transform 0.3s ease;
 }
 
 #ai-translator-float-ball:hover svg {
@@ -1075,19 +1065,16 @@ button.ai-translator-inline-block {
   color: #2563eb;
 }
 
+[data-ai-translator-theme="light"] #ai-translator-float-ball-container {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
 [data-ai-translator-theme="light"] #ai-translator-float-ball {
   background: linear-gradient(145deg, #ffffff 0%, #f0f0f5 100%);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(124, 92, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-[data-ai-translator-theme="light"] #ai-translator-float-ball.docked-right,
-[data-ai-translator-theme="light"] #ai-translator-float-ball.docked-left {
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(124, 92, 255, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 

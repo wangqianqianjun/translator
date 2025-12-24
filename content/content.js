@@ -9,9 +9,9 @@
   }
 
   // Constants
-  const FLOAT_BALL_SIZE = 48;
-  const FLOAT_BALL_DOCKED_SIZE = 44;
+  const FLOAT_BALL_SIZE = 44;
   const EDGE_SNAP_THRESHOLD = 100; // Snap to edge when within 100px
+  const CONTAINER_PADDING = 8; // Padding around ball in docked container
 
   // State
   let settings = {
@@ -23,6 +23,7 @@
   };
   let translationPopup = null;
   let floatBall = null;
+  let floatBallContainer = null; // Background container for docked state
   let floatMenu = null;
   let isTranslatingPage = false;
   let floatBallDragged = false; // Track if ball was dragged (not just clicked)
@@ -86,10 +87,16 @@
       return;
     }
 
+    // Create container for docked state background
+    floatBallContainer = document.createElement('div');
+    floatBallContainer.id = 'ai-translator-float-ball-container';
+    document.body.appendChild(floatBallContainer);
+
+    // Create float ball
     floatBall = document.createElement('div');
     floatBall.id = 'ai-translator-float-ball';
     floatBall.innerHTML = `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z" fill="url(#iconGradient)"/>
         <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="url(#iconGradient)"/>
         <defs>
@@ -109,34 +116,31 @@
         if (typeof x === 'number' && typeof y === 'number') {
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
-          const ballSize = docked ? FLOAT_BALL_DOCKED_SIZE : FLOAT_BALL_SIZE;
 
-          // Validate position is within current viewport
           let validX = x;
           let validY = y;
           let validDocked = docked;
 
-          // Check if docked position is still valid
+          // Recalculate docked position for current viewport
           if (docked === 'right') {
-            validX = viewportWidth - FLOAT_BALL_DOCKED_SIZE;
+            validX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING;
           } else if (docked === 'left') {
-            validX = 0;
+            validX = CONTAINER_PADDING;
           } else {
-            // Not docked, clamp to viewport
-            validX = Math.max(8, Math.min(x, viewportWidth - ballSize - 8));
+            validX = Math.max(8, Math.min(x, viewportWidth - FLOAT_BALL_SIZE - 8));
             validDocked = null;
           }
 
-          validY = Math.max(8, Math.min(y, viewportHeight - ballSize - 8));
-
-          // Apply docked class if needed
-          if (validDocked) {
-            floatBall.classList.add('docked-' + validDocked);
-          }
+          validY = Math.max(8, Math.min(y, viewportHeight - FLOAT_BALL_SIZE - 8));
 
           floatBall.style.right = 'auto';
           floatBall.style.left = `${validX}px`;
           floatBall.style.top = `${validY}px`;
+
+          // Apply docked state
+          if (validDocked) {
+            setDockedState(validDocked, validX, validY);
+          }
 
           // Update saved position if adjusted
           if (x !== validX || y !== validY || docked !== validDocked) {
@@ -150,7 +154,6 @@
       }
     } catch (error) {
       console.warn('AI Translator: Failed to load saved position, using default', error);
-      // Clear corrupted data
       localStorage.removeItem('ai-translator-float-position');
     }
 
@@ -162,6 +165,34 @@
 
     // Update visibility based on settings
     updateFloatBallVisibility();
+  }
+
+  // Set docked state with container background
+  function setDockedState(side, ballX, ballY) {
+    floatBall.classList.add('docked');
+    floatBallContainer.classList.remove('docked-left', 'docked-right');
+    floatBallContainer.classList.add('docked-' + side);
+
+    // Position container
+    const containerWidth = FLOAT_BALL_SIZE + CONTAINER_PADDING;
+    const containerHeight = FLOAT_BALL_SIZE + CONTAINER_PADDING * 2;
+
+    if (side === 'right') {
+      floatBallContainer.style.right = '0';
+      floatBallContainer.style.left = 'auto';
+    } else {
+      floatBallContainer.style.left = '0';
+      floatBallContainer.style.right = 'auto';
+    }
+    floatBallContainer.style.top = (ballY - CONTAINER_PADDING) + 'px';
+    floatBallContainer.style.width = containerWidth + 'px';
+    floatBallContainer.style.height = containerHeight + 'px';
+  }
+
+  // Clear docked state
+  function clearDockedState() {
+    floatBall.classList.remove('docked');
+    floatBallContainer.classList.remove('docked-left', 'docked-right');
   }
 
   function setupFloatBallInteraction() {
@@ -204,7 +235,7 @@
       if (dragDistance > 3) {
         floatBallDragged = true;
         // Remove docked state while dragging
-        floatBall.classList.remove('docked-left', 'docked-right');
+        clearDockedState();
       }
 
       // Calculate new position
@@ -241,40 +272,32 @@
         // Check distance to edges
         const distLeft = finalX;
         const distRight = viewportWidth - finalX - FLOAT_BALL_SIZE;
-        const distTop = finalY;
-        const distBottom = viewportHeight - finalY - FLOAT_BALL_SIZE;
 
         let dockedSide = null;
 
-        // Remove existing docked classes
-        floatBall.classList.remove('docked-left', 'docked-right');
-
         // Snap to left or right edge (dock to edge)
         if (distLeft <= EDGE_SNAP_THRESHOLD && distLeft < distRight) {
-          finalX = 0; // Dock to left edge
+          finalX = CONTAINER_PADDING; // Dock to left edge with padding
           dockedSide = 'left';
         } else if (distRight <= EDGE_SNAP_THRESHOLD) {
-          finalX = viewportWidth - FLOAT_BALL_DOCKED_SIZE; // Dock to right edge
+          finalX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING; // Dock to right edge
           dockedSide = 'right';
         }
 
         // Clamp vertical position
-        const maxY = viewportHeight - (dockedSide ? FLOAT_BALL_DOCKED_SIZE : FLOAT_BALL_SIZE);
-        if (distTop <= EDGE_SNAP_THRESHOLD && distTop < distBottom) {
-          finalY = 8;
-        } else if (distBottom <= EDGE_SNAP_THRESHOLD) {
-          finalY = maxY - 8;
-        } else {
-          finalY = Math.max(8, Math.min(finalY, maxY - 8));
-        }
+        const maxY = viewportHeight - FLOAT_BALL_SIZE - 8;
+        finalY = Math.max(8, Math.min(finalY, maxY));
 
-        // Apply docked class and animate
+        // Apply animation
         floatBall.style.transition = 'left 0.2s ease-out, top 0.2s ease-out';
         floatBall.style.left = finalX + 'px';
         floatBall.style.top = finalY + 'px';
 
+        // Apply docked state with container
         if (dockedSide) {
-          floatBall.classList.add('docked-' + dockedSide);
+          setTimeout(() => {
+            setDockedState(dockedSide, finalX, finalY);
+          }, 50);
         }
 
         setTimeout(() => {
@@ -298,20 +321,31 @@
       if (!floatBall || isDragging) return;
 
       const rect = floatBall.getBoundingClientRect();
-      const isDocked = floatBall.classList.contains('docked-left') || floatBall.classList.contains('docked-right');
-      const ballSize = isDocked ? FLOAT_BALL_DOCKED_SIZE : FLOAT_BALL_SIZE;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
 
       // Recalculate position for docked state
-      if (floatBall.classList.contains('docked-right')) {
-        floatBall.style.left = (window.innerWidth - FLOAT_BALL_DOCKED_SIZE) + 'px';
+      const isDockedRight = floatBallContainer.classList.contains('docked-right');
+      const isDockedLeft = floatBallContainer.classList.contains('docked-left');
+
+      let newX = rect.left;
+      if (isDockedRight) {
+        newX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING;
+        floatBall.style.left = newX + 'px';
+        floatBallContainer.style.right = '0';
       }
 
       // Clamp vertical position
-      const maxY = window.innerHeight - ballSize;
-      const newY = Math.max(8, Math.min(rect.top, maxY - 8));
+      const maxY = viewportHeight - FLOAT_BALL_SIZE - 8;
+      const newY = Math.max(8, Math.min(rect.top, maxY));
 
       if (newY !== rect.top) {
         floatBall.style.top = newY + 'px';
+      }
+
+      // Update container position if docked
+      if (isDockedRight || isDockedLeft) {
+        floatBallContainer.style.top = (newY - CONTAINER_PADDING) + 'px';
       }
     });
   }
