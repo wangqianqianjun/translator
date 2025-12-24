@@ -1,9 +1,6 @@
 /**
  * Icon Generator for AI Translator
- *
- * 使用方法:
- * 1. 安装依赖: npm install canvas
- * 2. 运行: npm run icon
+ * 设计：两个交叠的拟人化气泡，中间融合区域代表翻译
  */
 
 const fs = require('fs');
@@ -15,120 +12,138 @@ try {
   const sizes = [16, 32, 48, 128];
   const iconsDir = path.join(__dirname, '..', 'icons');
 
-  // 绘制圆角矩形
-  function roundRect(ctx, x, y, width, height, radius) {
+  // 绘制气泡形状（圆形 + 底部小尾巴）
+  function drawBubble(ctx, cx, cy, radius, tailDirection) {
+    // 主圆形
     ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 小尾巴
+    const tailSize = radius * 0.35;
+    const tailY = cy + radius * 0.75;
+    const tailX = tailDirection === 'left' ? cx - radius * 0.3 : cx + radius * 0.3;
+
+    ctx.beginPath();
+    ctx.moveTo(tailX - tailSize * 0.5, tailY - tailSize * 0.3);
+    ctx.lineTo(tailX + tailDirection === 'left' ? -tailSize * 0.6 : tailSize * 0.6, tailY + tailSize * 0.8);
+    ctx.lineTo(tailX + tailSize * 0.5, tailY - tailSize * 0.3);
+    ctx.fill();
   }
 
-  // 绘制双气泡图案
-  function drawBubbles(ctx, size, color1, color2) {
+  // 绘制交叠气泡图标
+  function drawOverlappingBubbles(ctx, size, isDark) {
     const s = size / 128;
     const centerX = size / 2;
     const centerY = size / 2;
 
-    ctx.save();
-    ctx.translate(centerX, centerY);
+    // 气泡参数
+    const bubbleRadius = 32 * s;
+    const overlap = 18 * s;  // 交叠程度
+    const leftCx = centerX - overlap;
+    const rightCx = centerX + overlap;
+    const bubbleCy = centerY - 4 * s;
 
-    // 左侧气泡（较大，代表源语言）
-    ctx.fillStyle = color1;
-    const leftBubbleX = -20 * s;
-    const leftBubbleY = -6 * s;
-    const leftBubbleW = 30 * s;
-    const leftBubbleH = 22 * s;
-    const leftRadius = 6 * s;
+    // 颜色定义 - 蓝色 + 黄色，更醒目
+    const leftColor = '#3b82f6';      // 蓝色
+    const rightColor = '#f59e0b';     // 黄/橙色
+    const blendColor = '#8b5cf6';     // 紫色（融合色）
 
-    roundRect(ctx, leftBubbleX, leftBubbleY, leftBubbleW, leftBubbleH, leftRadius);
+    // 1. 先画左气泡（完整）
+    ctx.fillStyle = leftColor;
+    ctx.beginPath();
+    ctx.arc(leftCx, bubbleCy, bubbleRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // 左气泡尾巴
+    const tailSize = bubbleRadius * 0.4;
     ctx.beginPath();
-    ctx.moveTo(leftBubbleX + 4 * s, leftBubbleY + leftBubbleH - 2 * s);
-    ctx.lineTo(leftBubbleX - 4 * s, leftBubbleY + leftBubbleH + 10 * s);
-    ctx.lineTo(leftBubbleX + 14 * s, leftBubbleY + leftBubbleH - 2 * s);
+    ctx.moveTo(leftCx - bubbleRadius * 0.2, bubbleCy + bubbleRadius * 0.7);
+    ctx.lineTo(leftCx - bubbleRadius * 0.5, bubbleCy + bubbleRadius * 1.2);
+    ctx.lineTo(leftCx + bubbleRadius * 0.15, bubbleCy + bubbleRadius * 0.85);
+    ctx.closePath();
     ctx.fill();
 
-    // 右侧气泡（较小，代表目标语言）
-    ctx.fillStyle = color2;
-    const rightBubbleX = 4 * s;
-    const rightBubbleY = -18 * s;
-    const rightBubbleW = 24 * s;
-    const rightBubbleH = 18 * s;
-    const rightRadius = 5 * s;
-
-    roundRect(ctx, rightBubbleX, rightBubbleY, rightBubbleW, rightBubbleH, rightRadius);
+    // 2. 画右气泡（完整）
+    ctx.fillStyle = rightColor;
+    ctx.beginPath();
+    ctx.arc(rightCx, bubbleCy, bubbleRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // 右气泡尾巴
     ctx.beginPath();
-    ctx.moveTo(rightBubbleX + rightBubbleW - 8 * s, rightBubbleY + rightBubbleH - 2 * s);
-    ctx.lineTo(rightBubbleX + rightBubbleW + 6 * s, rightBubbleY + rightBubbleH + 8 * s);
-    ctx.lineTo(rightBubbleX + rightBubbleW - 2 * s, rightBubbleY + rightBubbleH - 2 * s);
+    ctx.moveTo(rightCx + bubbleRadius * 0.2, bubbleCy + bubbleRadius * 0.7);
+    ctx.lineTo(rightCx + bubbleRadius * 0.5, bubbleCy + bubbleRadius * 1.2);
+    ctx.lineTo(rightCx - bubbleRadius * 0.15, bubbleCy + bubbleRadius * 0.85);
+    ctx.closePath();
     ctx.fill();
 
+    // 3. 画中间交叠区域（融合色）- 使用剪切路径
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(leftCx, bubbleCy, bubbleRadius, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.fillStyle = blendColor;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(rightCx, bubbleCy, bubbleRadius, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // 4. 画眼睛 - 斜向内看，更灵动
+    const eyeRadius = 3.2 * s;
+    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.75)' : '#1a1a2e';
+
+    // 左气泡的眼睛 - 斜向右上方排列（看向右边）
+    const leftEyeBaseX = leftCx - 6 * s;
+    const leftEyeBaseY = bubbleCy - 2 * s;
+    ctx.beginPath();
+    ctx.arc(leftEyeBaseX - 5 * s, leftEyeBaseY + 3 * s, eyeRadius, 0, Math.PI * 2);  // 左下
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(leftEyeBaseX + 5 * s, leftEyeBaseY - 3 * s, eyeRadius, 0, Math.PI * 2);  // 右上
+    ctx.fill();
+
+    // 右气泡的眼睛 - 斜向左上方排列（看向左边）
+    const rightEyeBaseX = rightCx + 6 * s;
+    const rightEyeBaseY = bubbleCy - 2 * s;
+    ctx.beginPath();
+    ctx.arc(rightEyeBaseX - 5 * s, rightEyeBaseY - 3 * s, eyeRadius, 0, Math.PI * 2);  // 左上
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rightEyeBaseX + 5 * s, rightEyeBaseY + 3 * s, eyeRadius, 0, Math.PI * 2);  // 右下
+    ctx.fill();
   }
 
-  // 生成深色模式图标
+  // 生成深色模式图标（带圆形背景）
   function generateDarkIcon(size) {
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
     const centerX = size / 2;
     const centerY = size / 2;
-    const radius = size * 0.44;
+    const radius = size * 0.48;
 
-    // 渐变背景
-    const gradient = ctx.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, '#7c5cff');
-    gradient.addColorStop(1, '#5c8cff');
-
+    // 深色背景圆
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = '#1a1a2e';
     ctx.fill();
 
-    // 绘制双气泡（白色）
-    drawBubbles(ctx, size, 'white', 'rgba(255,255,255,0.75)');
+    // 绘制气泡
+    drawOverlappingBubbles(ctx, size, true);
 
     return canvas.toBuffer('image/png');
   }
 
-  // 生成浅色模式图标
+  // 生成浅色模式图标（无背景，直接绘制气泡）
   function generateLightIcon(size) {
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const radius = size * 0.44;
-    const borderWidth = Math.max(1.5, size * 0.05);
 
-    // 渐变边框
-    const gradient = ctx.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, '#7c5cff');
-    gradient.addColorStop(1, '#5c8cff');
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // 白色内圆
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius - borderWidth, 0, Math.PI * 2);
-    ctx.fillStyle = 'white';
-    ctx.fill();
-
-    // 绘制双气泡（渐变色）
-    drawBubbles(ctx, size, '#7c5cff', '#5c8cff');
+    // 直接绘制气泡（透明背景）
+    drawOverlappingBubbles(ctx, size, false);
 
     return canvas.toBuffer('image/png');
   }
