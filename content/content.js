@@ -1052,7 +1052,11 @@
   function collectTranslatableBlocks(root) {
     const blocks = [];
     const blockTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'FIGCAPTION', 'BLOCKQUOTE', 'DT', 'DD'];
+    // 内联可翻译元素 - 这些元素即使不是块级也应单独翻译
+    const inlineTags = ['A', 'SPAN', 'LABEL', 'BUTTON'];
     const skipTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'TEXTAREA', 'INPUT', 'SELECT', 'CODE', 'PRE', 'SVG', 'CANVAS', 'KBD', 'SAMP', 'VAR'];
+    // 容器元素 - 这些元素不应作为整体翻译，应递归处理子元素
+    const containerTags = ['NAV', 'UL', 'OL', 'DIV', 'SECTION', 'ARTICLE', 'ASIDE', 'HEADER', 'FOOTER', 'MAIN'];
     // 用于检测代码/脚本内容的模式
     const codePatterns = [
       /^[\s\S]*<script[\s>]/i,       // 包含 <script 标签
@@ -1076,50 +1080,107 @@
       /torch\.\w+/,                  // PyTorch
       /np\.\w+/,                     // NumPy
     ];
-    
+
     // 检查文本是否看起来像代码
     function looksLikeCode(text) {
       // 如果包含大量特殊字符，可能是代码
       const specialCharRatio = (text.match(/[{}()\[\];=<>]/g) || []).length / text.length;
       if (specialCharRatio > 0.1) return true;
-      
+
       // 检查代码模式
       for (const pattern of codePatterns) {
         if (pattern.test(text)) return true;
       }
-      
+
       return false;
     }
-    
+
+    // 检查元素是否有可翻译的子元素（用于判断是否应该递归而非整体翻译）
+    function hasTranslatableChildren(element) {
+      for (const child of element.children) {
+        const childTag = child.tagName;
+        // 如果子元素是块级或内联可翻译元素，且有文本内容
+        if ((blockTags.includes(childTag) || inlineTags.includes(childTag)) &&
+            child.textContent.trim().length >= 2) {
+          return true;
+        }
+        // 递归检查
+        if (hasTranslatableChildren(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // 获取元素的直接文本内容（不包括子元素的文本）
+    function getDirectText(element) {
+      let text = '';
+      for (const child of element.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          const content = child.textContent.trim();
+          if (content) {
+            text += content + ' ';
+          }
+        }
+      }
+      return text.trim();
+    }
+
     function processElement(element) {
       if (!element || element.nodeType !== Node.ELEMENT_NODE) return;
-      
+
       const tagName = element.tagName;
-      
+
       // 跳过不需要翻译的元素
       if (skipTags.includes(tagName)) return;
       if (element.isContentEditable) return;
       if (element.closest('.ai-translator-popup, .ai-translator-translated, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
       if (element.classList.contains('ai-translator-translated')) return;
-      
+
       // 跳过被 skipTags 包含的元素
       if (element.closest(skipTags.map(t => t.toLowerCase()).join(','))) return;
-      
+
       // 跳过代码块容器
       if (element.closest('.highlight, .codehilite, .sourceCode, .code-block, [class*="language-"], [class*="highlight"]')) return;
-      
+
       // 跳过数学公式的隐藏辅助元素（只跳过重复的隐藏版本）
       if (element.classList.contains('MJX_Assistive_MathML') ||
           element.classList.contains('katex-mathml') ||
           element.classList.contains('sr-only') ||
           element.classList.contains('visually-hidden') ||
           element.classList.contains('MathJax_Preview')) return;
-      
-      // 检查是否是块级元素且有直接文本内容
-      const hasDirectText = Array.from(element.childNodes).some(
-        child => child.nodeType === Node.TEXT_NODE && child.textContent.trim().length >= 2
-      );
-      
+
+      // 检查是否有直接文本内容
+      const directText = getDirectText(element);
+      const hasDirectText = directText.length >= 2;
+
+      // 对于容器元素，即使有直接文本，如果有可翻译的子元素，也应该递归处理
+      if (containerTags.includes(tagName) && hasTranslatableChildren(element)) {
+        // 递归处理子元素，不把容器作为整体翻译
+        for (const child of element.children) {
+          processElement(child);
+        }
+        return;
+      }
+
+      // 对于内联元素（如链接、按钮），如果有文本内容，单独翻译
+      if (inlineTags.includes(tagName)) {
+        const { text, mathElements } = getTextWithMathPlaceholders(element);
+        if (text && text.length >= 2 && text.length <= 500) {
+          // 跳过看起来像代码的文本
+          if (!looksLikeCode(text)) {
+            blocks.push({
+              element: element,
+              text: text,
+              tagName: tagName,
+              mathElements: mathElements
+            });
+            return;
+          }
+        }
+      }
+
+      // 对于块级元素
       if (blockTags.includes(tagName) || hasDirectText) {
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 2000) {
@@ -1132,7 +1193,7 @@
             }
             return;
           }
-          
+
           blocks.push({
             element: element,
             text: text,
@@ -1142,13 +1203,13 @@
           return; // 不再递归处理子元素
         }
       }
-      
+
       // 递归处理子元素
       for (const child of element.children) {
         processElement(child);
       }
     }
-    
+
     processElement(root);
     return blocks;
   }
@@ -1576,18 +1637,27 @@
 
   function setupMessageListener() {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      console.log('AI Translator: Received message', message.type, message);
       switch (message.type) {
         case 'TRANSLATE_PAGE':
           translatePage();
           break;
         case 'SETTINGS_UPDATED':
+          // Only update showFloatBall if explicitly provided in the message
+          const prevShowFloatBall = settings.showFloatBall;
           settings = { ...settings, ...message.settings };
+          // If showFloatBall was not in the message, preserve the previous value
+          if (!('showFloatBall' in message.settings)) {
+            settings.showFloatBall = prevShowFloatBall;
+          }
+          console.log('AI Translator: Settings updated, showFloatBall changed from', prevShowFloatBall, 'to', settings.showFloatBall);
           updateFloatBallVisibility();
           if (message.settings.theme) {
             applyTheme(message.settings.theme);
           }
           break;
         case 'TOGGLE_FLOAT_BALL':
+          console.log('AI Translator: TOGGLE_FLOAT_BALL received, show =', message.show);
           settings.showFloatBall = message.show;
           updateFloatBallVisibility();
           break;
