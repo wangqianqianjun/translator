@@ -10,7 +10,8 @@
 
   // Constants
   const FLOAT_BALL_SIZE = 52;
-  const EDGE_SNAP_THRESHOLD = 50; // Snap to edge when within 50px
+  const EDGE_SNAP_THRESHOLD = 100; // Snap to edge when within 100px
+  const EDGE_MARGIN = 8; // Small margin from edge when snapped
 
   // State
   let settings = {
@@ -106,11 +107,13 @@
       if (savedPosition) {
         const { x, y } = JSON.parse(savedPosition);
         if (typeof x === 'number' && typeof y === 'number') {
-          // Validate position is within current viewport
-          const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-          const maxY = window.innerHeight - FLOAT_BALL_SIZE;
-          const validX = Math.max(0, Math.min(x, maxX));
-          const validY = Math.max(0, Math.min(y, maxY));
+          // Validate position is within current viewport with margin
+          const minX = EDGE_MARGIN;
+          const maxX = window.innerWidth - FLOAT_BALL_SIZE - EDGE_MARGIN;
+          const minY = EDGE_MARGIN;
+          const maxY = window.innerHeight - FLOAT_BALL_SIZE - EDGE_MARGIN;
+          const validX = Math.max(minX, Math.min(x, maxX));
+          const validY = Math.max(minY, Math.min(y, maxY));
 
           // If position was adjusted, update saved position
           if (x !== validX || y !== validY) {
@@ -184,11 +187,13 @@
       let newX = ballStartX + deltaX;
       let newY = ballStartY + deltaY;
 
-      // Clamp to viewport
-      const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-      const maxY = window.innerHeight - FLOAT_BALL_SIZE;
-      newX = Math.max(0, Math.min(newX, maxX));
-      newY = Math.max(0, Math.min(newY, maxY));
+      // Clamp to viewport with margin
+      const minX = EDGE_MARGIN;
+      const maxX = window.innerWidth - FLOAT_BALL_SIZE - EDGE_MARGIN;
+      const minY = EDGE_MARGIN;
+      const maxY = window.innerHeight - FLOAT_BALL_SIZE - EDGE_MARGIN;
+      newX = Math.max(minX, Math.min(newX, maxX));
+      newY = Math.max(minY, Math.min(newY, maxY));
 
       // Apply position immediately (no transition)
       floatBall.style.right = 'auto';
@@ -208,20 +213,23 @@
         let finalX = rect.left;
         let finalY = rect.top;
 
-        const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-        const maxY = window.innerHeight - FLOAT_BALL_SIZE;
+        // Calculate safe bounds (ensure ball stays fully visible)
+        const minX = EDGE_MARGIN;
+        const maxX = window.innerWidth - FLOAT_BALL_SIZE - EDGE_MARGIN;
+        const minY = EDGE_MARGIN;
+        const maxY = window.innerHeight - FLOAT_BALL_SIZE - EDGE_MARGIN;
 
-        // Check if near edges and snap
-        const distLeft = finalX;
+        // Check distance to edges
+        const distLeft = finalX - minX;
         const distRight = maxX - finalX;
-        const distTop = finalY;
+        const distTop = finalY - minY;
         const distBottom = maxY - finalY;
 
         let snapped = false;
 
         // Snap to left or right edge
-        if (distLeft <= EDGE_SNAP_THRESHOLD) {
-          finalX = 0;
+        if (distLeft <= EDGE_SNAP_THRESHOLD && distLeft < distRight) {
+          finalX = minX;
           snapped = true;
         } else if (distRight <= EDGE_SNAP_THRESHOLD) {
           finalX = maxX;
@@ -229,8 +237,8 @@
         }
 
         // Snap to top or bottom edge
-        if (distTop <= EDGE_SNAP_THRESHOLD) {
-          finalY = 0;
+        if (distTop <= EDGE_SNAP_THRESHOLD && distTop < distBottom) {
+          finalY = minY;
           snapped = true;
         } else if (distBottom <= EDGE_SNAP_THRESHOLD) {
           finalY = maxY;
@@ -264,11 +272,13 @@
       if (!floatBall || isDragging) return;
 
       const rect = floatBall.getBoundingClientRect();
-      const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-      const maxY = window.innerHeight - FLOAT_BALL_SIZE;
+      const minX = EDGE_MARGIN;
+      const maxX = window.innerWidth - FLOAT_BALL_SIZE - EDGE_MARGIN;
+      const minY = EDGE_MARGIN;
+      const maxY = window.innerHeight - FLOAT_BALL_SIZE - EDGE_MARGIN;
 
-      const newX = Math.max(0, Math.min(rect.left, maxX));
-      const newY = Math.max(0, Math.min(rect.top, maxY));
+      const newX = Math.max(minX, Math.min(rect.left, maxX));
+      const newY = Math.max(minY, Math.min(rect.top, maxY));
 
       if (newX !== rect.left || newY !== rect.top) {
         floatBall.style.right = 'auto';
