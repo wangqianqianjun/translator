@@ -588,8 +588,8 @@ button.ai-translator-inline-block {
   bottom: 80px;
   right: 24px;
   z-index: 2147483646;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -602,9 +602,9 @@ button.ai-translator-inline-block {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   /* Only transition visual effects, not position */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
   user-select: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 #ai-translator-float-ball::before {
@@ -618,15 +618,50 @@ button.ai-translator-inline-block {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0.6;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, border-radius 0.2s ease;
+}
+
+/* Docked to right edge */
+#ai-translator-float-ball.docked-right {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px 0 0 22px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(124, 92, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#ai-translator-float-ball.docked-right::before {
+  border-radius: 24px 0 0 24px;
+}
+
+/* Docked to left edge */
+#ai-translator-float-ball.docked-left {
+  width: 44px;
+  height: 44px;
+  border-radius: 0 22px 22px 0;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(124, 92, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#ai-translator-float-ball.docked-left::before {
+  border-radius: 0 24px 24px 0;
 }
 
 #ai-translator-float-ball:hover {
-  transform: scale(1.1);
-  box-shadow: 
+  transform: scale(1.08);
+  box-shadow:
     0 12px 40px rgba(124, 92, 255, 0.3),
     0 0 0 1px rgba(124, 92, 255, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+#ai-translator-float-ball.docked-right:hover,
+#ai-translator-float-ball.docked-left:hover {
+  transform: scale(1.05);
 }
 
 #ai-translator-float-ball:hover::before {
@@ -640,10 +675,16 @@ button.ai-translator-inline-block {
 }
 
 #ai-translator-float-ball svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   filter: drop-shadow(0 2px 8px rgba(124, 92, 255, 0.4));
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, width 0.2s ease, height 0.2s ease;
+}
+
+#ai-translator-float-ball.docked-right svg,
+#ai-translator-float-ball.docked-left svg {
+  width: 22px;
+  height: 22px;
 }
 
 #ai-translator-float-ball:hover svg {
@@ -1036,14 +1077,22 @@ button.ai-translator-inline-block {
 
 [data-ai-translator-theme="light"] #ai-translator-float-ball {
   background: linear-gradient(145deg, #ffffff 0%, #f0f0f5 100%);
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(124, 92, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+[data-ai-translator-theme="light"] #ai-translator-float-ball.docked-right,
+[data-ai-translator-theme="light"] #ai-translator-float-ball.docked-left {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(124, 92, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
 [data-ai-translator-theme="light"] #ai-translator-float-ball:hover {
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(124, 92, 255, 0.2),
     0 0 0 1px rgba(124, 92, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 1);
