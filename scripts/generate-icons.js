@@ -117,21 +117,12 @@ try {
     ctx.fill();
   }
 
-  // 生成深色模式图标（带圆形背景）
+  // 生成深色模式图标（透明背景）
   function generateDarkIcon(size) {
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const radius = size * 0.48;
 
-    // 深色背景圆
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fill();
-
-    // 绘制气泡
+    // 透明背景，直接绘制气泡
     drawOverlappingBubbles(ctx, size, true);
 
     return canvas.toBuffer('image/png');
