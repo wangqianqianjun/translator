@@ -9,9 +9,9 @@
   }
 
   // Constants
-  const FLOAT_BALL_SIZE = 44;
+  const FLOAT_BALL_SIZE = 40;
   const EDGE_SNAP_THRESHOLD = 100; // Snap to edge when within 100px
-  const CONTAINER_PADDING = 8; // Padding around ball in docked container
+  const CONTAINER_PADDING = 5; // Padding around ball in docked container
 
   // State
   let settings = {
@@ -123,7 +123,7 @@
 
           // Recalculate docked position for current viewport
           if (docked === 'right') {
-            validX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING;
+            validX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2;
           } else if (docked === 'left') {
             validX = CONTAINER_PADDING;
           } else {
@@ -134,6 +134,7 @@
           validY = Math.max(8, Math.min(y, viewportHeight - FLOAT_BALL_SIZE - 8));
 
           floatBall.style.right = 'auto';
+          floatBall.style.bottom = 'auto';
           floatBall.style.left = `${validX}px`;
           floatBall.style.top = `${validY}px`;
 
@@ -173,8 +174,8 @@
     floatBallContainer.classList.remove('docked-left', 'docked-right');
     floatBallContainer.classList.add('docked-' + side);
 
-    // Position container
-    const containerWidth = FLOAT_BALL_SIZE + CONTAINER_PADDING;
+    // Container dimensions - capsule shape wrapping the ball
+    const containerWidth = FLOAT_BALL_SIZE + CONTAINER_PADDING * 2 + CONTAINER_PADDING; // Extra padding on open side
     const containerHeight = FLOAT_BALL_SIZE + CONTAINER_PADDING * 2;
 
     if (side === 'right') {
@@ -250,6 +251,7 @@
 
       // Apply position immediately (no transition)
       floatBall.style.right = 'auto';
+      floatBall.style.bottom = 'auto';
       floatBall.style.left = newX + 'px';
       floatBall.style.top = newY + 'px';
     });
@@ -276,11 +278,12 @@
         let dockedSide = null;
 
         // Snap to left or right edge (dock to edge)
+        // Ball is fully visible inside the capsule container
         if (distLeft <= EDGE_SNAP_THRESHOLD && distLeft < distRight) {
-          finalX = CONTAINER_PADDING; // Dock to left edge with padding
+          finalX = CONTAINER_PADDING; // Ball inside container on left
           dockedSide = 'left';
         } else if (distRight <= EDGE_SNAP_THRESHOLD) {
-          finalX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING; // Dock to right edge
+          finalX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2; // Ball inside container on right
           dockedSide = 'right';
         }
 
@@ -330,9 +333,12 @@
 
       let newX = rect.left;
       if (isDockedRight) {
-        newX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING;
+        newX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2;
         floatBall.style.left = newX + 'px';
         floatBallContainer.style.right = '0';
+      } else if (isDockedLeft) {
+        newX = CONTAINER_PADDING;
+        floatBall.style.left = newX + 'px';
       }
 
       // Clamp vertical position
