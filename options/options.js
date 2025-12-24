@@ -7,6 +7,127 @@ Rules:
 4. If the text is already in the target language, return it as is
 5. Translate naturally, not literally`;
 
+// Current UI language
+let currentUILang = 'en';
+
+// i18n helper
+function t(key) {
+  return getMessage(key, currentUILang);
+}
+
+// Apply i18n to page
+function applyI18n(lang) {
+  currentUILang = getUILanguage(lang);
+  
+  // Update all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const text = t(key);
+    if (text && text !== key) {
+      el.textContent = text;
+    }
+  });
+  
+  // Update title attributes
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    const text = t(key);
+    if (text && text !== key) {
+      el.title = text;
+    }
+  });
+  
+  // Update document title
+  document.title = `AI Translator - ${t('settings')}`;
+}
+
+// Hint translations map
+const hintTranslations = {
+  'en': {
+    apiEndpoint: 'Supports OpenAI compatible API',
+    apiKey: 'Your API key is stored securely locally',
+    enableSelection: 'Show translate button on text selection',
+    showFloatBall: 'Show quick translation button at page corner',
+    customPrompt: 'Available variable: {targetLang} - target language. Leave empty for default.'
+  },
+  'zh-CN': {
+    apiEndpoint: '支持 OpenAI 兼容的 API 接口',
+    apiKey: '你的 API 密钥将安全存储在本地',
+    enableSelection: '选中文本后显示翻译按钮',
+    showFloatBall: '页面右下角显示快捷翻译按钮',
+    customPrompt: '可用变量: {targetLang} - 目标语言名称。留空使用默认 Prompt。'
+  },
+  'zh-TW': {
+    apiEndpoint: '支持 OpenAI 相容的 API 接口',
+    apiKey: '你的 API 密鑰將安全存儲在本地',
+    enableSelection: '選中文本後顯示翻譯按鈕',
+    showFloatBall: '頁面右下角顯示快捷翻譯按鈕',
+    customPrompt: '可用變量: {targetLang} - 目標語言名稱。留空使用默認 Prompt。'
+  },
+  'ja': {
+    apiEndpoint: 'OpenAI互換APIをサポート',
+    apiKey: 'APIキーはローカルに安全に保存されます',
+    enableSelection: 'テキスト選択時に翻訳ボタンを表示',
+    showFloatBall: 'ページの角にクイック翻訳ボタンを表示',
+    customPrompt: '使用可能な変数: {targetLang} - ターゲット言語。空欄でデフォルトを使用。'
+  },
+  'ko': {
+    apiEndpoint: 'OpenAI 호환 API 지원',
+    apiKey: 'API 키는 로컬에 안전하게 저장됩니다',
+    enableSelection: '텍스트 선택 시 번역 버튼 표시',
+    showFloatBall: '페이지 모서리에 빠른 번역 버튼 표시',
+    customPrompt: '사용 가능한 변수: {targetLang} - 대상 언어. 기본값을 사용하려면 비워 두세요.'
+  },
+  'fr': {
+    apiEndpoint: 'Prend en charge l\'API compatible OpenAI',
+    apiKey: 'Votre clé API est stockée en toute sécurité localement',
+    enableSelection: 'Afficher le bouton de traduction lors de la sélection de texte',
+    showFloatBall: 'Afficher le bouton de traduction rapide dans le coin de la page',
+    customPrompt: 'Variable disponible: {targetLang} - langue cible. Laissez vide pour utiliser le défaut.'
+  },
+  'de': {
+    apiEndpoint: 'Unterstützt OpenAI-kompatible API',
+    apiKey: 'Ihr API-Schlüssel wird sicher lokal gespeichert',
+    enableSelection: 'Übersetzungsschaltfläche bei Textauswahl anzeigen',
+    showFloatBall: 'Schnellübersetzungsschaltfläche in der Seitenecke anzeigen',
+    customPrompt: 'Verfügbare Variable: {targetLang} - Zielsprache. Leer lassen für Standard.'
+  },
+  'es': {
+    apiEndpoint: 'Compatible con API de OpenAI',
+    apiKey: 'Su clave API se almacena de forma segura localmente',
+    enableSelection: 'Mostrar botón de traducción al seleccionar texto',
+    showFloatBall: 'Mostrar botón de traducción rápida en la esquina de la página',
+    customPrompt: 'Variable disponible: {targetLang} - idioma de destino. Dejar vacío para usar el valor predeterminado.'
+  },
+  'pt': {
+    apiEndpoint: 'Suporta API compatível com OpenAI',
+    apiKey: 'Sua chave API é armazenada com segurança localmente',
+    enableSelection: 'Mostrar botão de tradução ao selecionar texto',
+    showFloatBall: 'Mostrar botão de tradução rápida no canto da página',
+    customPrompt: 'Variável disponível: {targetLang} - idioma de destino. Deixe vazio para usar o padrão.'
+  },
+  'ru': {
+    apiEndpoint: 'Поддерживает API, совместимый с OpenAI',
+    apiKey: 'Ваш API-ключ надёжно хранится локально',
+    enableSelection: 'Показывать кнопку перевода при выделении текста',
+    showFloatBall: 'Показывать кнопку быстрого перевода в углу страницы',
+    customPrompt: 'Доступная переменная: {targetLang} - целевой язык. Оставьте пустым для значения по умолчанию.'
+  }
+};
+
+// Apply hints i18n
+function applyHintsI18n(lang) {
+  const uiLang = getUILanguage(lang);
+  const hints = hintTranslations[uiLang] || hintTranslations['en'];
+  
+  document.querySelectorAll('[data-i18n-hint]').forEach(el => {
+    const key = el.getAttribute('data-i18n-hint');
+    if (hints[key]) {
+      el.textContent = hints[key];
+    }
+  });
+}
+
 // DOM Elements
 const elements = {
   apiEndpoint: document.getElementById('apiEndpoint'),
@@ -61,9 +182,13 @@ async function loadSettings() {
     
     // Apply theme
     applyTheme(result.theme || 'dark');
+    
+    // Apply i18n based on target language
+    applyI18n(result.targetLang);
+    applyHintsI18n(result.targetLang);
   } catch (error) {
     console.error('Failed to load settings:', error);
-    showStatus('加载设置失败', 'error');
+    showStatus(t('connectionFailed'), 'error');
   }
 }
 
@@ -101,26 +226,30 @@ async function saveSettings() {
 
   // Validation
   if (!settings.apiEndpoint) {
-    showStatus('请填写 API 地址', 'error');
+    showStatus(t('pleaseEnterApiEndpoint'), 'error');
     elements.apiEndpoint.focus();
     return;
   }
 
   if (!settings.apiKey) {
-    showStatus('请填写 API Key', 'error');
+    showStatus(t('pleaseEnterApiKey'), 'error');
     elements.apiKey.focus();
     return;
   }
 
   try {
     await chrome.storage.sync.set(settings);
-    showStatus('✓ 设置已保存', 'success');
+    showStatus(t('settingsSaved'), 'success');
     
     // Notify all tabs about settings change
     notifyContentScripts(settings);
+    
+    // Update UI language if target language changed
+    applyI18n(settings.targetLang);
+    applyHintsI18n(settings.targetLang);
   } catch (error) {
     console.error('Failed to save settings:', error);
-    showStatus('保存设置失败', 'error');
+    showStatus(t('connectionFailed'), 'error');
   }
 }
 
@@ -146,11 +275,11 @@ async function testConnection() {
   const modelName = elements.modelName.value.trim();
 
   if (!apiEndpoint || !apiKey) {
-    showStatus('请先填写 API 地址和 Key', 'warning');
+    showStatus(t('pleaseConfigureApi'), 'warning');
     return;
   }
 
-  showStatus('正在测试连接...', 'warning');
+  showStatus(t('translating'), 'warning');
 
   try {
     const response = await fetch(apiEndpoint, {
@@ -169,20 +298,20 @@ async function testConnection() {
     });
 
     if (response.ok) {
-      showStatus('✓ 连接成功！API 配置正确', 'success');
+      showStatus(t('connectionSuccess'), 'success');
     } else {
       const error = await response.json().catch(() => ({}));
-      showStatus(`连接失败: ${error.error?.message || response.status}`, 'error');
+      showStatus(`${t('connectionFailed')}: ${error.error?.message || response.status}`, 'error');
     }
   } catch (error) {
-    showStatus(`连接失败: ${error.message}`, 'error');
+    showStatus(`${t('connectionFailed')}: ${error.message}`, 'error');
   }
 }
 
 // Reset prompt to default
 function resetPrompt() {
   elements.customPrompt.value = DEFAULT_PROMPT;
-  showStatus('已恢复默认 Prompt', 'success');
+  showStatus(t('resetToDefault'), 'success');
 }
 
 // Toggle API Key visibility

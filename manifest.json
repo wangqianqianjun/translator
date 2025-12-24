@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI Translator",
   "version": "1.0.0",
-  "description": "AI 驱动的智能翻译插件，支持划词翻译和全文翻译",
+  "description": "AI-powered translation extension with selection and full-page translation",
   "permissions": [
     "storage",
     "activeTab",
@@ -34,7 +34,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/content.js"],
+      "js": ["i18n/messages.js", "content/content.js"],
       "css": ["content/content.css"],
       "run_at": "document_end"
     }

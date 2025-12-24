@@ -10,8 +10,31 @@ const elements = {
 // Default settings
 const defaultSettings = {
   apiKey: '',
-  showFloatBall: true
+  showFloatBall: true,
+  targetLang: 'zh-CN'
 };
+
+// Current UI language
+let currentUILang = 'en';
+
+// i18n helper
+function t(key) {
+  return getMessage(key, currentUILang);
+}
+
+// Apply i18n to page
+function applyI18n(lang) {
+  currentUILang = getUILanguage(lang);
+  
+  // Update all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const text = t(key);
+    if (text && text !== key) {
+      el.textContent = text;
+    }
+  });
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -24,15 +47,18 @@ async function checkStatus() {
   try {
     const settings = await chrome.storage.sync.get(defaultSettings);
     
+    // Apply i18n based on target language
+    applyI18n(settings.targetLang);
+    
     // Update float ball status
-    elements.floatBallStatus.textContent = settings.showFloatBall ? '开启' : '关闭';
+    elements.floatBallStatus.textContent = settings.showFloatBall ? t('on') : t('off');
     
     // Check if API is configured
     if (!settings.apiKey) {
-      elements.statusText.textContent = '未配置 API';
+      elements.statusText.textContent = t('apiNotConfigured');
       document.body.classList.add('status-error');
     } else {
-      elements.statusText.textContent = '就绪';
+      elements.statusText.textContent = t('ready');
     }
   } catch (error) {
     console.error('Failed to check status:', error);
@@ -45,7 +71,7 @@ async function translateCurrentPage() {
     const settings = await chrome.storage.sync.get(defaultSettings);
     
     if (!settings.apiKey) {
-      elements.statusText.textContent = '请先配置 API';
+      elements.statusText.textContent = t('configureApiKeyFirst');
       document.body.classList.add('status-error');
       // Open settings
       chrome.runtime.openOptionsPage();
@@ -54,20 +80,20 @@ async function translateCurrentPage() {
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tabs[0]?.id) {
-      elements.statusText.textContent = '无法获取页面';
+      elements.statusText.textContent = t('translationFailed');
       return;
     }
 
     // Send message to content script
     chrome.tabs.sendMessage(tabs[0].id, { type: 'TRANSLATE_PAGE' });
     
-    elements.statusText.textContent = '正在翻译...';
+    elements.statusText.textContent = t('translating');
     
     // Close popup after a short delay
     setTimeout(() => window.close(), 500);
   } catch (error) {
     console.error('Failed to translate page:', error);
-    elements.statusText.textContent = '翻译失败';
+    elements.statusText.textContent = t('translationFailed');
   }
 }
 
@@ -78,7 +104,7 @@ async function toggleFloatBall() {
     const newState = !settings.showFloatBall;
     
     await chrome.storage.sync.set({ showFloatBall: newState });
-    elements.floatBallStatus.textContent = newState ? '开启' : '关闭';
+    elements.floatBallStatus.textContent = newState ? t('on') : t('off');
     
     // Notify all tabs
     const tabs = await chrome.tabs.query({});

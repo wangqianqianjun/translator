@@ -2,6 +2,12 @@
 (function() {
   'use strict';
 
+  // i18n helper - get UI language based on target language
+  function t(key) {
+    const uiLang = getUILanguage(settings.targetLang);
+    return getMessage(key, uiLang);
+  }
+
   // State
   let settings = {
     enableSelection: true,
@@ -161,19 +167,26 @@
     floatMenu = document.createElement('div');
     floatMenu.id = 'ai-translator-float-menu';
     floatMenu.innerHTML = `
+      <button class="ai-translator-menu-item" data-action="translate-input">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        ${t('inputTranslate')}
+      </button>
       <button class="ai-translator-menu-item" data-action="translate-selection">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
           <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
         </svg>
-        翻译选中文本
+        ${t('translateSelection')}
       </button>
       <button class="ai-translator-menu-item" data-action="translate-page">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
           <path d="M3 9h18M9 21V9"/>
         </svg>
-        翻译整个页面
+        ${t('translatePage')}
       </button>
       ${hasTranslations ? `
       <button class="ai-translator-menu-item" data-action="toggle-translations">
@@ -183,7 +196,7 @@
             '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
           }
         </svg>
-        ${translationsVisible ? '隐藏译文' : '显示译文'}
+        ${translationsVisible ? t('hideTranslations') : t('showTranslations')}
       </button>
       ` : ''}
       <div class="ai-translator-menu-divider"></div>
@@ -192,14 +205,14 @@
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09"/>
         </svg>
-        打开设置
+        ${t('openSettings')}
       </button>
     `;
 
     // Position menu above the ball
     const ballRect = floatBall.getBoundingClientRect();
     const menuWidth = 180;
-    const menuHeight = hasTranslations ? 180 : 140;
+    const menuHeight = hasTranslations ? 220 : 180;
     
     let left = ballRect.left + (ballRect.width / 2) - (menuWidth / 2);
     let top = ballRect.top - menuHeight - 10;
@@ -246,6 +259,9 @@
 
   function handleMenuAction(action) {
     switch (action) {
+      case 'translate-input':
+        showInputTranslateDialog();
+        break;
       case 'translate-selection':
         const selectedText = getSelectedText() || lastSelectedText;
         if (selectedText) {
@@ -278,6 +294,137 @@
         el.classList.add('ai-translator-hidden');
       }
     });
+  }
+
+  // ==================== Input Translate Dialog ====================
+
+  let inputDialog = null;
+
+  function showInputTranslateDialog() {
+    if (inputDialog) {
+      inputDialog.remove();
+    }
+
+    inputDialog = document.createElement('div');
+    inputDialog.id = 'ai-translator-input-dialog';
+    inputDialog.innerHTML = `
+      <div class="ai-translator-input-overlay"></div>
+      <div class="ai-translator-input-modal">
+        <div class="ai-translator-input-header">
+          <span class="ai-translator-input-title">${t('inputTextTranslation')}</span>
+          <button class="ai-translator-input-close" title="${t('close')}">×</button>
+        </div>
+        <div class="ai-translator-input-body">
+          <div class="ai-translator-input-section">
+            <label class="ai-translator-input-label">${t('inputText')}</label>
+            <textarea 
+              class="ai-translator-input-textarea" 
+              id="ai-translator-input-text"
+              placeholder="${t('inputPlaceholder')}"
+              rows="4"
+            ></textarea>
+          </div>
+          <div class="ai-translator-input-actions">
+            <button class="ai-translator-input-btn ai-translator-input-btn-primary" id="ai-translator-do-translate">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
+                <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
+              </svg>
+              ${t('translate')}
+            </button>
+          </div>
+          <div class="ai-translator-input-section ai-translator-result-section" id="ai-translator-result-section" style="display: none;">
+            <label class="ai-translator-input-label">${t('translatedText')}</label>
+            <div class="ai-translator-input-result" id="ai-translator-result-text"></div>
+            <button class="ai-translator-input-btn ai-translator-input-btn-copy" id="ai-translator-copy-result">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              ${t('copyTranslation')}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(inputDialog);
+
+    // Focus on textarea
+    const textarea = inputDialog.querySelector('#ai-translator-input-text');
+    setTimeout(() => textarea.focus(), 100);
+
+    // Event listeners
+    inputDialog.querySelector('.ai-translator-input-close').addEventListener('click', hideInputDialog);
+    inputDialog.querySelector('.ai-translator-input-overlay').addEventListener('click', hideInputDialog);
+    
+    inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
+      const text = textarea.value.trim();
+      if (!text) return;
+      
+      const resultSection = inputDialog.querySelector('#ai-translator-result-section');
+      const resultText = inputDialog.querySelector('#ai-translator-result-text');
+      
+      resultSection.style.display = 'block';
+      resultText.innerHTML = `<div class="ai-translator-input-loading"><div class="ai-translator-spinner"></div><span>${t('translating')}</span></div>`;
+      
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'TRANSLATE',
+          text: text,
+          targetLang: settings.targetLang
+        });
+        
+        if (response.error) {
+          resultText.innerHTML = `<div class="ai-translator-input-error">${escapeHtml(response.error)}</div>`;
+        } else {
+          resultText.textContent = response.translation;
+        }
+      } catch (error) {
+        resultText.innerHTML = `<div class="ai-translator-input-error">${t('translationFailed')}</div>`;
+      }
+    });
+
+    inputDialog.querySelector('#ai-translator-copy-result').addEventListener('click', async () => {
+      const resultText = inputDialog.querySelector('#ai-translator-result-text').textContent;
+      if (resultText && !resultText.includes(t('translating'))) {
+        await copyToClipboard(resultText);
+        const copyBtn = inputDialog.querySelector('#ai-translator-copy-result');
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          ${t('copied')}
+        `;
+        setTimeout(() => copyBtn.innerHTML = originalHTML, 1500);
+      }
+    });
+
+    // Enter key to translate (Ctrl+Enter or Cmd+Enter)
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        inputDialog.querySelector('#ai-translator-do-translate').click();
+      }
+    });
+
+    // Escape to close
+    document.addEventListener('keydown', handleInputDialogEscape);
+  }
+
+  function handleInputDialogEscape(e) {
+    if (e.key === 'Escape' && inputDialog) {
+      hideInputDialog();
+    }
+  }
+
+  function hideInputDialog() {
+    if (inputDialog) {
+      inputDialog.remove();
+      inputDialog = null;
+      document.removeEventListener('keydown', handleInputDialogEscape);
+    }
   }
 
   function updateFloatBallVisibility() {
@@ -351,7 +498,7 @@
         <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
         <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
       </svg>
-      <span>翻译</span>
+      <span>${t('translate')}</span>
     `;
 
     // Position button above the selection
@@ -398,32 +545,32 @@
     translationPopup.className = 'ai-translator-popup';
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
-        <span class="ai-translator-title">AI 翻译</span>
-        <button class="ai-translator-close" title="关闭">×</button>
+        <span class="ai-translator-title">${t('aiTranslate')}</span>
+        <button class="ai-translator-close" title="${t('close')}">×</button>
       </div>
       <div class="ai-translator-content">
         <div class="ai-translator-source">
-          <div class="ai-translator-label">原文</div>
+          <div class="ai-translator-label">${t('original')}</div>
           <div class="ai-translator-text">${escapeHtml(text)}</div>
         </div>
         <div class="ai-translator-divider"></div>
         <div class="ai-translator-result">
-          <div class="ai-translator-label">译文</div>
+          <div class="ai-translator-label">${t('translation')}</div>
           <div class="ai-translator-translation">
             <div class="ai-translator-loading">
               <div class="ai-translator-spinner"></div>
-              <span>翻译中...</span>
+              <span>${t('translating')}</span>
             </div>
           </div>
         </div>
       </div>
       <div class="ai-translator-actions">
-        <button class="ai-translator-btn ai-translator-copy" title="复制译文">
+        <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
           </svg>
-          复制
+          ${t('copy')}
         </button>
       </div>
     `;
@@ -453,7 +600,7 @@
     translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
     translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
       const translationText = translationPopup.querySelector('.ai-translator-translation').textContent;
-      if (translationText && !translationText.includes('翻译中')) {
+      if (translationText && !translationText.includes(t('translating'))) {
         copyToClipboard(translationText);
         showCopyFeedback();
       }
@@ -491,7 +638,7 @@
       console.error('AI Translator: Translation failed', error);
       if (translationPopup) {
         const translationEl = translationPopup.querySelector('.ai-translator-translation');
-        translationEl.innerHTML = `<div class="ai-translator-error">翻译失败，请重试</div>`;
+        translationEl.innerHTML = `<div class="ai-translator-error">${t('translationFailed')}</div>`;
       }
     }
   }
@@ -519,7 +666,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 6L9 17l-5-5"/>
         </svg>
-        已复制
+        ${t('copied')}
       `;
       setTimeout(() => {
         if (copyBtn) copyBtn.innerHTML = originalText;
@@ -534,13 +681,50 @@
   const CONCURRENCY = 8;        // 并发数
   const DELIMITER = '<<<>>>';   // 分隔符
 
+  // 翻译进度追踪
+  let translationProgress = { current: 0, total: 0 };
+
+  // 追踪页面是否已经翻译过
+  let pageHasBeenTranslated = false;
+
   async function translatePage() {
+    // 检查是否已经翻译过此页面
+    if (pageHasBeenTranslated) {
+      console.log('AI Translator: Page already translated');
+      showPageTranslationProgress();
+      showAlreadyTranslatedMessage();
+      return;
+    }
+
     if (isTranslatingPage) {
       console.log('AI Translator: Already translating page');
+      // 如果进度条被关闭了，重新显示它并恢复进度
+      let existingProgress = document.getElementById('ai-translator-progress');
+      if (!existingProgress) {
+        showPageTranslationProgress();
+        existingProgress = document.getElementById('ai-translator-progress');
+        // 恢复当前进度
+        if (translationProgress.total > 0) {
+          updatePageTranslationProgress(translationProgress.current, translationProgress.total);
+        }
+      }
+      // 闪烁提示正在翻译中
+      showTranslatingHint(existingProgress);
+      return;
+    }
+
+    // 检查是否已经有翻译内容（页面可能在之前的会话中翻译过）
+    const existingTranslations = document.querySelectorAll('.ai-translator-inline-block').length;
+    if (existingTranslations > 0) {
+      console.log('AI Translator: Found existing translations');
+      pageHasBeenTranslated = true;
+      showPageTranslationProgress();
+      showAlreadyTranslatedMessage();
       return;
     }
 
     isTranslatingPage = true;
+    translationProgress = { current: 0, total: 0 };
     showPageTranslationProgress();
 
     try {
@@ -558,8 +742,7 @@
       
       console.log(`AI Translator: ${translatableBlocks.length} blocks, ${batches.length} batches, concurrency: ${CONCURRENCY}`);
 
-      let processedCount = 0;
-      const totalCount = translatableBlocks.length;
+      translationProgress.total = translatableBlocks.length;
 
       // 使用 Promise 池进行并发控制
       const processBatch = async (batch) => {
@@ -584,19 +767,22 @@
           console.error('AI Translator: Batch translation failed', error);
         }
 
-        processedCount += batch.length;
-        updatePageTranslationProgress(processedCount, totalCount);
+        translationProgress.current += batch.length;
+        updatePageTranslationProgress(translationProgress.current, translationProgress.total);
       };
 
       // 并发执行所有批次
       await runWithConcurrency(batches, processBatch, CONCURRENCY);
 
+      // 标记页面已翻译
+      pageHasBeenTranslated = true;
       hidePageTranslationProgress();
     } catch (error) {
       console.error('AI Translator: Page translation failed', error);
       hidePageTranslationProgress();
     } finally {
       isTranslatingPage = false;
+      translationProgress = { current: 0, total: 0 };
     }
   }
 
@@ -773,6 +959,9 @@
     const element = block.element;
     if (!element || !element.parentNode) return;
     
+    // 检查是否已经翻译过，防止重复
+    if (element.classList.contains('ai-translator-translated')) return;
+    
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
     
@@ -806,19 +995,88 @@
       progressEl = document.createElement('div');
       progressEl.id = 'ai-translator-progress';
       progressEl.innerHTML = `
-        <div class="ai-translator-progress-header">
-          <span class="ai-translator-progress-text">正在翻译...</span>
-          <span class="ai-translator-progress-percent">0%</span>
+        <div class="ai-translator-progress-content">
+          <div class="ai-translator-progress-header">
+            <span class="ai-translator-progress-text">${t('translatingProgress')}</span>
+            <span class="ai-translator-progress-percent">0%</span>
+          </div>
+          <div class="ai-translator-progress-track">
+            <div class="ai-translator-progress-bar"></div>
+          </div>
         </div>
-        <div class="ai-translator-progress-track">
-          <div class="ai-translator-progress-bar"></div>
-        </div>
+        <button class="ai-translator-progress-close" title="${t('closeTranslation')}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       `;
       document.body.appendChild(progressEl);
       
       // 定位到翻译球下方
       positionProgressBar();
+      
+      // 添加关闭按钮事件 - 使用 mousedown 确保在拖动逻辑之前触发
+      const closeBtn = progressEl.querySelector('.ai-translator-progress-close');
+      closeBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        forceHideProgressBar();
+      });
+      
+      // 添加拖动功能
+      setupProgressBarDrag(progressEl);
     }
+  }
+
+  function setupProgressBarDrag(progressEl) {
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+
+    progressEl.addEventListener('mousedown', (e) => {
+      // 忽略关闭按钮点击
+      if (e.target.classList.contains('ai-translator-progress-close')) return;
+      
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      
+      const rect = progressEl.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+      
+      progressEl.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      let newX = initialX + deltaX;
+      let newY = initialY + deltaY;
+
+      // 保持在视口内
+      const progressWidth = 220;
+      const progressHeight = 60;
+      newX = Math.max(0, Math.min(window.innerWidth - progressWidth, newX));
+      newY = Math.max(0, Math.min(window.innerHeight - progressHeight, newY));
+
+      progressEl.style.left = `${newX}px`;
+      progressEl.style.top = `${newY}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        progressEl.classList.remove('dragging');
+      }
+    });
   }
 
   function positionProgressBar() {
@@ -826,7 +1084,7 @@
     if (!progressEl || !floatBall) return;
     
     const ballRect = floatBall.getBoundingClientRect();
-    const progressWidth = 160;
+    const progressWidth = 220;
     
     let left = ballRect.left + (ballRect.width / 2) - (progressWidth / 2);
     let top = ballRect.bottom + 12;
@@ -844,6 +1102,102 @@
     progressEl.style.top = `${top}px`;
   }
 
+  function forceHideProgressBar() {
+    const progressEl = document.getElementById('ai-translator-progress');
+    if (progressEl) {
+      progressEl.classList.add('ai-translator-progress-done');
+      setTimeout(() => progressEl.remove(), 300);
+    }
+    // 注意：不重置 isTranslatingPage，翻译任务可能还在后台运行
+    // isTranslatingPage 只在翻译真正完成时才重置（在 finally 块中）
+  }
+
+  function showTranslatingHint(progressEl) {
+    if (!progressEl) return;
+    
+    // 避免重复触发
+    if (progressEl.classList.contains('ai-translator-progress-hint')) return;
+    
+    const textEl = progressEl.querySelector('.ai-translator-progress-text');
+    if (!textEl) return;
+    
+    const originalText = textEl.textContent;
+    
+    // 添加闪烁动画类
+    progressEl.classList.add('ai-translator-progress-hint');
+    
+    // 淡出当前文字
+    textEl.classList.add('ai-translator-text-fade-out');
+    
+    setTimeout(() => {
+      // 切换文字并淡入
+      textEl.textContent = t('pleaseWait');
+      textEl.classList.remove('ai-translator-text-fade-out');
+      textEl.classList.add('ai-translator-text-fade-in');
+      
+      // 1.2秒后淡出提示文字
+      setTimeout(() => {
+        textEl.classList.remove('ai-translator-text-fade-in');
+        textEl.classList.add('ai-translator-text-fade-out');
+        
+        setTimeout(() => {
+          // 切换回原文字并淡入
+          textEl.textContent = originalText;
+          textEl.classList.remove('ai-translator-text-fade-out');
+          textEl.classList.add('ai-translator-text-fade-in');
+          progressEl.classList.remove('ai-translator-progress-hint');
+          
+          setTimeout(() => {
+            textEl.classList.remove('ai-translator-text-fade-in');
+          }, 200);
+        }, 200);
+      }, 1200);
+    }, 200);
+  }
+
+  function showAlreadyTranslatedMessage() {
+    const progressEl = document.getElementById('ai-translator-progress');
+    if (progressEl) {
+      progressEl.innerHTML = `
+        <div class="ai-translator-progress-content ai-translator-progress-info">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>${t('pageAlreadyTranslated')}</span>
+        </div>
+        <button class="ai-translator-progress-close" title="${t('close')}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      `;
+      progressEl.classList.add('ai-translator-progress-info-state');
+      
+      // 重新绑定关闭按钮事件
+      const closeBtn = progressEl.querySelector('.ai-translator-progress-close');
+      closeBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        forceHideProgressBar();
+      });
+      
+      // 3秒后自动关闭
+      setTimeout(() => {
+        if (progressEl.parentNode) {
+          progressEl.classList.add('ai-translator-progress-done');
+          setTimeout(() => {
+            if (progressEl.parentNode) progressEl.remove();
+          }, 300);
+        }
+      }, 3000);
+    }
+  }
+
   function updatePageTranslationProgress(current, total) {
     const progressBar = document.querySelector('#ai-translator-progress .ai-translator-progress-bar');
     const progressPercent = document.querySelector('#ai-translator-progress .ai-translator-progress-percent');
@@ -857,22 +1211,43 @@
   function hidePageTranslationProgress() {
     const progressEl = document.getElementById('ai-translator-progress');
     if (progressEl) {
-      // 显示成功状态
+      // 显示成功状态，保留关闭按钮
       progressEl.innerHTML = `
-        <div class="ai-translator-progress-success">
+        <div class="ai-translator-progress-content ai-translator-progress-success">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <span>翻译完成</span>
+          <span>${t('translationComplete')}</span>
         </div>
+        <button class="ai-translator-progress-close" title="${t('close')}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       `;
       progressEl.classList.add('ai-translator-progress-success-state');
       
+      // 重新绑定关闭按钮事件
+      const closeBtn = progressEl.querySelector('.ai-translator-progress-close');
+      closeBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        forceHideProgressBar();
+      });
+      
       // 5秒后自动关闭
       setTimeout(() => {
-        progressEl.classList.add('ai-translator-progress-done');
-        setTimeout(() => progressEl.remove(), 300);
+        if (progressEl.parentNode) {
+          progressEl.classList.add('ai-translator-progress-done');
+          setTimeout(() => {
+            if (progressEl.parentNode) progressEl.remove();
+          }, 300);
+        }
       }, 5000);
     }
   }
