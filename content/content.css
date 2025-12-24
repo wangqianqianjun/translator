@@ -599,14 +599,14 @@ button.ai-translator-inline-block {
 
 #ai-translator-float-ball-container.docked-right {
   display: flex;
-  /* Capsule: half-circle on left, flush with browser edge on right */
-  border-radius: 19px 0 0 19px;
+  /* Small tail extending from behind the ball to the edge */
+  border-radius: 22px 0 0 22px;
 }
 
 #ai-translator-float-ball-container.docked-left {
   display: flex;
-  /* Capsule: flush with browser edge on left, half-circle on right */
-  border-radius: 0 19px 19px 0;
+  /* Small tail extending from behind the ball to the edge */
+  border-radius: 0 22px 22px 0;
 }
 
 #ai-translator-float-ball {
@@ -614,8 +614,8 @@ button.ai-translator-inline-block {
   bottom: 80px;
   right: 24px;
   z-index: 2147483646;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -623,8 +623,8 @@ button.ai-translator-inline-block {
   border: 2px solid transparent;
   border-radius: 50%;
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(124, 92, 255, 0.15),
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(124, 92, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -669,8 +669,8 @@ button.ai-translator-inline-block {
 }
 
 #ai-translator-float-ball svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   filter: drop-shadow(0 2px 4px rgba(124, 92, 255, 0.4));
   transition: transform 0.3s ease;
 }
