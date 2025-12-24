@@ -141,145 +141,141 @@
 
   function setupFloatBallInteraction() {
     let isDragging = false;
-    let hasMoved = false;
-    let startX, startY, initialX, initialY;
+    let dragStartX, dragStartY;
+    let ballStartX, ballStartY;
+    let dragDistance = 0;
 
+    // Mouse down - start drag
     floatBall.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // Only left click
+
       isDragging = true;
-      hasMoved = false;
+      dragDistance = 0;
       floatBallDragged = false;
-      startX = e.clientX;
-      startY = e.clientY;
+
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
 
       const rect = floatBall.getBoundingClientRect();
-      initialX = rect.left;
-      initialY = rect.top;
+      ballStartX = rect.left;
+      ballStartY = rect.top;
 
+      // Remove any transition during drag
+      floatBall.style.transition = 'none';
       floatBall.classList.add('dragging');
+
       e.preventDefault();
-      e.stopPropagation();
     });
 
+    // Mouse move - update position
     document.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
 
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
+      const deltaX = e.clientX - dragStartX;
+      const deltaY = e.clientY - dragStartY;
+      dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-      // Only count as drag if moved more than 5 pixels
-      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-        hasMoved = true;
+      // Mark as dragged if moved more than 3 pixels
+      if (dragDistance > 3) {
         floatBallDragged = true;
       }
 
-      if (!hasMoved) return;
-
       // Calculate new position
-      let newX = initialX + deltaX;
-      let newY = initialY + deltaY;
+      let newX = ballStartX + deltaX;
+      let newY = ballStartY + deltaY;
 
-      // Keep within viewport bounds
+      // Clamp to viewport
       const maxX = window.innerWidth - FLOAT_BALL_SIZE;
       const maxY = window.innerHeight - FLOAT_BALL_SIZE;
       newX = Math.max(0, Math.min(newX, maxX));
       newY = Math.max(0, Math.min(newY, maxY));
 
+      // Apply position immediately (no transition)
       floatBall.style.right = 'auto';
-      floatBall.style.left = `${newX}px`;
-      floatBall.style.top = `${newY}px`;
+      floatBall.style.left = newX + 'px';
+      floatBall.style.top = newY + 'px';
     });
 
+    // Mouse up - end drag, apply snap
     document.addEventListener('mouseup', (e) => {
       if (!isDragging) return;
       isDragging = false;
       floatBall.classList.remove('dragging');
 
       if (floatBallDragged) {
-        // Apply edge snapping on release
+        // Get current position
         const rect = floatBall.getBoundingClientRect();
-        const pos = snapToEdge(rect.left, rect.top);
+        let finalX = rect.left;
+        let finalY = rect.top;
 
-        // Animate to snapped position
-        floatBall.style.transition = 'left 0.2s ease, top 0.2s ease';
-        floatBall.style.left = `${pos.x}px`;
-        floatBall.style.top = `${pos.y}px`;
+        const maxX = window.innerWidth - FLOAT_BALL_SIZE;
+        const maxY = window.innerHeight - FLOAT_BALL_SIZE;
 
-        // Remove transition after animation
-        setTimeout(() => {
-          if (floatBall) {
-            floatBall.style.transition = '';
-          }
-        }, 200);
+        // Check if near edges and snap
+        const distLeft = finalX;
+        const distRight = maxX - finalX;
+        const distTop = finalY;
+        const distBottom = maxY - finalY;
+
+        let snapped = false;
+
+        // Snap to left or right edge
+        if (distLeft <= EDGE_SNAP_THRESHOLD) {
+          finalX = 0;
+          snapped = true;
+        } else if (distRight <= EDGE_SNAP_THRESHOLD) {
+          finalX = maxX;
+          snapped = true;
+        }
+
+        // Snap to top or bottom edge
+        if (distTop <= EDGE_SNAP_THRESHOLD) {
+          finalY = 0;
+          snapped = true;
+        } else if (distBottom <= EDGE_SNAP_THRESHOLD) {
+          finalY = maxY;
+          snapped = true;
+        }
+
+        // Apply snap with animation
+        if (snapped) {
+          floatBall.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
+          floatBall.style.left = finalX + 'px';
+          floatBall.style.top = finalY + 'px';
+
+          setTimeout(() => {
+            if (floatBall) floatBall.style.transition = 'none';
+          }, 150);
+        }
 
         // Save position
         localStorage.setItem('ai-translator-float-position', JSON.stringify({
-          x: pos.x,
-          y: pos.y
+          x: finalX,
+          y: finalY
         }));
       } else {
-        // It was a click, not a drag - show menu
+        // It was a click, not a drag
         toggleFloatMenu();
       }
     });
 
-    // Re-validate position when window resizes
-    let resizeTimeout;
+    // Handle window resize
     window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        if (!floatBall) return;
-        const rect = floatBall.getBoundingClientRect();
-        const pos = keepInViewport(rect.left, rect.top);
+      if (!floatBall || isDragging) return;
 
+      const rect = floatBall.getBoundingClientRect();
+      const maxX = window.innerWidth - FLOAT_BALL_SIZE;
+      const maxY = window.innerHeight - FLOAT_BALL_SIZE;
+
+      const newX = Math.max(0, Math.min(rect.left, maxX));
+      const newY = Math.max(0, Math.min(rect.top, maxY));
+
+      if (newX !== rect.left || newY !== rect.top) {
         floatBall.style.right = 'auto';
-        floatBall.style.left = `${pos.x}px`;
-        floatBall.style.top = `${pos.y}px`;
-      }, 100);
+        floatBall.style.left = newX + 'px';
+        floatBall.style.top = newY + 'px';
+      }
     });
-  }
-
-  // Keep position within viewport bounds
-  function keepInViewport(x, y) {
-    const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-    const maxY = window.innerHeight - FLOAT_BALL_SIZE;
-
-    return {
-      x: Math.max(0, Math.min(x, maxX)),
-      y: Math.max(0, Math.min(y, maxY))
-    };
-  }
-
-  // Snap to nearest edge when close enough
-  function snapToEdge(x, y) {
-    const maxX = window.innerWidth - FLOAT_BALL_SIZE;
-    const maxY = window.innerHeight - FLOAT_BALL_SIZE;
-
-    let newX = x;
-    let newY = y;
-
-    // Calculate distances to edges
-    const distToLeft = x;
-    const distToRight = maxX - x;
-    const distToTop = y;
-    const distToBottom = maxY - y;
-
-    // Snap horizontally to nearest edge if within threshold
-    if (distToLeft <= EDGE_SNAP_THRESHOLD || distToRight <= EDGE_SNAP_THRESHOLD) {
-      newX = distToLeft < distToRight ? 0 : maxX;
-    }
-
-    // Snap vertically to nearest edge if within threshold
-    if (distToTop <= EDGE_SNAP_THRESHOLD) {
-      newY = 0;
-    } else if (distToBottom <= EDGE_SNAP_THRESHOLD) {
-      newY = maxY;
-    }
-
-    // Keep within bounds
-    newX = Math.max(0, Math.min(newX, maxX));
-    newY = Math.max(0, Math.min(newY, maxY));
-
-    return { x: newX, y: newY };
   }
 
   function toggleFloatMenu() {

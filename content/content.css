@@ -596,12 +596,13 @@ button.ai-translator-inline-block {
   background: linear-gradient(145deg, #1e1e2e 0%, #11111b 100%);
   border: 2px solid transparent;
   border-radius: 50%;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(124, 92, 255, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Only transition visual effects, not position */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
   overflow: hidden;
 }
