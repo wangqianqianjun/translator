@@ -1170,14 +1170,27 @@
       const directText = getDirectText(element);
       const hasDirectText = directText.length >= 2;
 
-      // 对于非文本容器元素（不在 blockTags 和 inlineTags 中），如果有可翻译的子元素，应该递归处理
-      // 这包括：div, nav, section, aside, ul, ol, 以及任何自定义元素/Web Components
-      // 目的是确保导航菜单等结构的每个项被单独翻译，而不是整体翻译
-      if (!blockTags.includes(tagName) && !inlineTags.includes(tagName) && hasTranslatableChildren(element)) {
+      // 对于任何有可翻译子元素的元素，如果子元素本身也是可翻译的块级或内联元素，应该递归处理
+      // 这确保导航菜单等结构的每个项被单独翻译，即使外层包装是 span 等 inline 元素
+      if (hasTranslatableChildren(element)) {
+        // 检查是否有直接子元素是可翻译的（块级或内联标签）
+        let hasTranslatableDirectChild = false;
         for (const child of element.children) {
-          processElement(child);
+          const childTag = child.tagName;
+          if ((blockTags.includes(childTag) || inlineTags.includes(childTag)) &&
+              child.textContent.trim().length >= 2) {
+            hasTranslatableDirectChild = true;
+            break;
+          }
         }
-        return;
+
+        // 如果有可翻译的直接子元素，递归处理而不是整体翻译
+        if (hasTranslatableDirectChild) {
+          for (const child of element.children) {
+            processElement(child);
+          }
+          return;
+        }
       }
 
       // 对于内联元素（如链接、按钮），如果有文本内容，单独翻译
