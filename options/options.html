@@ -161,10 +161,40 @@
           </svg>
           <span data-i18n="customPrompt">Custom Prompt</span>
         </h2>
+
+        <!-- Preset Prompt Selection -->
+        <div class="form-group">
+          <label data-i18n="presetPrompts">Preset Styles</label>
+          <div class="preset-buttons">
+            <button type="button" id="presetStandard" class="btn btn-preset" data-preset="standard">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span data-i18n="presetStandard">Standard</span>
+            </button>
+            <button type="button" id="presetLiteral" class="btn btn-preset" data-preset="literal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7V4h16v3"/>
+                <path d="M9 20h6"/>
+                <path d="M12 4v16"/>
+              </svg>
+              <span data-i18n="presetLiteral">Literal</span>
+            </button>
+            <button type="button" id="presetCreative" class="btn btn-preset" data-preset="creative">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span data-i18n="presetCreative">Creative</span>
+            </button>
+          </div>
+          <span class="hint" data-i18n-hint="presetPrompts">Click to apply a preset translation style</span>
+        </div>
+
         <div class="form-group">
           <label for="customPrompt" data-i18n="singleTranslationPrompt">System Prompt</label>
-          <textarea 
-            id="customPrompt" 
+          <textarea
+            id="customPrompt"
             rows="6"
             placeholder="You are a professional translator..."
           ></textarea>

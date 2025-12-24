@@ -72,12 +72,51 @@ Rules:
 5. If a text is already in the target language, return it as is
 6. Translate naturally, not literally`;
 
+// Get browser language and map to supported language
+function getBrowserLanguage() {
+  const browserLang = navigator.language || navigator.userLanguage || 'en';
+  const supportedLangs = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'pt', 'ru'];
+
+  if (supportedLangs.includes(browserLang)) {
+    return browserLang;
+  }
+
+  const langMap = {
+    'zh': 'zh-CN',
+    'zh-Hans': 'zh-CN',
+    'zh-Hant': 'zh-TW',
+    'en-US': 'en',
+    'en-GB': 'en',
+    'ja-JP': 'ja',
+    'ko-KR': 'ko',
+    'fr-FR': 'fr',
+    'de-DE': 'de',
+    'es-ES': 'es',
+    'pt-BR': 'pt',
+    'pt-PT': 'pt',
+    'ru-RU': 'ru'
+  };
+
+  if (langMap[browserLang]) {
+    return langMap[browserLang];
+  }
+
+  const prefix = browserLang.split('-')[0];
+  const prefixMatch = supportedLangs.find(lang => lang.startsWith(prefix));
+  if (prefixMatch) {
+    return prefixMatch;
+  }
+
+  return 'en';
+}
+
 // Default settings
 const defaultSettings = {
   apiEndpoint: 'https://api.openai.com/v1/chat/completions',
   apiKey: '',
   modelName: 'gpt-4o-mini',
-  targetLang: 'zh-CN',
+  targetLang: '', // Empty means use browser language
+  targetLangSetByUser: false,
   customPrompt: ''
 };
 
@@ -127,8 +166,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'translate-selection' && info.selectionText) {
     try {
       const settings = await chrome.storage.sync.get(defaultSettings);
-      const result = await translateWithAI(info.selectionText, settings.targetLang, settings);
-      
+      const effectiveLang = getEffectiveTargetLang(settings);
+      const result = await translateWithAI(info.selectionText, effectiveLang, settings);
+
       chrome.tabs.sendMessage(tab.id, {
         type: 'SHOW_TRANSLATION',
         text: info.selectionText,
@@ -147,16 +187,25 @@ function buildPrompt(template, targetLangName) {
   return template.replace(/\{targetLang\}/g, targetLangName);
 }
 
+// Get effective target language (browser language if not set by user)
+function getEffectiveTargetLang(settings) {
+  if (settings.targetLangSetByUser && settings.targetLang) {
+    return settings.targetLang;
+  }
+  return getBrowserLanguage();
+}
+
 // Handle single text translation
 async function handleTranslate(text, targetLang) {
   const settings = await chrome.storage.sync.get(defaultSettings);
-  
+
   if (!settings.apiKey) {
     return { error: '请先在设置中配置 API Key' };
   }
 
   try {
-    const translation = await translateWithAI(text, targetLang || settings.targetLang, settings);
+    const effectiveLang = targetLang || getEffectiveTargetLang(settings);
+    const translation = await translateWithAI(text, effectiveLang, settings);
     return { translation };
   } catch (error) {
     console.error('Translation error:', error);
@@ -167,13 +216,14 @@ async function handleTranslate(text, targetLang) {
 // Handle batch translation
 async function handleBatchTranslate(texts, targetLang) {
   const settings = await chrome.storage.sync.get(defaultSettings);
-  
+
   if (!settings.apiKey) {
     return { error: '请先在设置中配置 API Key' };
   }
 
   try {
-    const translations = await translateBatchWithAI(texts, targetLang || settings.targetLang, settings);
+    const effectiveLang = targetLang || getEffectiveTargetLang(settings);
+    const translations = await translateBatchWithAI(texts, effectiveLang, settings);
     return { translations };
   } catch (error) {
     console.error('Batch translation error:', error);
@@ -184,13 +234,14 @@ async function handleBatchTranslate(texts, targetLang) {
 // Handle fast batch translation with delimiter
 async function handleBatchTranslateFast(texts, targetLang, delimiter = '|||') {
   const settings = await chrome.storage.sync.get(defaultSettings);
-  
+
   if (!settings.apiKey) {
     return { error: '请先在设置中配置 API Key' };
   }
 
   try {
-    const translations = await translateBatchFastWithAI(texts, targetLang || settings.targetLang, settings, delimiter);
+    const effectiveLang = targetLang || getEffectiveTargetLang(settings);
+    const translations = await translateBatchFastWithAI(texts, effectiveLang, settings, delimiter);
     return { translations };
   } catch (error) {
     console.error('Fast batch translation error:', error);

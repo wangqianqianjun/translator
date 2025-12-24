@@ -65,7 +65,12 @@ const I18N_MESSAGES = {
     theme: 'Theme',
     darkMode: 'Dark Mode',
     lightMode: 'Light Mode',
-    
+    presetPrompts: 'Preset Styles',
+    presetStandard: 'Standard',
+    presetLiteral: 'Literal',
+    presetCreative: 'Creative',
+    presetApplied: 'Preset applied',
+
     // Popup
     translateCurrentPage: 'Translate Page',
     floatBall: 'Float Ball',
@@ -141,7 +146,12 @@ const I18N_MESSAGES = {
     theme: '主题',
     darkMode: '深色模式',
     lightMode: '浅色模式',
-    
+    presetPrompts: '预设风格',
+    presetStandard: '标准',
+    presetLiteral: '直译',
+    presetCreative: '意译',
+    presetApplied: '已应用预设',
+
     // Popup
     translateCurrentPage: '翻译页面',
     floatBall: '翻译球',
@@ -149,11 +159,11 @@ const I18N_MESSAGES = {
     off: '关闭',
     apiNotConfigured: '未配置 API',
     ready: '就绪',
-    
+
     // Errors
     configureApiKeyFirst: '请先在设置中配置 API Key',
   },
-  
+
   // Traditional Chinese
   'zh-TW': {
     inputTranslate: '輸入文本翻譯',
@@ -206,6 +216,11 @@ const I18N_MESSAGES = {
     theme: '主題',
     darkMode: '深色模式',
     lightMode: '淺色模式',
+    presetPrompts: '預設風格',
+    presetStandard: '標準',
+    presetLiteral: '直譯',
+    presetCreative: '意譯',
+    presetApplied: '已應用預設',
     translateCurrentPage: '翻譯頁面',
     floatBall: '翻譯球',
     on: '開啟',
@@ -214,7 +229,7 @@ const I18N_MESSAGES = {
     ready: '就緒',
     configureApiKeyFirst: '請先在設置中配置 API Key',
   },
-  
+
   // Japanese
   'ja': {
     inputTranslate: 'テキスト入力翻訳',
@@ -267,6 +282,11 @@ const I18N_MESSAGES = {
     theme: 'テーマ',
     darkMode: 'ダークモード',
     lightMode: 'ライトモード',
+    presetPrompts: 'プリセットスタイル',
+    presetStandard: '標準',
+    presetLiteral: '直訳',
+    presetCreative: '意訳',
+    presetApplied: 'プリセットが適用されました',
     translateCurrentPage: 'ページを翻訳',
     floatBall: 'フロートボール',
     on: 'オン',
@@ -275,7 +295,7 @@ const I18N_MESSAGES = {
     ready: '準備完了',
     configureApiKeyFirst: '設定でAPI Keyを先に設定してください',
   },
-  
+
   // Korean
   'ko': {
     inputTranslate: '텍스트 입력 번역',
@@ -328,6 +348,11 @@ const I18N_MESSAGES = {
     theme: '테마',
     darkMode: '다크 모드',
     lightMode: '라이트 모드',
+    presetPrompts: '프리셋 스타일',
+    presetStandard: '표준',
+    presetLiteral: '직역',
+    presetCreative: '의역',
+    presetApplied: '프리셋이 적용되었습니다',
     translateCurrentPage: '페이지 번역',
     floatBall: '플로팅 볼',
     on: '켜기',
@@ -336,7 +361,7 @@ const I18N_MESSAGES = {
     ready: '준비됨',
     configureApiKeyFirst: '먼저 설정에서 API Key를 구성하세요',
   },
-  
+
   // French
   'fr': {
     inputTranslate: 'Saisir le texte à traduire',
@@ -389,6 +414,11 @@ const I18N_MESSAGES = {
     theme: 'Thème',
     darkMode: 'Mode sombre',
     lightMode: 'Mode clair',
+    presetPrompts: 'Styles prédéfinis',
+    presetStandard: 'Standard',
+    presetLiteral: 'Littéral',
+    presetCreative: 'Créatif',
+    presetApplied: 'Préréglage appliqué',
     translateCurrentPage: 'Traduire la page',
     floatBall: 'Bulle flottante',
     on: 'Activé',
@@ -397,7 +427,7 @@ const I18N_MESSAGES = {
     ready: 'Prêt',
     configureApiKeyFirst: 'Veuillez d\'abord configurer la clé API dans les paramètres',
   },
-  
+
   // German
   'de': {
     inputTranslate: 'Text eingeben und übersetzen',
@@ -450,6 +480,11 @@ const I18N_MESSAGES = {
     theme: 'Thema',
     darkMode: 'Dunkelmodus',
     lightMode: 'Hellmodus',
+    presetPrompts: 'Voreingestellte Stile',
+    presetStandard: 'Standard',
+    presetLiteral: 'Wörtlich',
+    presetCreative: 'Kreativ',
+    presetApplied: 'Voreinstellung angewendet',
     translateCurrentPage: 'Seite übersetzen',
     floatBall: 'Schwebekugel',
     on: 'An',
@@ -458,7 +493,7 @@ const I18N_MESSAGES = {
     ready: 'Bereit',
     configureApiKeyFirst: 'Bitte zuerst API-Schlüssel in den Einstellungen konfigurieren',
   },
-  
+
   // Spanish
   'es': {
     inputTranslate: 'Introducir texto a traducir',
@@ -511,6 +546,11 @@ const I18N_MESSAGES = {
     theme: 'Tema',
     darkMode: 'Modo oscuro',
     lightMode: 'Modo claro',
+    presetPrompts: 'Estilos predefinidos',
+    presetStandard: 'Estándar',
+    presetLiteral: 'Literal',
+    presetCreative: 'Creativo',
+    presetApplied: 'Preajuste aplicado',
     translateCurrentPage: 'Traducir página',
     floatBall: 'Bola flotante',
     on: 'Activado',
@@ -519,7 +559,7 @@ const I18N_MESSAGES = {
     ready: 'Listo',
     configureApiKeyFirst: 'Por favor configure primero la clave API en configuración',
   },
-  
+
   // Portuguese
   'pt': {
     inputTranslate: 'Inserir texto para traduzir',
@@ -572,6 +612,11 @@ const I18N_MESSAGES = {
     theme: 'Tema',
     darkMode: 'Modo escuro',
     lightMode: 'Modo claro',
+    presetPrompts: 'Estilos predefinidos',
+    presetStandard: 'Padrão',
+    presetLiteral: 'Literal',
+    presetCreative: 'Criativo',
+    presetApplied: 'Predefinição aplicada',
     translateCurrentPage: 'Traduzir página',
     floatBall: 'Bola flutuante',
     on: 'Ligado',
@@ -580,7 +625,7 @@ const I18N_MESSAGES = {
     ready: 'Pronto',
     configureApiKeyFirst: 'Configure primeiro a chave da API nas configurações',
   },
-  
+
   // Russian
   'ru': {
     inputTranslate: 'Введите текст для перевода',
@@ -633,6 +678,11 @@ const I18N_MESSAGES = {
     theme: 'Тема',
     darkMode: 'Тёмный режим',
     lightMode: 'Светлый режим',
+    presetPrompts: 'Предустановленные стили',
+    presetStandard: 'Стандартный',
+    presetLiteral: 'Буквальный',
+    presetCreative: 'Творческий',
+    presetApplied: 'Предустановка применена',
     translateCurrentPage: 'Перевести страницу',
     floatBall: 'Плавающий шар',
     on: 'Вкл',

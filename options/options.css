@@ -441,6 +441,49 @@ body::before {
   color: var(--accent-primary);
 }
 
+/* Preset Buttons */
+.preset-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-preset:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.btn-preset:active {
+  transform: scale(0.98);
+}
+
+.btn-preset svg {
+  color: var(--accent-primary);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.btn-preset:hover svg {
+  opacity: 1;
+}
+
 /* Status Message */
 .status-message {
   padding: 14px 20px;
