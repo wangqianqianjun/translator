@@ -1185,7 +1185,7 @@
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 2000) {
           // 跳过看起来像代码的文本（排除数学占位符后判断）
-          const textWithoutMath = text.replace(/【(MATH|ICON)_\d+】/g, '');
+          const textWithoutMath = text.replace(/【MATH_\d+】/g, '');
           if (textWithoutMath && looksLikeCode(textWithoutMath)) {
             // 递归处理子元素，可能有非代码的部分
             for (const child of element.children) {
@@ -1237,19 +1237,12 @@
     return false;
   }
 
-  // 检测元素是否是图标元素
+  // 检测元素是否是图标元素（图标跳过，不翻译也不保留占位符）
   function isIconElement(el) {
     if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
 
     // SVG 图标
     if (el.tagName === 'SVG' || el.tagName === 'svg') return true;
-
-    // 图片图标
-    if (el.tagName === 'IMG' && (
-      el.classList?.contains('icon') ||
-      el.src?.includes('icon') ||
-      el.width <= 32 && el.height <= 32
-    )) return true;
 
     // Font Awesome 和其他图标库
     const classList = el.classList;
@@ -1265,13 +1258,12 @@
     return false;
   }
 
-  // 获取元素内容，用占位符替换数学公式和图标
+  // 获取元素内容，用占位符替换数学公式（图标直接跳过）
   // 返回 { text: string, mathElements: Array<{placeholder: string, html: string}> }
   function getTextWithMathPlaceholders(element) {
     let text = '';
-    const mathElements = []; // 同时保存数学公式和图标
+    const mathElements = [];
     let mathIndex = 0;
-    let iconIndex = 0;
 
     // 跳过的隐藏类名
     const hiddenClasses = [
@@ -1303,21 +1295,13 @@
         const style = window.getComputedStyle(node);
         if (style.display === 'none') return;
 
-        // 检测是否是图标元素 - 用占位符替换，保留位置
+        // 跳过图标元素（图标是装饰，翻译不需要包含图标）
         if (isIconElement(node)) {
-          const placeholder = `【ICON_${iconIndex}】`;
-          mathElements.push({
-            placeholder: placeholder,
-            html: node.outerHTML
-          });
-          text += placeholder;
-          iconIndex++;
-          return; // 不再递归处理图标内部
+          return;
         }
 
-        // 检测是否是数学公式
+        // 检测是否是数学公式 - 保留占位符
         if (isMathElement(node)) {
-          // 用占位符替换公式，保存原始 HTML
           const placeholder = `【MATH_${mathIndex}】`;
           mathElements.push({
             placeholder: placeholder,
@@ -1325,7 +1309,7 @@
           });
           text += placeholder;
           mathIndex++;
-          return; // 不再递归处理公式内部
+          return;
         }
 
         // 递归处理子节点
@@ -1359,12 +1343,11 @@
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
     
-    // 还原数学公式和图标：将占位符替换回原始 HTML
+    // 还原数学公式：将占位符替换回原始 HTML
     let finalTranslation = translation;
-    const hasSpecialElements = block.mathElements && block.mathElements.length > 0;
-    if (hasSpecialElements) {
-      for (const item of block.mathElements) {
-        finalTranslation = finalTranslation.replace(item.placeholder, item.html);
+    if (block.mathElements && block.mathElements.length > 0) {
+      for (const math of block.mathElements) {
+        finalTranslation = finalTranslation.replace(math.placeholder, math.html);
       }
     }
 
@@ -1372,8 +1355,8 @@
     const translationEl = document.createElement(element.tagName);
     translationEl.className = 'ai-translator-inline-block';
 
-    // 如果包含数学公式或图标，使用 innerHTML；否则使用 textContent
-    if (hasSpecialElements) {
+    // 如果包含数学公式，使用 innerHTML；否则使用 textContent
+    if (block.mathElements && block.mathElements.length > 0) {
       translationEl.innerHTML = finalTranslation;
     } else {
       translationEl.textContent = translation;
