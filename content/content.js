@@ -9,9 +9,12 @@
   }
 
   // Constants
-  const FLOAT_BALL_SIZE = 32; // Smaller ball size
-  const EDGE_SNAP_THRESHOLD = 100; // Snap to edge when within 100px
-  const CONTAINER_PADDING = 6; // Padding around ball in docked container
+  const FLOAT_BALL_SIZE = 32;
+  const EDGE_SNAP_THRESHOLD = 100;
+  // Docked container padding - minimal for clean aesthetic
+  const DOCK_PADDING_FRONT = 3;  // Open side - ball nearly flush with container edge
+  const DOCK_PADDING_BACK = 2;   // Edge side - minimal gap to browser edge
+  const DOCK_PADDING_VERTICAL = 3;
 
   // State
   let settings = {
@@ -123,9 +126,9 @@
 
           // Recalculate docked position for current viewport
           if (docked === 'right') {
-            validX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2;
+            validX = viewportWidth - FLOAT_BALL_SIZE - DOCK_PADDING_BACK;
           } else if (docked === 'left') {
-            validX = CONTAINER_PADDING;
+            validX = DOCK_PADDING_FRONT;
           } else {
             validX = Math.max(8, Math.min(x, viewportWidth - FLOAT_BALL_SIZE - 8));
             validDocked = null;
@@ -174,9 +177,9 @@
     floatBallContainer.classList.remove('docked-left', 'docked-right');
     floatBallContainer.classList.add('docked-' + side);
 
-    // Container dimensions - capsule shape wrapping the ball
-    const containerWidth = FLOAT_BALL_SIZE + CONTAINER_PADDING * 2 + CONTAINER_PADDING; // Extra padding on open side
-    const containerHeight = FLOAT_BALL_SIZE + CONTAINER_PADDING * 2;
+    // Container dimensions - minimal capsule wrapping the ball
+    const containerWidth = FLOAT_BALL_SIZE + DOCK_PADDING_FRONT + DOCK_PADDING_BACK;
+    const containerHeight = FLOAT_BALL_SIZE + DOCK_PADDING_VERTICAL * 2;
 
     if (side === 'right') {
       floatBallContainer.style.right = '0';
@@ -185,7 +188,7 @@
       floatBallContainer.style.left = '0';
       floatBallContainer.style.right = 'auto';
     }
-    floatBallContainer.style.top = (ballY - CONTAINER_PADDING) + 'px';
+    floatBallContainer.style.top = (ballY - DOCK_PADDING_VERTICAL) + 'px';
     floatBallContainer.style.width = containerWidth + 'px';
     floatBallContainer.style.height = containerHeight + 'px';
   }
@@ -278,12 +281,12 @@
         let dockedSide = null;
 
         // Snap to left or right edge (dock to edge)
-        // Ball is fully visible inside the capsule container
+        // Ball nearly flush with container front edge
         if (distLeft <= EDGE_SNAP_THRESHOLD && distLeft < distRight) {
-          finalX = CONTAINER_PADDING; // Ball inside container on left
+          finalX = DOCK_PADDING_FRONT;
           dockedSide = 'left';
         } else if (distRight <= EDGE_SNAP_THRESHOLD) {
-          finalX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2; // Ball inside container on right
+          finalX = viewportWidth - FLOAT_BALL_SIZE - DOCK_PADDING_BACK;
           dockedSide = 'right';
         }
 
@@ -333,11 +336,11 @@
 
       let newX = rect.left;
       if (isDockedRight) {
-        newX = viewportWidth - FLOAT_BALL_SIZE - CONTAINER_PADDING * 2;
+        newX = viewportWidth - FLOAT_BALL_SIZE - DOCK_PADDING_BACK;
         floatBall.style.left = newX + 'px';
         floatBallContainer.style.right = '0';
       } else if (isDockedLeft) {
-        newX = CONTAINER_PADDING;
+        newX = DOCK_PADDING_FRONT;
         floatBall.style.left = newX + 'px';
       }
 
@@ -351,7 +354,7 @@
 
       // Update container position if docked
       if (isDockedRight || isDockedLeft) {
-        floatBallContainer.style.top = (newY - CONTAINER_PADDING) + 'px';
+        floatBallContainer.style.top = (newY - DOCK_PADDING_VERTICAL) + 'px';
       }
     });
   }

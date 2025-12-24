@@ -599,14 +599,14 @@ button.ai-translator-inline-block {
 
 #ai-translator-float-ball-container.docked-right {
   display: flex;
-  /* Capsule shape: full round on left, flat on right */
-  border-radius: 22px 0 0 22px;
+  /* Capsule: half-circle on left, flush with browser edge on right */
+  border-radius: 19px 0 0 19px;
 }
 
 #ai-translator-float-ball-container.docked-left {
   display: flex;
-  /* Capsule shape: flat on left, full round on right */
-  border-radius: 0 22px 22px 0;
+  /* Capsule: flush with browser edge on left, half-circle on right */
+  border-radius: 0 19px 19px 0;
 }
 
 #ai-translator-float-ball {
