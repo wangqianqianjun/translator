@@ -51,8 +51,8 @@
 <body>
   <h1>AI Translator 图标生成器</h1>
   <p>点击按钮下载各尺寸的 PNG 图标（深色 + 浅色两套）</p>
-  
-  <h2>🌙 深色模式图标</h2>
+
+  <h2>深色模式图标</h2>
   <div class="icons">
     <div class="icon-container">
       <canvas id="icon16" width="16" height="16"></canvas>
@@ -76,7 +76,7 @@
     </div>
   </div>
 
-  <h2>☀️ 浅色模式图标</h2>
+  <h2>浅色模式图标</h2>
   <div class="icons light-preview">
     <div class="icon-container">
       <canvas id="icon16-light" width="16" height="16"></canvas>
@@ -109,72 +109,155 @@
   <script>
     const sizes = [16, 32, 48, 128];
 
-    // 深色模式图标（紫蓝渐变背景 + 白字）
-    function drawDarkIcon(canvas, size) {
-      const ctx = canvas.getContext('2d');
+    // 绘制双语气泡图标 - 代表翻译/语言转换
+    function drawTranslationIcon(ctx, size, isDark) {
       const centerX = size / 2;
       const centerY = size / 2;
-      const radius = size * 0.44;
 
-      // Background gradient
-      const gradient = ctx.createLinearGradient(0, 0, size, size);
-      gradient.addColorStop(0, '#7c5cff');
-      gradient.addColorStop(1, '#5c8cff');
+      // 颜色定义
+      const purple = '#7c5cff';
+      const blue = '#5c8cff';
+      const cyan = '#06b6d4';
 
-      // Draw circle
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      ctx.fill();
+      // 清除画布
+      ctx.clearRect(0, 0, size, size);
 
-      // Draw "译" letter
-      ctx.fillStyle = 'white';
-      ctx.font = `bold ${size * 0.5}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('译', centerX, centerY + size * 0.02);
+      // 缩放因子
+      const s = size / 128;
+
+      if (isDark) {
+        // 深色模式：渐变背景圆形 + 白色图案
+        const bgRadius = size * 0.44;
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, purple);
+        gradient.addColorStop(1, blue);
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, bgRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // 绘制双气泡图案（白色）
+        drawBubbles(ctx, size, 'white', 'rgba(255,255,255,0.7)');
+      } else {
+        // 浅色模式：白色背景 + 渐变边框 + 渐变图案
+        const bgRadius = size * 0.44;
+        const borderWidth = Math.max(1.5, size * 0.05);
+
+        // 渐变边框
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, purple);
+        gradient.addColorStop(1, blue);
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, bgRadius, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // 白色内圆
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, bgRadius - borderWidth, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+
+        // 绘制双气泡图案（渐变色）
+        drawBubbles(ctx, size, purple, blue);
+      }
     }
 
-    // 浅色模式图标（白色背景 + 紫蓝渐变文字 + 渐变边框）
-    function drawLightIcon(canvas, size) {
-      const ctx = canvas.getContext('2d');
+    // 绘制双语气泡
+    function drawBubbles(ctx, size, color1, color2) {
+      const s = size / 128;
       const centerX = size / 2;
       const centerY = size / 2;
-      const radius = size * 0.44;
-      const borderWidth = Math.max(1, size * 0.06);
 
-      // 渐变色定义
-      const gradient = ctx.createLinearGradient(0, 0, size, size);
-      gradient.addColorStop(0, '#7c5cff');
-      gradient.addColorStop(1, '#5c8cff');
-
-      // Draw border circle (gradient)
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      // Draw inner white circle
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius - borderWidth, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-
-      // Draw "译" letter with gradient
       ctx.save();
-      ctx.font = `bold ${size * 0.45}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = gradient;
-      ctx.fillText('译', centerX, centerY + size * 0.02);
+      ctx.translate(centerX, centerY);
+
+      // 左侧气泡（较大，代表源语言）
+      ctx.fillStyle = color1;
+      ctx.beginPath();
+      // 气泡主体
+      const leftBubbleX = -18 * s;
+      const leftBubbleY = -8 * s;
+      const leftBubbleW = 32 * s;
+      const leftBubbleH = 24 * s;
+      const leftRadius = 8 * s;
+
+      roundRect(ctx, leftBubbleX, leftBubbleY, leftBubbleW, leftBubbleH, leftRadius);
+      ctx.fill();
+
+      // 左气泡尾巴
+      ctx.beginPath();
+      ctx.moveTo(leftBubbleX + 4 * s, leftBubbleY + leftBubbleH - 2 * s);
+      ctx.lineTo(leftBubbleX - 2 * s, leftBubbleY + leftBubbleH + 8 * s);
+      ctx.lineTo(leftBubbleX + 12 * s, leftBubbleY + leftBubbleH - 2 * s);
+      ctx.fill();
+
+      // 右侧气泡（较小，代表目标语言）
+      ctx.fillStyle = color2;
+      ctx.beginPath();
+      const rightBubbleX = 2 * s;
+      const rightBubbleY = -16 * s;
+      const rightBubbleW = 26 * s;
+      const rightBubbleH = 20 * s;
+      const rightRadius = 6 * s;
+
+      roundRect(ctx, rightBubbleX, rightBubbleY, rightBubbleW, rightBubbleH, rightRadius);
+      ctx.fill();
+
+      // 右气泡尾巴
+      ctx.beginPath();
+      ctx.moveTo(rightBubbleX + rightBubbleW - 10 * s, rightBubbleY + rightBubbleH - 2 * s);
+      ctx.lineTo(rightBubbleX + rightBubbleW + 4 * s, rightBubbleY + rightBubbleH + 6 * s);
+      ctx.lineTo(rightBubbleX + rightBubbleW - 2 * s, rightBubbleY + rightBubbleH - 2 * s);
+      ctx.fill();
+
+      // 在气泡内绘制横线代表文字
+      if (size >= 32) {
+        const lineWidth = Math.max(1, 2 * s);
+        ctx.strokeStyle = ctx.fillStyle === color1 ? (color1 === 'white' ? 'rgba(124,92,255,0.4)' : 'rgba(255,255,255,0.5)') : (color2 === 'white' ? 'rgba(124,92,255,0.4)' : 'rgba(255,255,255,0.5)');
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+
+        // 左气泡的文字线
+        if (size >= 48) {
+          ctx.strokeStyle = color1 === 'white' ? 'rgba(124,92,255,0.5)' : 'rgba(255,255,255,0.6)';
+          ctx.beginPath();
+          ctx.moveTo(leftBubbleX + 6 * s, leftBubbleY + 8 * s);
+          ctx.lineTo(leftBubbleX + leftBubbleW - 8 * s, leftBubbleY + 8 * s);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(leftBubbleX + 6 * s, leftBubbleY + 14 * s);
+          ctx.lineTo(leftBubbleX + leftBubbleW - 14 * s, leftBubbleY + 14 * s);
+          ctx.stroke();
+        }
+      }
+
       ctx.restore();
+    }
+
+    // 绘制圆角矩形
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
     }
 
     // Draw all dark icons
     sizes.forEach(size => {
       const canvas = document.getElementById(`icon${size}`);
-      drawDarkIcon(canvas, size);
-      
+      const ctx = canvas.getContext('2d');
+      drawTranslationIcon(ctx, size, true);
+
       const link = document.getElementById(`download${size}`);
       link.href = canvas.toDataURL('image/png');
     });
@@ -182,8 +265,9 @@
     // Draw all light icons
     sizes.forEach(size => {
       const canvas = document.getElementById(`icon${size}-light`);
-      drawLightIcon(canvas, size);
-      
+      const ctx = canvas.getContext('2d');
+      drawTranslationIcon(ctx, size, false);
+
       const link = document.getElementById(`download${size}-light`);
       link.href = canvas.toDataURL('image/png');
     });
@@ -192,12 +276,14 @@
       sizes.forEach(size => {
         document.getElementById(`download${size}`).click();
       });
+      console.log('Dark icons downloaded');
     }
 
     function downloadLight() {
       sizes.forEach(size => {
         document.getElementById(`download${size}-light`).click();
       });
+      console.log('Light icons downloaded');
     }
 
     function downloadAll() {
