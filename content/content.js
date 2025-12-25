@@ -817,6 +817,58 @@
     translateText(text);
   }
 
+  // 显示已完成的翻译结果（用于右键菜单翻译）
+  function showTranslationResult(text, translation) {
+    hideTranslationPopup();
+
+    translationPopup = document.createElement('div');
+    translationPopup.className = 'ai-translator-popup';
+    translationPopup.innerHTML = `
+      <div class="ai-translator-header">
+        <span class="ai-translator-title">${t('aiTranslate')}</span>
+        <button class="ai-translator-close" title="${t('close')}">×</button>
+      </div>
+      <div class="ai-translator-content">
+        <div class="ai-translator-source">
+          <div class="ai-translator-label">${t('original')}</div>
+          <div class="ai-translator-text">${escapeHtml(text)}</div>
+        </div>
+        <div class="ai-translator-divider"></div>
+        <div class="ai-translator-result">
+          <div class="ai-translator-label">${t('translation')}</div>
+          <div class="ai-translator-translation">${escapeHtml(translation)}</div>
+        </div>
+      </div>
+      <div class="ai-translator-actions">
+        <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          ${t('copy')}
+        </button>
+      </div>
+    `;
+
+    // 居中显示弹窗
+    const popupWidth = 320;
+    const popupHeight = 200;
+    let posX = (window.innerWidth - popupWidth) / 2;
+    let posY = (window.innerHeight - popupHeight) / 2;
+
+    translationPopup.style.left = `${posX}px`;
+    translationPopup.style.top = `${posY}px`;
+
+    document.body.appendChild(translationPopup);
+
+    // Event listeners
+    translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
+    translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
+      copyToClipboard(translation);
+      showCopyFeedback();
+    });
+  }
+
   function hideTranslationPopup() {
     if (translationPopup) {
       translationPopup.remove();
@@ -1739,6 +1791,10 @@
       switch (message.type) {
         case 'TRANSLATE_PAGE':
           translatePage();
+          break;
+        case 'SHOW_TRANSLATION':
+          // 右键菜单翻译选中文本的结果显示
+          showTranslationResult(message.text, message.translation);
           break;
         case 'SETTINGS_UPDATED':
           // Only update showFloatBall if explicitly provided in the message
