@@ -554,6 +554,31 @@ body::before {
   color: var(--text-muted);
 }
 
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.github-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.github-link svg {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.github-link:hover svg {
+  opacity: 1;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
