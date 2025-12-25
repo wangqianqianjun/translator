@@ -1806,9 +1806,13 @@
       translationEl.style.cssText = baseStyle + `
         margin: 0;
         padding: 0;
-        padding-left: ${textOffset}px;
         box-sizing: border-box;
       `;
+
+      // 使用 setProperty 设置 padding-left，加 !important 防止被页面 CSS 覆盖
+      if (textOffset > 0) {
+        translationEl.style.setProperty('padding-left', `${textOffset}px`, 'important');
+      }
 
       // 插入到原元素后面
       element.after(translationEl);
