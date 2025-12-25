@@ -312,6 +312,22 @@ body::before {
   background: rgba(0, 0, 0, 0.05);
 }
 
+/* Model Select Group */
+.model-select-group {
+  display: flex;
+  gap: 10px;
+}
+
+.model-select-group select {
+  flex: 1;
+  min-width: 0;
+}
+
+.model-select-group .model-custom-input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Toggle Switch */
 .toggle-group {
   padding: 12px 0;

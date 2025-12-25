@@ -114,7 +114,7 @@ function getBrowserLanguage() {
 const defaultSettings = {
   apiEndpoint: 'https://api.openai.com/v1/chat/completions',
   apiKey: '',
-  modelName: 'gpt-4o-mini',
+  modelName: 'gpt-4.1-mini',
   targetLang: '', // Empty means use browser language
   targetLangSetByUser: false,
   customPrompt: ''

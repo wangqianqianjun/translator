@@ -94,3 +94,6 @@ node scripts/generate-icons.js
 - **Content Script** - 直接操作 DOM 实现页面翻译
 - **Chrome Storage API** - 安全存储用户配置
 - **Service Worker** - 后台处理 API 请求
+
+
+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

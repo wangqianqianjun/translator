@@ -1,11 +1,63 @@
 // Default prompt template
-const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}. 
+const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}.
 Rules:
 1. Provide ONLY the translation, no explanations or notes
 2. Maintain the original formatting (line breaks, punctuation)
 3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
 4. If the text is already in the target language, return it as is
 5. Translate naturally, not literally`;
+
+// Provider configurations
+const PROVIDERS = {
+  openai: {
+    name: 'OpenAI',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    models: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o', 'gpt-4o-mini', 'o3', 'o3-mini', 'o4-mini'],
+    defaultModel: 'gpt-4.1-mini'
+  },
+  anthropic: {
+    name: 'Anthropic Claude',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    models: ['claude-opus-4-5-20251124', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251022', 'claude-opus-4-1-20250805', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'],
+    defaultModel: 'claude-sonnet-4-5-20250929'
+  },
+  gemini: {
+    name: 'Google Gemini',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    models: ['gemini-3-flash', 'gemini-3-pro', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'],
+    defaultModel: 'gemini-3-flash'
+  },
+  deepseek: {
+    name: 'DeepSeek',
+    endpoint: 'https://api.deepseek.com/v1/chat/completions',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    defaultModel: 'deepseek-chat'
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    models: ['anthropic/claude-sonnet-4.5', 'anthropic/claude-opus-4.5', 'openai/gpt-4.1', 'google/gemini-3-flash', 'deepseek/deepseek-v3.2'],
+    defaultModel: 'anthropic/claude-sonnet-4.5'
+  },
+  ollama: {
+    name: 'Ollama (Local)',
+    endpoint: 'http://localhost:11434/v1/chat/completions',
+    models: ['llama3.3', 'qwen2.5', 'deepseek-r1', 'gemma2'],
+    defaultModel: 'llama3.3'
+  },
+  lmstudio: {
+    name: 'LM Studio (Local)',
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    models: [],
+    defaultModel: ''
+  },
+  custom: {
+    name: 'Custom',
+    endpoint: '',
+    models: [],
+    defaultModel: ''
+  }
+};
 
 // Current UI language
 let currentUILang = 'en';
@@ -140,8 +192,11 @@ function applyHintsI18n(lang) {
 
 // DOM Elements
 const elements = {
+  provider: document.getElementById('provider'),
   apiEndpoint: document.getElementById('apiEndpoint'),
+  customEndpointGroup: document.getElementById('customEndpointGroup'),
   apiKey: document.getElementById('apiKey'),
+  modelSelect: document.getElementById('modelSelect'),
   modelName: document.getElementById('modelName'),
   targetLang: document.getElementById('targetLang'),
   enableSelection: document.getElementById('enableSelection'),
@@ -228,9 +283,10 @@ function getBrowserLanguage() {
 
 // Default settings
 const defaultSettings = {
+  provider: 'openai',
   apiEndpoint: 'https://api.openai.com/v1/chat/completions',
   apiKey: '',
-  modelName: 'gpt-4o-mini',
+  modelName: 'gpt-4.1-mini',
   targetLang: '', // Empty means use browser language
   targetLangSetByUser: false, // Track if user ever set the language
   enableSelection: true,
@@ -239,6 +295,110 @@ const defaultSettings = {
   customPrompt: '',
   theme: 'dark'
 };
+
+// Update model dropdown based on provider
+function updateModelDropdown(providerKey, currentModel = '') {
+  const provider = PROVIDERS[providerKey];
+  const select = elements.modelSelect;
+
+  // Clear existing options
+  select.innerHTML = '';
+
+  if (provider && provider.models.length > 0) {
+    // Add default empty option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '-- Select Model --';
+    select.appendChild(defaultOption);
+
+    // Add model options
+    provider.models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model;
+      option.textContent = model;
+      select.appendChild(option);
+    });
+
+    // Set current model if it exists in the list
+    if (currentModel && provider.models.includes(currentModel)) {
+      select.value = currentModel;
+      elements.modelName.value = '';
+    } else if (currentModel) {
+      // Model not in list, put it in custom input
+      select.value = '';
+      elements.modelName.value = currentModel;
+    } else {
+      // Use default model
+      select.value = provider.defaultModel || '';
+      elements.modelName.value = '';
+    }
+  } else {
+    // No predefined models, use custom input only
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '-- Enter model name --';
+    select.appendChild(defaultOption);
+    elements.modelName.value = currentModel;
+  }
+}
+
+// Handle provider change
+function onProviderChange() {
+  const providerKey = elements.provider.value;
+  const provider = PROVIDERS[providerKey];
+
+  // Show/hide custom endpoint input
+  if (providerKey === 'custom') {
+    elements.customEndpointGroup.style.display = 'block';
+  } else {
+    elements.customEndpointGroup.style.display = 'none';
+    // Auto-fill endpoint for known providers
+    if (provider) {
+      elements.apiEndpoint.value = provider.endpoint;
+    }
+  }
+
+  // Update model dropdown
+  updateModelDropdown(providerKey);
+}
+
+// Handle model select change
+function onModelSelectChange() {
+  const selectedModel = elements.modelSelect.value;
+  if (selectedModel) {
+    // Clear custom input when selecting from dropdown
+    elements.modelName.value = '';
+  }
+}
+
+// Get effective model name (from dropdown or custom input)
+function getEffectiveModelName() {
+  const selectValue = elements.modelSelect.value;
+  const customValue = elements.modelName.value.trim();
+  return customValue || selectValue;
+}
+
+// Detect provider from endpoint URL
+function detectProviderFromEndpoint(endpoint) {
+  if (!endpoint) return 'custom';
+
+  for (const [key, provider] of Object.entries(PROVIDERS)) {
+    if (key !== 'custom' && provider.endpoint && endpoint === provider.endpoint) {
+      return key;
+    }
+  }
+
+  // Check for partial matches
+  if (endpoint.includes('openai.com')) return 'openai';
+  if (endpoint.includes('anthropic.com')) return 'anthropic';
+  if (endpoint.includes('generativelanguage.googleapis.com')) return 'gemini';
+  if (endpoint.includes('deepseek.com')) return 'deepseek';
+  if (endpoint.includes('openrouter.ai')) return 'openrouter';
+  if (endpoint.includes('localhost:11434')) return 'ollama';
+  if (endpoint.includes('localhost:1234')) return 'lmstudio';
+
+  return 'custom';
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -257,9 +417,29 @@ async function loadSettings() {
       targetLang = getBrowserLanguage();
     }
 
+    // Determine provider from saved settings or detect from endpoint
+    let provider = result.provider;
+    if (!provider || !PROVIDERS[provider]) {
+      provider = detectProviderFromEndpoint(result.apiEndpoint);
+    }
+
+    // Set provider dropdown
+    elements.provider.value = provider;
+
+    // Set endpoint
     elements.apiEndpoint.value = result.apiEndpoint;
+
+    // Show/hide custom endpoint group
+    if (provider === 'custom') {
+      elements.customEndpointGroup.style.display = 'block';
+    } else {
+      elements.customEndpointGroup.style.display = 'none';
+    }
+
+    // Update model dropdown and set current model
+    updateModelDropdown(provider, result.modelName);
+
     elements.apiKey.value = result.apiKey;
-    elements.modelName.value = result.modelName;
     elements.targetLang.value = targetLang;
     elements.enableSelection.checked = result.enableSelection;
     elements.showFloatBall.checked = result.showFloatBall;
@@ -298,10 +478,23 @@ function toggleTheme() {
 
 // Save settings to storage
 async function saveSettings() {
+  const providerKey = elements.provider.value;
+  const provider = PROVIDERS[providerKey];
+
+  // Get endpoint: use provider's endpoint unless custom
+  let apiEndpoint = elements.apiEndpoint.value.trim();
+  if (providerKey !== 'custom' && provider) {
+    apiEndpoint = provider.endpoint;
+  }
+
+  // Get model name from dropdown or custom input
+  const modelName = getEffectiveModelName();
+
   const settings = {
-    apiEndpoint: elements.apiEndpoint.value.trim(),
+    provider: providerKey,
+    apiEndpoint: apiEndpoint,
     apiKey: elements.apiKey.value.trim(),
-    modelName: elements.modelName.value.trim(),
+    modelName: modelName,
     targetLang: elements.targetLang.value,
     targetLangSetByUser: true, // Mark that user has explicitly set the language
     enableSelection: elements.enableSelection.checked,
@@ -314,7 +507,9 @@ async function saveSettings() {
   // Validation
   if (!settings.apiEndpoint) {
     showStatus(t('pleaseEnterApiEndpoint'), 'error');
-    elements.apiEndpoint.focus();
+    if (providerKey === 'custom') {
+      elements.apiEndpoint.focus();
+    }
     return;
   }
 
@@ -324,13 +519,19 @@ async function saveSettings() {
     return;
   }
 
+  if (!settings.modelName) {
+    showStatus(t('pleaseEnterModelName') || 'Please select or enter a model name', 'error');
+    elements.modelName.focus();
+    return;
+  }
+
   try {
     await chrome.storage.sync.set(settings);
     showStatus(t('settingsSaved'), 'success');
-    
+
     // Notify all tabs about settings change
     notifyContentScripts(settings);
-    
+
     // Update UI language if target language changed
     applyI18n(settings.targetLang);
     applyHintsI18n(settings.targetLang);
@@ -355,11 +556,25 @@ async function notifyContentScripts(settings) {
   }
 }
 
+// Detect if the API endpoint is Anthropic Claude API
+function isClaudeAPI(endpoint) {
+  if (!endpoint) return false;
+  return endpoint.includes('anthropic.com') || endpoint.includes('/v1/messages');
+}
+
 // Test API connection
 async function testConnection() {
-  const apiEndpoint = elements.apiEndpoint.value.trim();
+  const providerKey = elements.provider.value;
+  const provider = PROVIDERS[providerKey];
+
+  // Get endpoint
+  let apiEndpoint = elements.apiEndpoint.value.trim();
+  if (providerKey !== 'custom' && provider) {
+    apiEndpoint = provider.endpoint;
+  }
+
   const apiKey = elements.apiKey.value.trim();
-  const modelName = elements.modelName.value.trim();
+  const modelName = getEffectiveModelName();
 
   if (!apiEndpoint || !apiKey) {
     showStatus(t('pleaseConfigureApi'), 'warning');
@@ -369,20 +584,42 @@ async function testConnection() {
   showStatus(t('translating'), 'warning');
 
   try {
-    const response = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: modelName || 'gpt-4o-mini',
-        messages: [
-          { role: 'user', content: 'Hi' }
-        ],
-        max_tokens: 5
-      })
-    });
+    let response;
+
+    if (isClaudeAPI(apiEndpoint)) {
+      // Use Claude API format
+      response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: modelName || 'claude-sonnet-4-5-20250929',
+          max_tokens: 10,
+          messages: [
+            { role: 'user', content: 'Hi' }
+          ]
+        })
+      });
+    } else {
+      // Use OpenAI-compatible API format
+      response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: modelName || 'gpt-4.1-mini',
+          messages: [
+            { role: 'user', content: 'Hi' }
+          ],
+          max_tokens: 5
+        })
+      });
+    }
 
     if (response.ok) {
       showStatus(t('connectionSuccess'), 'success');
@@ -446,6 +683,12 @@ function setupEventListeners() {
   elements.resetPrompt.addEventListener('click', resetPrompt);
   elements.toggleApiKey.addEventListener('click', toggleApiKeyVisibility);
   elements.themeToggle.addEventListener('click', toggleTheme);
+
+  // Provider change handler
+  elements.provider.addEventListener('change', onProviderChange);
+
+  // Model select change handler
+  elements.modelSelect.addEventListener('change', onModelSelectChange);
 
   // Preset prompt buttons
   document.querySelectorAll('.btn-preset').forEach(btn => {
