@@ -120,6 +120,71 @@ const defaultSettings = {
   customPrompt: ''
 };
 
+// Detect if the API endpoint is Anthropic Claude API
+function isClaudeAPI(endpoint) {
+  if (!endpoint) return false;
+  // Check for Anthropic domain or /v1/messages path
+  return endpoint.includes('anthropic.com') || endpoint.includes('/v1/messages');
+}
+
+// Call Claude API with Anthropic-specific format
+async function callClaudeAPI(endpoint, apiKey, model, systemPrompt, userContent, maxTokens = 4096) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: userContent }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+  }
+
+  const data = await response.json();
+  // Claude response format: { content: [{ type: "text", text: "..." }] }
+  return data.content?.[0]?.text?.trim() || '';
+}
+
+// Call OpenAI-compatible API
+async function callOpenAIAPI(endpoint, apiKey, model, systemPrompt, userContent, maxTokens = 4096, temperature = 0.3) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ],
+      temperature: temperature,
+      max_tokens: maxTokens
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+  }
+
+  const data = await response.json();
+  // OpenAI response format: { choices: [{ message: { content: "..." } }] }
+  return data.choices?.[0]?.message?.content?.trim() || '';
+}
+
 // Message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
@@ -252,72 +317,69 @@ async function handleBatchTranslateFast(texts, targetLang, delimiter = '|||') {
 // Translate single text with AI
 async function translateWithAI(text, targetLang, settings) {
   const targetLangName = languageNames[targetLang] || targetLang;
-  
+
   // Use custom prompt if provided, otherwise use default
   const promptTemplate = settings.customPrompt || DEFAULT_PROMPT;
   const systemPrompt = buildPrompt(promptTemplate, targetLangName);
 
-  const response = await fetch(settings.apiEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.apiKey}`
-    },
-    body: JSON.stringify({
-      model: settings.modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+  // Auto-detect API type and call appropriate function
+  if (isClaudeAPI(settings.apiEndpoint)) {
+    const result = await callClaudeAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      text,
+      2000
+    );
+    return result || text;
+  } else {
+    const result = await callOpenAIAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      text,
+      2000,
+      0.3
+    );
+    return result || text;
   }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content?.trim() || text;
 }
 
 // Translate batch of texts with AI (numbered format)
 async function translateBatchWithAI(texts, targetLang, settings) {
   const targetLangName = languageNames[targetLang] || targetLang;
-  
+
   // Create numbered list for batch translation
   const numberedTexts = texts.map((text, i) => `[${i + 1}] ${text}`).join('\n\n');
-  
+
   // For batch translation, always use the batch prompt format
   const systemPrompt = buildPrompt(DEFAULT_BATCH_PROMPT, targetLangName);
 
-  const response = await fetch(settings.apiEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.apiKey}`
-    },
-    body: JSON.stringify({
-      model: settings.modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: numberedTexts }
-      ],
-      temperature: 0.3,
-      max_tokens: 4000
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+  // Auto-detect API type and call appropriate function
+  let content;
+  if (isClaudeAPI(settings.apiEndpoint)) {
+    content = await callClaudeAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      numberedTexts,
+      4000
+    );
+  } else {
+    content = await callOpenAIAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      numberedTexts,
+      4000,
+      0.3
+    );
   }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content?.trim() || '';
-  
   // Parse numbered response
   const translations = parseNumberedResponse(content, texts.length);
   return translations;
@@ -341,45 +403,43 @@ Output: 你好<<<>>>你好吗<<<>>>谢谢`;
 // Fast batch translation with delimiter
 async function translateBatchFastWithAI(texts, targetLang, settings, delimiter = '<<<>>>') {
   const targetLangName = languageNames[targetLang] || targetLang;
-  
+
   // Join texts with delimiter
   const joinedTexts = texts.join(delimiter);
-  
+
   const systemPrompt = FAST_BATCH_PROMPT.replace(/\{targetLang\}/g, targetLangName);
 
-  const response = await fetch(settings.apiEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.apiKey}`
-    },
-    body: JSON.stringify({
-      model: settings.modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: joinedTexts }
-      ],
-      temperature: 0.1,
-      max_tokens: 16000
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+  // Auto-detect API type and call appropriate function
+  let content;
+  if (isClaudeAPI(settings.apiEndpoint)) {
+    content = await callClaudeAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      joinedTexts,
+      16000
+    );
+  } else {
+    content = await callOpenAIAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      joinedTexts,
+      16000,
+      0.1
+    );
   }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content?.trim() || '';
-  
   // Parse by delimiter
   const translations = content.split(delimiter).map(t => t.trim());
-  
+
   // Ensure we have the same number of translations as inputs
   while (translations.length < texts.length) {
     translations.push('');
   }
-  
+
   return translations.slice(0, texts.length);
 }
 

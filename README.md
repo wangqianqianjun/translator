@@ -113,14 +113,15 @@ After translation:
 | Service | Example API Endpoint | Notes |
 |---------|---------------------|-------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | GPT-4o, GPT-4o-mini, etc. |
+| **Anthropic Claude** | `https://api.anthropic.com/v1/messages` | Claude Sonnet, Opus, Haiku |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` | |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | Gemini Pro, Flash, etc. |
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` | DeepSeek-V3, etc. |
-| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | **Claude, Gemini, Llama, etc.** |
+| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | Multiple providers |
 | Ollama (Local) | `http://localhost:11434/v1/chat/completions` | Local models |
 | LM Studio (Local) | `http://localhost:1234/v1/chat/completions` | Local models |
 
-> **Note**: To use Anthropic Claude, use OpenRouter with model name like `anthropic/claude-sonnet-4` - Anthropic's native API format is not compatible.
+> **Auto-detection**: The extension automatically detects Anthropic Claude API (by domain or `/v1/messages` path) and uses the correct request/response format.
 
 ### 🌍 Supported Languages
 
@@ -252,14 +253,15 @@ cd translator
 | 服务 | API 地址示例 | 说明 |
 |------|-------------|------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | GPT-4o, GPT-4o-mini 等 |
+| **Anthropic Claude** | `https://api.anthropic.com/v1/messages` | Claude Sonnet, Opus, Haiku |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` | |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | Gemini Pro, Flash 等 |
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` | DeepSeek-V3 等 |
-| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | **Claude, Gemini, Llama 等** |
+| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | 多种模型提供商 |
 | Ollama (本地) | `http://localhost:11434/v1/chat/completions` | 本地模型 |
 | LM Studio (本地) | `http://localhost:1234/v1/chat/completions` | 本地模型 |
 
-> **注意**：如需使用 Anthropic Claude，请通过 OpenRouter 调用，模型名如 `anthropic/claude-sonnet-4`。Anthropic 官方 API 格式与 OpenAI 不兼容。
+> **自动检测**：插件会自动检测 Anthropic Claude API（通过域名或 `/v1/messages` 路径），并使用正确的请求/响应格式。
 
 ### 🌍 支持的语言
 
