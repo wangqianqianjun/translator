@@ -41,11 +41,30 @@
       await loadSettings();
       setupSelectionListener();
       setupMessageListener();
+      setupStorageListener();
       createFloatBall();
       console.log('AI Translator: Initialization complete, showFloatBall =', settings.showFloatBall);
     } catch (error) {
       console.error('AI Translator: Initialization failed', error);
     }
+  }
+
+  // Listen for storage changes to stay in sync
+  function setupStorageListener() {
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace !== 'sync') return;
+
+      if (changes.showFloatBall) {
+        console.log('AI Translator: Storage changed, showFloatBall:', changes.showFloatBall.oldValue, '->', changes.showFloatBall.newValue);
+        settings.showFloatBall = changes.showFloatBall.newValue;
+        updateFloatBallVisibility();
+      }
+
+      if (changes.theme) {
+        settings.theme = changes.theme.newValue;
+        applyTheme(settings.theme);
+      }
+    });
   }
 
   // Load settings from storage
@@ -645,12 +664,55 @@
     if (floatBall) {
       // Ensure showFloatBall has a valid boolean value
       const shouldShow = settings.showFloatBall !== false;
-      floatBall.style.display = shouldShow ? 'flex' : 'none';
+
+      // Use setProperty with !important to override any page CSS
+      floatBall.style.setProperty('display', shouldShow ? 'flex' : 'none', 'important');
+      floatBall.style.setProperty('visibility', shouldShow ? 'visible' : 'hidden', 'important');
+      floatBall.style.setProperty('opacity', shouldShow ? '1' : '0', 'important');
+
       // Also update container visibility
       if (floatBallContainer) {
-        floatBallContainer.style.display = shouldShow ? 'block' : 'none';
+        floatBallContainer.style.setProperty('display', shouldShow ? 'block' : 'none', 'important');
       }
-      console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display);
+
+      // Ensure float ball is in viewport when showing
+      if (shouldShow) {
+        ensureFloatBallInViewport();
+      }
+
+      console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display,
+                  ', element exists =', !!document.getElementById('ai-translator-float-ball'));
+    }
+  }
+
+  // Ensure float ball is within the visible viewport
+  function ensureFloatBallInViewport() {
+    if (!floatBall) return;
+
+    const rect = floatBall.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let needsAdjustment = false;
+    let newLeft = rect.left;
+    let newTop = rect.top;
+
+    // Check if ball is outside viewport
+    if (rect.left < 0 || rect.right > viewportWidth ||
+        rect.top < 0 || rect.bottom > viewportHeight ||
+        rect.width === 0 || rect.height === 0) {
+      needsAdjustment = true;
+      // Reset to default position (bottom right)
+      newLeft = viewportWidth - FLOAT_BALL_SIZE - 24;
+      newTop = viewportHeight - FLOAT_BALL_SIZE - 80;
+    }
+
+    if (needsAdjustment) {
+      floatBall.style.setProperty('left', `${newLeft}px`, 'important');
+      floatBall.style.setProperty('top', `${newTop}px`, 'important');
+      floatBall.style.setProperty('right', 'auto', 'important');
+      floatBall.style.setProperty('bottom', 'auto', 'important');
+      console.log('AI Translator: Float ball position adjusted to', newLeft, newTop);
     }
   }
 
