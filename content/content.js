@@ -168,7 +168,14 @@
     setupFloatBallInteraction();
 
     // Update visibility based on settings
-    updateFloatBallVisibility();
+    // Re-read from storage to ensure we have the latest value
+    chrome.storage.sync.get({ showFloatBall: true }).then(result => {
+      settings.showFloatBall = result.showFloatBall;
+      updateFloatBallVisibility();
+    }).catch(() => {
+      // On error, use current settings value
+      updateFloatBallVisibility();
+    });
   }
 
   // Set docked state with container background
@@ -509,6 +516,9 @@
       inputDialog.remove();
     }
 
+    // Ensure theme is applied
+    applyTheme(settings.theme);
+
     inputDialog = document.createElement('div');
     inputDialog.id = 'ai-translator-input-dialog';
     inputDialog.innerHTML = `
@@ -636,6 +646,10 @@
       // Ensure showFloatBall has a valid boolean value
       const shouldShow = settings.showFloatBall !== false;
       floatBall.style.display = shouldShow ? 'flex' : 'none';
+      // Also update container visibility
+      if (floatBallContainer) {
+        floatBallContainer.style.display = shouldShow ? 'block' : 'none';
+      }
       console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display);
     }
   }
@@ -748,6 +762,9 @@
   function showTranslationPopup(text, x, y) {
     hideTranslationPopup();
 
+    // Ensure theme is applied
+    applyTheme(settings.theme);
+
     translationPopup = document.createElement('div');
     translationPopup.className = 'ai-translator-popup';
     translationPopup.innerHTML = `
@@ -813,6 +830,9 @@
       }
     });
 
+    // 添加拖动功能
+    setupPopupDrag(translationPopup);
+
     // Trigger translation
     translateText(text);
   }
@@ -820,6 +840,9 @@
   // 显示已完成的翻译结果（用于右键菜单翻译）
   function showTranslationResult(text, translation) {
     hideTranslationPopup();
+
+    // Ensure theme is applied
+    applyTheme(settings.theme);
 
     translationPopup = document.createElement('div');
     translationPopup.className = 'ai-translator-popup';
@@ -866,6 +889,61 @@
     translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
       copyToClipboard(translation);
       showCopyFeedback();
+    });
+
+    // 添加拖动功能
+    setupPopupDrag(translationPopup);
+  }
+
+  // 设置弹窗拖动功能
+  function setupPopupDrag(popup) {
+    const header = popup.querySelector('.ai-translator-header');
+    if (!header) return;
+
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+
+    header.style.cursor = 'move';
+
+    header.addEventListener('mousedown', (e) => {
+      // 忽略关闭按钮
+      if (e.target.classList.contains('ai-translator-close')) return;
+
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = popup.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+
+      popup.style.transition = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      let newX = initialX + deltaX;
+      let newY = initialY + deltaY;
+
+      // 保持在视口内
+      const popupRect = popup.getBoundingClientRect();
+      newX = Math.max(0, Math.min(window.innerWidth - popupRect.width, newX));
+      newY = Math.max(0, Math.min(window.innerHeight - popupRect.height, newY));
+
+      popup.style.left = `${newX}px`;
+      popup.style.top = `${newY}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        popup.style.transition = '';
+      }
     });
   }
 
@@ -1812,8 +1890,11 @@
           break;
         case 'TOGGLE_FLOAT_BALL':
           console.log('AI Translator: TOGGLE_FLOAT_BALL received, show =', message.show);
-          settings.showFloatBall = message.show;
-          updateFloatBallVisibility();
+          // 只有当值确实改变时才更新，避免无效的切换
+          if (settings.showFloatBall !== message.show) {
+            settings.showFloatBall = message.show;
+            updateFloatBallVisibility();
+          }
           break;
       }
     });
