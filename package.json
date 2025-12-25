@@ -5,7 +5,16 @@
   "scripts": {
     "icons": "node scripts/generate-icons.js",
     "build": "echo 'No build required - load directly in Chrome'",
-    "zip": "zip -r ai-translator.zip manifest.json background/ content/ popup/ icons/*.png -x '*.DS_Store'"
+    "zip": "zip -r ai-translator.zip manifest.json background/ content/ popup/ icons/*.png -x '*.DS_Store'",
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:ui": "npx playwright test --ui",
+    "test:debug": "npx playwright test --debug",
+    "test:float-ball": "npx playwright test float-ball.spec.js",
+    "test:sidebar": "npx playwright test sidebar-translation.spec.js",
+    "test:math": "npx playwright test math-and-code.spec.js",
+    "test:nav": "npx playwright test horizontal-nav.spec.js",
+    "test:report": "npx playwright show-report test/reports"
   },
   "optionalDependencies": {
     "canvas": "^2.11.2"
@@ -17,6 +26,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "canvas": "^3.2.0"
   }
 }

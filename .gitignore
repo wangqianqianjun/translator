@@ -36,3 +36,9 @@ npm-debug.log*
 # Debug images
 *.png
 !icons/*.png
+
+# Playwright test outputs
+test/results/
+test/reports/
+playwright-report/
+test-results/
