@@ -1228,6 +1228,14 @@
     // 检查元素是否有可翻译的子元素（用于判断是否应该递归而非整体翻译）
     function hasTranslatableChildren(element) {
       for (const child of element.children) {
+        // 跳过数学公式元素 - 数学公式应该作为整体保留，不应该导致父元素被拆分
+        if (isMathElement(child)) {
+          continue;
+        }
+        // 跳过图标元素
+        if (isIconElement(child)) {
+          continue;
+        }
         const childTag = child.tagName;
         // 如果子元素是块级或内联可翻译元素，且有文本内容
         if ((blockTags.includes(childTag) || inlineTags.includes(childTag)) &&
