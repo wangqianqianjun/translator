@@ -100,7 +100,32 @@
 
   // ==================== Float Ball ====================
 
+  // Ensure float ball exists in DOM (recreate if removed by page's JS)
+  function ensureFloatBallExists() {
+    // Check if float ball was removed from DOM
+    if (floatBall && !document.body.contains(floatBall)) {
+      console.log('AI Translator: Float ball was removed from DOM, recreating...');
+      floatBall = null;
+      floatBallContainer = null;
+    }
+
+    // Create if doesn't exist
+    if (!floatBall) {
+      createFloatBall();
+      return true; // Was recreated
+    }
+    return false; // Already existed
+  }
+
   function createFloatBall() {
+    // Remove existing references if elements don't exist in DOM
+    if (floatBall && !document.body.contains(floatBall)) {
+      floatBall = null;
+    }
+    if (floatBallContainer && !document.body.contains(floatBallContainer)) {
+      floatBallContainer = null;
+    }
+
     if (floatBall) return;
 
     // Ensure document.body exists
@@ -661,17 +686,22 @@
   }
 
   function updateFloatBallVisibility() {
-    if (floatBall) {
-      // Ensure showFloatBall has a valid boolean value
-      const shouldShow = settings.showFloatBall !== false;
+    // Ensure showFloatBall has a valid boolean value
+    const shouldShow = settings.showFloatBall !== false;
 
+    // If should show, ensure float ball exists (recreate if removed by page)
+    if (shouldShow) {
+      ensureFloatBallExists();
+    }
+
+    if (floatBall && document.body.contains(floatBall)) {
       // Use setProperty with !important to override any page CSS
       floatBall.style.setProperty('display', shouldShow ? 'flex' : 'none', 'important');
       floatBall.style.setProperty('visibility', shouldShow ? 'visible' : 'hidden', 'important');
       floatBall.style.setProperty('opacity', shouldShow ? '1' : '0', 'important');
 
       // Also update container visibility
-      if (floatBallContainer) {
+      if (floatBallContainer && document.body.contains(floatBallContainer)) {
         floatBallContainer.style.setProperty('display', shouldShow ? 'block' : 'none', 'important');
       }
 
@@ -681,30 +711,52 @@
       }
 
       console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display,
-                  ', element exists =', !!document.getElementById('ai-translator-float-ball'));
+                  ', element in DOM =', document.body.contains(floatBall));
+    } else if (shouldShow) {
+      console.warn('AI Translator: Float ball not in DOM, cannot update visibility');
     }
   }
 
   // Ensure float ball is within the visible viewport
   function ensureFloatBallInViewport() {
-    if (!floatBall) return;
+    if (!floatBall || !document.body.contains(floatBall)) return;
 
     const rect = floatBall.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    // Validate viewport dimensions
+    if (viewportWidth <= 0 || viewportHeight <= 0) return;
+
     let needsAdjustment = false;
+
+    // Default position (bottom right corner)
+    const defaultLeft = Math.max(8, viewportWidth - FLOAT_BALL_SIZE - 24);
+    const defaultTop = Math.max(8, viewportHeight - FLOAT_BALL_SIZE - 80);
+
     let newLeft = rect.left;
     let newTop = rect.top;
 
-    // Check if ball is outside viewport
-    if (rect.left < 0 || rect.right > viewportWidth ||
-        rect.top < 0 || rect.bottom > viewportHeight ||
-        rect.width === 0 || rect.height === 0) {
+    // Check if ball has invalid dimensions (not rendered yet or hidden)
+    if (rect.width === 0 || rect.height === 0) {
       needsAdjustment = true;
-      // Reset to default position (bottom right)
-      newLeft = viewportWidth - FLOAT_BALL_SIZE - 24;
-      newTop = viewportHeight - FLOAT_BALL_SIZE - 80;
+      newLeft = defaultLeft;
+      newTop = defaultTop;
+    }
+    // Check if ball is outside viewport
+    else if (rect.left < 0 || rect.right > viewportWidth ||
+             rect.top < 0 || rect.bottom > viewportHeight) {
+      needsAdjustment = true;
+      // Clamp to viewport
+      newLeft = Math.max(8, Math.min(rect.left, viewportWidth - FLOAT_BALL_SIZE - 8));
+      newTop = Math.max(8, Math.min(rect.top, viewportHeight - FLOAT_BALL_SIZE - 8));
+
+      // If still invalid, use default
+      if (newLeft < 0 || newLeft > viewportWidth - FLOAT_BALL_SIZE ||
+          newTop < 0 || newTop > viewportHeight - FLOAT_BALL_SIZE) {
+        newLeft = defaultLeft;
+        newTop = defaultTop;
+      }
     }
 
     if (needsAdjustment) {
@@ -713,6 +765,9 @@
       floatBall.style.setProperty('right', 'auto', 'important');
       floatBall.style.setProperty('bottom', 'auto', 'important');
       console.log('AI Translator: Float ball position adjusted to', newLeft, newTop);
+
+      // Clear any invalid saved position
+      localStorage.removeItem('ai-translator-float-position');
     }
   }
 
