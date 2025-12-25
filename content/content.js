@@ -1422,23 +1422,30 @@
 
     if (isHorizontalFlex) {
       // 对于水平 flex 布局（如顶部导航），将翻译插入到元素内部
-      // 创建一个 span 来包裹翻译，显示在原文下方
+      // 翻译显示在原文右侧（inline），保持菜单栏高度不变
       const translationEl = document.createElement('span');
-      translationEl.className = 'ai-translator-inline-block ai-translator-inline-child';
+      translationEl.className = 'ai-translator-inline-block ai-translator-inline-right';
 
       if (block.mathElements && block.mathElements.length > 0) {
-        translationEl.innerHTML = finalTranslation;
+        translationEl.innerHTML = ' ' + finalTranslation;
       } else {
-        translationEl.textContent = translation;
+        translationEl.textContent = ' ' + translation;
       }
 
-      translationEl.style.cssText = baseStyle + `
-        display: block;
+      translationEl.style.cssText = `
+        font-size: 0.85em;
+        font-family: ${computedStyle.fontFamily};
+        font-weight: ${computedStyle.fontWeight};
+        line-height: ${computedStyle.lineHeight};
+        color: ${computedStyle.color};
+        letter-spacing: ${computedStyle.letterSpacing};
+        opacity: 0.7;
+        display: inline;
         margin: 0;
         padding: 0;
       `;
 
-      // 将翻译作为子元素追加到原元素内部
+      // 将翻译作为子元素追加到原元素内部（显示在原文右侧）
       element.appendChild(translationEl);
     } else {
       // 对于非水平 flex 布局（如侧边栏），插入为同级元素
