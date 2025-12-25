@@ -112,6 +112,8 @@
     // Create if doesn't exist
     if (!floatBall) {
       createFloatBall();
+      // Reapply theme after recreation (React hydration may have removed attributes)
+      applyTheme(settings.theme);
       return true; // Was recreated
     }
     return false; // Already existed
@@ -1670,28 +1672,38 @@
   // 获取元素内文本相对于元素左边界的偏移量（跳过 icon/svg 等前置元素）
   function getTextOffsetLeft(element) {
     const elementRect = element.getBoundingClientRect();
+    if (elementRect.width === 0) return 0;
 
-    // 遍历子元素，找到第一个文本节点或包含文本的元素
-    for (const child of element.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
-        // 使用 Range 获取文本节点的位置
-        const range = document.createRange();
-        range.selectNodeContents(child);
-        const textRect = range.getBoundingClientRect();
-        return Math.max(0, textRect.left - elementRect.left);
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        // 跳过 icon 类元素
-        const tagName = child.tagName.toLowerCase();
-        if (tagName === 'svg' || tagName === 'img' || tagName === 'i' ||
-            child.classList.contains('icon') || isIconElement(child)) {
-          continue;
-        }
-        // 检查这个元素是否包含文本
-        if (child.textContent.trim()) {
-          const childRect = child.getBoundingClientRect();
-          return Math.max(0, childRect.left - elementRect.left);
+    // 递归查找第一个文本节点的位置
+    function findFirstTextRect(node) {
+      for (const child of node.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+          // 使用 Range 获取文本节点的位置
+          const range = document.createRange();
+          range.selectNodeContents(child);
+          const rects = range.getClientRects();
+          if (rects.length > 0) {
+            return rects[0];
+          }
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+          // 跳过 icon 类元素
+          const tagName = child.tagName.toLowerCase();
+          if (tagName === 'svg' || tagName === 'img' || tagName === 'i' ||
+              tagName === 'icon' || child.classList.contains('icon') ||
+              isIconElement(child)) {
+            continue;
+          }
+          // 递归搜索子元素
+          const result = findFirstTextRect(child);
+          if (result) return result;
         }
       }
+      return null;
+    }
+
+    const textRect = findFirstTextRect(element);
+    if (textRect) {
+      return Math.max(0, textRect.left - elementRect.left);
     }
 
     return 0;
