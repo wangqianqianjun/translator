@@ -76,6 +76,7 @@ Follow this process when fixing bugs:
    - Relevant DOM structure or network requests
 4. **Document Root Cause** - Explain the root cause in commit messages, not just "fixed XX issue"
 5. **Verify the Fix** - Ensure the fix addresses the actual root cause, not just a workaround
+6. **Avoid Breaking Other Features** - When adding or fixing a feature, ensure existing functionality is not affected. Run unit tests if available; if not, manually verify related features still work
 
 ## Default Configuration
 
