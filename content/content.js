@@ -1379,6 +1379,44 @@
     return blocks;
   }
 
+  // 获取清理后的数学公式 HTML（移除辅助元素，保留视觉渲染）
+  function getCleanMathHtml(node) {
+    // 克隆节点以避免修改原始 DOM
+    const clone = node.cloneNode(true);
+
+    // 需要移除的辅助元素选择器
+    const assistiveSelectors = [
+      '.MJX_Assistive_MathML',      // MathJax 3 辅助 MathML
+      '.mjx-assistive-mml',          // MathJax 3 辅助 MathML (小写)
+      '.katex-mathml',               // KaTeX 辅助 MathML
+      '.katex-html[aria-hidden]',    // KaTeX 隐藏的 HTML
+      '.sr-only',                    // 屏幕阅读器专用
+      '.visually-hidden',            // 视觉隐藏
+      '.MathJax_Preview',            // MathJax 预览
+      'annotation',                  // MathML annotation
+      'semantics > mrow:not(:first-child)', // MathML semantics 中的额外内容
+    ];
+
+    // 移除所有辅助元素
+    assistiveSelectors.forEach(selector => {
+      try {
+        clone.querySelectorAll(selector).forEach(el => el.remove());
+      } catch (e) {
+        // 忽略无效选择器
+      }
+    });
+
+    // 移除 aria-hidden="true" 但保留可见内容的元素
+    // 注意：不移除整个元素，只移除 aria-hidden 属性下的某些特定子元素
+
+    // 确保数学公式保持内联显示
+    // 为克隆的元素添加内联样式以确保正确渲染
+    clone.style.display = 'inline';
+    clone.style.verticalAlign = 'baseline';
+
+    return clone.outerHTML;
+  }
+
   // 检测元素是否是数学公式
   function isMathElement(el) {
     if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
@@ -1468,9 +1506,11 @@
         // 检测是否是数学公式 - 保留占位符
         if (isMathElement(node)) {
           const placeholder = `【MATH_${mathIndex}】`;
+          // 克隆节点并移除辅助元素，避免显示重复内容
+          const cleanedHtml = getCleanMathHtml(node);
           mathElements.push({
             placeholder: placeholder,
-            html: node.outerHTML
+            html: cleanedHtml
           });
           text += placeholder;
           mathIndex++;

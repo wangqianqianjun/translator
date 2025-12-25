@@ -255,12 +255,52 @@ button.ai-translator-inline-block {
   cursor: default !important;
 }
 
+/* 确保翻译块中的数学公式正确内联显示 */
+.ai-translator-inline-block mjx-container,
+.ai-translator-inline-block .MathJax,
+.ai-translator-inline-block .katex,
+.ai-translator-inline-block math {
+  display: inline !important;
+  vertical-align: baseline !important;
+}
+
+/* 隐藏数学公式的辅助元素（屏幕阅读器用） */
+.ai-translator-inline-block .MJX_Assistive_MathML,
+.ai-translator-inline-block .mjx-assistive-mml,
+.ai-translator-inline-block .katex-mathml,
+.ai-translator-inline-block .sr-only,
+.ai-translator-inline-block .visually-hidden {
+  display: none !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
 /* 水平 flex 布局中的内嵌翻译（如顶部导航） - 显示在原文右侧 */
 .ai-translator-inline-right {
   display: inline !important;
   font-size: 0.85em !important;
   opacity: 0.7 !important;
   margin-left: 4px !important;
+}
+
+/* 内嵌翻译中的数学公式也需要正确显示 */
+.ai-translator-inline-right mjx-container,
+.ai-translator-inline-right .MathJax,
+.ai-translator-inline-right .katex,
+.ai-translator-inline-right math {
+  display: inline !important;
+  vertical-align: baseline !important;
+}
+
+.ai-translator-inline-right .MJX_Assistive_MathML,
+.ai-translator-inline-right .mjx-assistive-mml,
+.ai-translator-inline-right .katex-mathml,
+.ai-translator-inline-right .sr-only,
+.ai-translator-inline-right .visually-hidden {
+  display: none !important;
 }
 
 /* ==================== Page Translation Progress ==================== */
