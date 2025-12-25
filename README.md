@@ -114,8 +114,7 @@ After translation:
 |---------|---------------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` |
-| Anthropic Claude | Via compatible proxy or gateway |
-| Google Gemini | Via OpenAI-compatible endpoint |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` |
 | Ollama (Local) | `http://localhost:11434/v1/chat/completions` |
 | LM Studio (Local) | `http://localhost:1234/v1/chat/completions` |
@@ -253,8 +252,7 @@ cd translator
 |------|-------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` |
-| Anthropic Claude | 通过兼容代理或网关 |
-| Google Gemini | 通过 OpenAI 兼容接口 |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` |
 | Ollama (本地) | `http://localhost:11434/v1/chat/completions` |
 | LM Studio (本地) | `http://localhost:1234/v1/chat/completions` |
