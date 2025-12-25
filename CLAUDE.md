@@ -62,6 +62,21 @@ Works with any OpenAI Chat Completions-compatible API:
 - Request format: `{model, messages, temperature, max_tokens}`
 - Response: `{choices[0].message.content}`
 
+## Bug Fixing Guidelines
+
+修复 bug 时必须遵循以下流程：
+
+1. **先找 Root Cause** - 不要急于修复表面症状，必须先定位根本原因
+2. **代码层面排查** - 通过阅读代码、git history、日志分析等方式定位问题
+3. **需要更多信息时主动询问** - 如果代码层面难以排查，应向用户请求：
+   - Console 日志输出
+   - 复现步骤
+   - 环境信息（浏览器版本、页面 URL 等）
+   - 截图或录屏
+   - 相关的 DOM 结构或网络请求
+4. **记录 Root Cause** - 在 commit message 中说明根本原因，而不仅仅是"修复了 XX 问题"
+5. **验证修复** - 确保修复方案真正解决了根本原因，而不是绕过问题
+
 ## Default Configuration
 
 ```javascript
