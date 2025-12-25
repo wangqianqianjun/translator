@@ -36,7 +36,32 @@ const PROVIDERS = {
   openrouter: {
     name: 'OpenRouter',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    models: ['anthropic/claude-sonnet-4.5', 'anthropic/claude-opus-4.5', 'openai/gpt-4.1', 'google/gemini-3-flash', 'deepseek/deepseek-v3.2'],
+    models: [
+      // Anthropic Claude
+      'anthropic/claude-opus-4.5',
+      'anthropic/claude-sonnet-4.5',
+      'anthropic/claude-haiku-4.5',
+      'anthropic/claude-opus-4.1',
+      'anthropic/claude-sonnet-4',
+      'anthropic/claude-opus-4',
+      // OpenAI
+      'openai/gpt-4.1',
+      'openai/gpt-4.1-mini',
+      'openai/gpt-4.1-nano',
+      'openai/gpt-4o',
+      'openai/gpt-4o-mini',
+      'openai/o3',
+      'openai/o3-mini',
+      'openai/o4-mini',
+      // Google Gemini
+      'google/gemini-3-flash',
+      'google/gemini-3-pro',
+      'google/gemini-2.5-pro',
+      'google/gemini-2.5-flash',
+      // DeepSeek
+      'deepseek/deepseek-chat',
+      'deepseek/deepseek-reasoner'
+    ],
     defaultModel: 'anthropic/claude-sonnet-4.5'
   },
   ollama: {
