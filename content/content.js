@@ -1667,6 +1667,36 @@
     return text;
   }
 
+  // 获取元素内文本相对于元素左边界的偏移量（跳过 icon/svg 等前置元素）
+  function getTextOffsetLeft(element) {
+    const elementRect = element.getBoundingClientRect();
+
+    // 遍历子元素，找到第一个文本节点或包含文本的元素
+    for (const child of element.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+        // 使用 Range 获取文本节点的位置
+        const range = document.createRange();
+        range.selectNodeContents(child);
+        const textRect = range.getBoundingClientRect();
+        return Math.max(0, textRect.left - elementRect.left);
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        // 跳过 icon 类元素
+        const tagName = child.tagName.toLowerCase();
+        if (tagName === 'svg' || tagName === 'img' || tagName === 'i' ||
+            child.classList.contains('icon') || isIconElement(child)) {
+          continue;
+        }
+        // 检查这个元素是否包含文本
+        if (child.textContent.trim()) {
+          const childRect = child.getBoundingClientRect();
+          return Math.max(0, childRect.left - elementRect.left);
+        }
+      }
+    }
+
+    return 0;
+  }
+
   // 检测父元素是否是水平 flex 布局
   function isHorizontalFlexParent(element) {
     const parent = element.parentElement;
@@ -1758,9 +1788,14 @@
         translationEl.textContent = translation;
       }
 
+      // 计算原文文本相对于元素的偏移量（跳过 icon 等前置元素）
+      const textOffset = getTextOffsetLeft(element);
+
       translationEl.style.cssText = baseStyle + `
         margin: 0;
         padding: 0;
+        padding-left: ${textOffset}px;
+        box-sizing: border-box;
       `;
 
       // 插入到原元素后面
