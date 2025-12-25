@@ -18,6 +18,12 @@ An AI-powered Chrome browser translation extension that supports selection trans
 
 ### ✨ Features
 
+#### Smart Translation
+- **Math Formula Preservation**: Automatically detects and preserves MathJax/KaTeX formulas without translation
+- **Code Block Protection**: Code snippets remain untouched during translation
+- **Elegant Menu Translation**: Sidebar translations align perfectly with original text (not icons)
+- **Custom Prompts**: Customize translation style with your own prompts (formal, casual, technical, etc.)
+
 #### Selection Translation
 - Shows a translate button when text is selected
 - Click the button to open translation popup
@@ -34,11 +40,10 @@ An AI-powered Chrome browser translation extension that supports selection trans
 #### Float Ball
 - Draggable quick action button
 - Supports translating selection, page, and toggling translations
-- Position auto-saves
+- Position auto-saves, persists across page navigation
 
 #### Other Features
 - Right-click context menu translation
-- Customizable translation prompts
 - Dark/Light theme toggle
 - Multi-language support (10+ languages)
 - Input text translation dialog
@@ -103,13 +108,19 @@ After translation:
 
 ### ⚙️ Supported APIs
 
+**Works with any OpenAI-compatible API endpoint.** Just configure the endpoint URL, API key, and model name.
+
 | Service | Example API Endpoint |
 |---------|---------------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` |
-| Claude (compatible) | Use compatibility layer |
-| Ollama | `http://localhost:11434/v1/chat/completions` |
-| LM Studio | `http://localhost:1234/v1/chat/completions` |
+| Anthropic Claude | Via compatible proxy or gateway |
+| Google Gemini | Via OpenAI-compatible endpoint |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` |
+| Ollama (Local) | `http://localhost:11434/v1/chat/completions` |
+| LM Studio (Local) | `http://localhost:1234/v1/chat/completions` |
+| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` |
+| Any OpenAI-compatible | Just provide the endpoint URL |
 
 ### 🌍 Supported Languages
 
@@ -146,6 +157,12 @@ MIT License
 
 ### ✨ 功能特性
 
+#### 智能翻译
+- **数学公式保留**：自动识别并保留 MathJax/KaTeX 数学公式，不会被翻译破坏
+- **代码块保护**：代码片段在翻译过程中保持原样不变
+- **优雅的菜单翻译**：侧边栏译文与原文精确对齐（而非与图标对齐）
+- **自定义 Prompt**：支持自定义翻译风格（正式、口语化、技术文档等）
+
 #### 划词翻译
 - 选中文本后显示翻译按钮
 - 点击按钮弹出翻译窗口
@@ -162,11 +179,10 @@ MIT License
 #### 悬浮球
 - 可拖动的快捷操作球
 - 支持翻译选中文本、翻译页面、显示/隐藏译文
-- 位置自动保存
+- 位置自动保存，跨页面保持
 
 #### 其他功能
 - 右键菜单快速翻译
-- 定制化翻译 Prompt
 - 深色/浅色主题切换
 - 支持多种目标语言（10+语言）
 - 输入文本翻译对话框
@@ -231,13 +247,19 @@ cd translator
 
 ### ⚙️ 支持的 API
 
+**支持所有 OpenAI 兼容的 API 接口**，只需配置接口地址、API Key 和模型名称即可。
+
 | 服务 | API 地址示例 |
 |------|-------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` |
 | Azure OpenAI | `https://your-resource.openai.azure.com/...` |
-| Claude (兼容) | 使用兼容层 |
-| Ollama | `http://localhost:11434/v1/chat/completions` |
-| LM Studio | `http://localhost:1234/v1/chat/completions` |
+| Anthropic Claude | 通过兼容代理或网关 |
+| Google Gemini | 通过 OpenAI 兼容接口 |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` |
+| Ollama (本地) | `http://localhost:11434/v1/chat/completions` |
+| LM Studio (本地) | `http://localhost:1234/v1/chat/completions` |
+| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` |
+| 任意 OpenAI 兼容服务 | 只需提供接口地址 |
 
 ### 🌍 支持的语言
 
