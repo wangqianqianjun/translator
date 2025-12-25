@@ -597,7 +597,7 @@ async function testConnection() {
         },
         body: JSON.stringify({
           model: modelName || 'claude-sonnet-4-5-20250929',
-          max_tokens: 10,
+          max_tokens: 20,
           messages: [
             { role: 'user', content: 'Hi' }
           ]
@@ -616,7 +616,7 @@ async function testConnection() {
           messages: [
             { role: 'user', content: 'Hi' }
           ],
-          max_tokens: 5
+          max_tokens: 20
         })
       });
     }
