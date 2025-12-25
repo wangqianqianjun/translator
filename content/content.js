@@ -1310,18 +1310,23 @@
 
       // 对于任何有可翻译子元素的元素，检查是否应该递归处理而非整体翻译
       // 这确保导航菜单等嵌套结构的每个项被单独翻译
+      // 注意：只有当子元素是【块级元素】时才递归，内联元素（如 <a>、<span>）应该包含在整体翻译中
       if (hasTranslatableChildren(element)) {
         let shouldRecurse = false;
         for (const child of element.children) {
+          // 跳过数学公式和图标
+          if (isMathElement(child) || isIconElement(child)) {
+            continue;
+          }
           const childTag = child.tagName;
-          // 情况1：直接子元素是可翻译的块级或内联标签
-          if ((blockTags.includes(childTag) || inlineTags.includes(childTag)) &&
-              child.textContent.trim().length >= 2) {
+          // 只有当直接子元素是【块级】可翻译元素时才递归
+          // 内联元素（如 a, span）应该作为父元素内容的一部分整体翻译
+          if (blockTags.includes(childTag) && child.textContent.trim().length >= 2) {
             shouldRecurse = true;
             break;
           }
-          // 情况2：直接子元素（如 div, ul）包含可翻译内容（处理嵌套结构）
-          if (hasTranslatableChildren(child)) {
+          // 情况2：直接子元素是容器元素（如 div, ul）且包含可翻译内容
+          if (containerTags.includes(childTag) && hasTranslatableChildren(child)) {
             shouldRecurse = true;
             break;
           }
