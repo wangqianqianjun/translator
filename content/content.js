@@ -1554,7 +1554,8 @@
       '.sr-only',                    // 屏幕阅读器专用
       '.visually-hidden',            // 视觉隐藏
       '.MathJax_Preview',            // MathJax 预览
-      'annotation',                  // MathML annotation
+      'annotation',                  // MathML annotation (文本注释)
+      'annotation-xml',              // MathML annotation-xml (XML 注释，arXiv 常用)
       'semantics > mrow:not(:first-child)', // MathML semantics 中的额外内容
     ];
 
