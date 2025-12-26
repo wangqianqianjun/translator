@@ -1672,9 +1672,11 @@
           return;
         }
 
-        // 检测是否是数学公式 - 保留占位符
+        // 检测是否是数学公式 - 使用锚点占位符
+        // 使用 {{1}}、{{2}} 格式，LLM 熟悉模板语法，会保持原样
         if (isMathElement(node)) {
-          const placeholder = `【MATH_${mathIndex}】`;
+          mathIndex++;
+          const placeholder = `{{${mathIndex}}}`;
           // 克隆节点并移除辅助元素，避免显示重复内容
           const cleanedHtml = getCleanMathHtml(node);
           mathElements.push({
@@ -1682,7 +1684,6 @@
             html: cleanedHtml
           });
           text += placeholder;
-          mathIndex++;
           return;
         }
 

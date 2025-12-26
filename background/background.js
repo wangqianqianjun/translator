@@ -53,8 +53,12 @@ const languageNames = {
   'ru': 'Русский'
 };
 
+// Math placeholder rule - always appended to prompts (cannot be overridden by custom prompts)
+const MATH_PLACEHOLDER_RULE = `
+IMPORTANT: Keep placeholders like {{1}}, {{2}} etc. exactly as they are - do not translate, modify, or add line breaks around them.`;
+
 // Default prompt template
-const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}. 
+const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}.
 Rules:
 1. Provide ONLY the translation, no explanations or notes
 2. Maintain the original formatting (line breaks, punctuation)
@@ -325,8 +329,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // Build prompt with variable substitution
+// Always appends MATH_PLACEHOLDER_RULE to ensure math anchors are preserved
 function buildPrompt(template, targetLangName) {
-  return template.replace(/\{targetLang\}/g, targetLangName);
+  const prompt = template.replace(/\{targetLang\}/g, targetLangName);
+  return prompt + MATH_PLACEHOLDER_RULE;
 }
 
 // Get effective target language (browser language if not set by user)
@@ -484,7 +490,7 @@ async function translateBatchFastWithAI(texts, targetLang, settings, delimiter =
   // Join texts with delimiter
   const joinedTexts = texts.join(delimiter);
 
-  const systemPrompt = FAST_BATCH_PROMPT.replace(/\{targetLang\}/g, targetLangName);
+  const systemPrompt = FAST_BATCH_PROMPT.replace(/\{targetLang\}/g, targetLangName) + MATH_PLACEHOLDER_RULE;
 
   // Auto-detect API type and call appropriate function
   let content;
