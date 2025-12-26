@@ -1876,7 +1876,13 @@
     } else {
       // 对于非水平 flex 布局（如侧边栏），插入为同级元素
       const translationEl = document.createElement(element.tagName);
-      translationEl.className = 'ai-translator-inline-block';
+
+      // 复制原始元素的类名，保留页面的 CSS 样式（如 ltx_p 用于 MathML 内联显示）
+      // 然后添加我们的标记类
+      if (element.className) {
+        translationEl.className = element.className.replace('ai-translator-translated', '').trim();
+      }
+      translationEl.classList.add('ai-translator-inline-block');
 
       if (hasMathElements) {
         // 使用 DOM 操作构建内容，不用 innerHTML
