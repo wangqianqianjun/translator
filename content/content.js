@@ -1638,7 +1638,8 @@
   }
 
   // 获取元素内容，用占位符替换数学公式（图标直接跳过）
-  // 返回 { text: string, mathElements: Array<{placeholder: string, html: string}> }
+  // 返回 { text: string, mathElements: Array<{placeholder: string, element: Element}> }
+  // 注意：mathElements 保存的是原始 DOM 元素引用，用于后续 cloneNode
   function getTextWithMathPlaceholders(element) {
     let text = '';
     const mathElements = [];
@@ -1687,11 +1688,11 @@
         if (isMathElement(node)) {
           mathIndex++;
           const placeholder = `{{${mathIndex}}}`;
-          // 克隆节点并移除辅助元素，避免显示重复内容
-          const cleanedHtml = getCleanMathHtml(node);
+          // 保存原始 DOM 元素引用（不是 HTML 字符串）
+          // 后续用 cloneNode 复制，避免 HTML 序列化/反序列化带来的问题
           mathElements.push({
             placeholder: placeholder,
-            html: cleanedHtml
+            element: node  // 保存 DOM 引用
           });
           text += placeholder;
           return;
@@ -1775,6 +1776,47 @@
     return false;
   }
 
+  // 用 DOM 操作构建包含数学公式的译文内容
+  // 不使用 innerHTML，直接用 cloneNode 复制原始数学元素，避免 HTML 序列化问题
+  function buildTranslationContentWithMath(container, translatedText, mathElements, prefix = '') {
+    // 清理 LLM 可能添加的换行
+    let text = translatedText.replace(/\s*\n\s*/g, ' ');
+
+    // 添加前缀（如空格）
+    if (prefix) {
+      text = prefix + text;
+    }
+
+    // 按占位符拆分文本，逐个插入文本节点和数学元素
+    let remaining = text;
+
+    for (const math of mathElements) {
+      const placeholderIndex = remaining.indexOf(math.placeholder);
+      if (placeholderIndex === -1) {
+        // 占位符未找到，可能被 LLM 删除了，跳过
+        continue;
+      }
+
+      // 添加占位符前的文本
+      const textBefore = remaining.substring(0, placeholderIndex);
+      if (textBefore) {
+        container.appendChild(document.createTextNode(textBefore));
+      }
+
+      // 克隆并添加原始数学元素（保持完整的 DOM 结构）
+      const mathClone = math.element.cloneNode(true);
+      container.appendChild(mathClone);
+
+      // 更新剩余文本
+      remaining = remaining.substring(placeholderIndex + math.placeholder.length);
+    }
+
+    // 添加最后剩余的文本
+    if (remaining) {
+      container.appendChild(document.createTextNode(remaining));
+    }
+  }
+
   // 插入翻译块
   function insertTranslationBlock(block, translation) {
     const element = block.element;
@@ -1785,20 +1827,6 @@
 
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
-
-    // 还原数学公式：将占位符替换回原始 HTML
-    let finalTranslation = translation;
-    if (block.mathElements && block.mathElements.length > 0) {
-      // 清理 LLM 可能添加的换行
-      // 原文是 inline 格式（文本和公式混排），翻译结果也应该是 inline
-      // 将所有换行替换为空格
-      finalTranslation = finalTranslation.replace(/\s*\n\s*/g, ' ');
-
-      // 替换占位符为实际的数学公式 HTML
-      for (const math of block.mathElements) {
-        finalTranslation = finalTranslation.replace(math.placeholder, math.html);
-      }
-    }
 
     // 复制所有关键样式，包括颜色
     const computedStyle = window.getComputedStyle(element);
@@ -1815,6 +1843,7 @@
 
     // 检测是否在水平 flex 布局中
     const isHorizontalFlex = isHorizontalFlexParent(element);
+    const hasMathElements = block.mathElements && block.mathElements.length > 0;
 
     if (isHorizontalFlex) {
       // 对于水平 flex 布局（如顶部导航），将翻译插入到元素内部
@@ -1822,8 +1851,9 @@
       const translationEl = document.createElement('span');
       translationEl.className = 'ai-translator-inline-block ai-translator-inline-right';
 
-      if (block.mathElements && block.mathElements.length > 0) {
-        translationEl.innerHTML = ' ' + finalTranslation;
+      if (hasMathElements) {
+        // 使用 DOM 操作构建内容，不用 innerHTML
+        buildTranslationContentWithMath(translationEl, translation, block.mathElements, ' ');
       } else {
         translationEl.textContent = ' ' + translation;
       }
@@ -1848,8 +1878,9 @@
       const translationEl = document.createElement(element.tagName);
       translationEl.className = 'ai-translator-inline-block';
 
-      if (block.mathElements && block.mathElements.length > 0) {
-        translationEl.innerHTML = finalTranslation;
+      if (hasMathElements) {
+        // 使用 DOM 操作构建内容，不用 innerHTML
+        buildTranslationContentWithMath(translationEl, translation, block.mathElements);
       } else {
         translationEl.textContent = translation;
       }

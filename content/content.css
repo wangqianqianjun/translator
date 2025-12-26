@@ -265,14 +265,8 @@ button.ai-translator-inline-block {
   vertical-align: baseline !important;
 }
 
-/* MathML semantics 元素使用 display: contents 使其透明化 */
-/* 这样不会影响内部 mrow/msub/msup 的正常渲染，但能避免 semantics 本身导致的块级行为 */
-.ai-translator-inline-block math semantics {
-  display: contents !important;
-}
-
 /* 隐藏 MathML 语义注释 - annotation-xml 是机器可读的注释，不应可视化渲染 */
-/* 注意：不能用 math * 通配符，会破坏 msub/msup 等上下标元素的渲染 */
+/* 注意：不能用 math * 或 semantics 规则，会破坏 MathML 的正常渲染 */
 .ai-translator-inline-block math annotation,
 .ai-translator-inline-block math annotation-xml {
   display: none !important;
@@ -329,11 +323,6 @@ button.ai-translator-inline-block {
 .ai-translator-inline-right mjx-math,
 .ai-translator-inline-right mjx-mrow {
   display: inline !important;
-}
-
-/* MathML semantics 元素透明化 */
-.ai-translator-inline-right math semantics {
-  display: contents !important;
 }
 
 /* 隐藏 MathML 语义注释 */
