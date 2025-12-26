@@ -1436,6 +1436,9 @@
       // 跳过代码块容器
       if (element.closest('.highlight, .codehilite, .sourceCode, .code-block, [class*="language-"], [class*="highlight"]')) return;
 
+      // 跳过数学公式内部的所有元素 - 数学公式应该整体保留，不单独翻译内部元素
+      if (element.closest('math, mjx-container, mjx-math, .MathJax, .katex')) return;
+
       // 跳过数学公式的隐藏辅助元素（只跳过重复的隐藏版本）
       if (element.classList.contains('MJX_Assistive_MathML') ||
           element.classList.contains('katex-mathml') ||
@@ -1569,13 +1572,24 @@
     return clone.outerHTML;
   }
 
-  // 检测元素是否是数学公式
+  // 检测元素是否是数学公式或其内部元素
   function isMathElement(el) {
     if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
 
-    // 检查标签名
-    const mathTags = ['MATH', 'MJX-CONTAINER', 'MJX-MATH'];
-    if (mathTags.includes(el.tagName)) return true;
+    // 检查标签名 - 顶层数学容器
+    const mathContainerTags = ['MATH', 'MJX-CONTAINER', 'MJX-MATH'];
+    if (mathContainerTags.includes(el.tagName)) return true;
+
+    // 检查 MathML 子元素标签 - 这些标签只会出现在数学公式内部
+    const mathMLChildTags = [
+      'MI', 'MN', 'MO', 'MS', 'MTEXT', 'MSPACE',
+      'MSUB', 'MSUP', 'MSUBSUP', 'MUNDER', 'MOVER', 'MUNDEROVER',
+      'MFRAC', 'MROOT', 'MSQRT', 'MROW', 'MFENCED', 'MTABLE',
+      'MTR', 'MTD', 'MALIGNGROUP', 'MALIGNMARK', 'MSTYLE',
+      'MERROR', 'MPADDED', 'MPHANTOM', 'MGLYPH', 'MACTION',
+      'SEMANTICS', 'ANNOTATION', 'ANNOTATION-XML'
+    ];
+    if (mathMLChildTags.includes(el.tagName)) return true;
 
     // 检查常见的数学公式类名
     const mathClasses = [
@@ -1588,6 +1602,9 @@
 
     // 检查 data 属性
     if (el.hasAttribute?.('data-mathml') || el.hasAttribute?.('data-latex')) return true;
+
+    // 检查是否在数学容器内部（通过 closest 查找祖先）
+    if (el.closest('math, mjx-container, mjx-math, .MathJax, .katex')) return true;
 
     return false;
   }
