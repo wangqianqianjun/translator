@@ -1210,6 +1210,9 @@
 
         const texts = batch.map(item => item.text);
 
+        // DEBUG: 打印发送给 LLM 的文本
+        console.log('AI Translator DEBUG - Texts sent to LLM:', JSON.stringify(texts));
+
         try {
           const response = await chrome.runtime.sendMessage({
             type: 'TRANSLATE_BATCH_FAST',
@@ -1217,6 +1220,9 @@
             targetLang: settings.targetLang,
             delimiter: DELIMITER
           });
+
+          // DEBUG: 打印 LLM 返回的翻译
+          console.log('AI Translator DEBUG - Translations received:', JSON.stringify(response.translations));
 
           // Check for error in response
           if (response.error) {
