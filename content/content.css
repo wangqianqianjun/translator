@@ -527,6 +527,47 @@ button.ai-translator-inline-block {
   opacity: 0.6;
 }
 
+/* 错误提示状态 */
+.ai-translator-progress-content.ai-translator-progress-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  color: #f87171;
+  animation: ai-translator-success-bounce 0.4s ease;
+  padding: 8px 0;
+  max-width: 100%;
+}
+
+.ai-translator-progress-error svg {
+  color: #f87171;
+  filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.4));
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-translator-progress-error-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f87171;
+  line-height: 1.4;
+  word-break: break-word;
+  text-align: left;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+#ai-translator-progress.ai-translator-progress-error-state {
+  border-color: rgba(248, 113, 113, 0.3);
+  min-width: 280px;
+  max-width: 400px;
+}
+
+#ai-translator-progress.ai-translator-progress-error-state::before {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 50%, #f87171 100%);
+  opacity: 0.6;
+}
+
 /* 翻译中提示动画 */
 #ai-translator-progress.ai-translator-progress-hint {
   animation: ai-translator-hint-shake 0.4s ease;
@@ -1109,6 +1150,19 @@ button.ai-translator-inline-block {
 
 [data-ai-translator-theme="light"] .ai-translator-progress-info span {
   color: #2563eb;
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-error {
+  color: #dc2626;
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-error svg {
+  color: #dc2626;
+  filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.3));
+}
+
+[data-ai-translator-theme="light"] .ai-translator-progress-error-text {
+  color: #dc2626;
 }
 
 [data-ai-translator-theme="light"] #ai-translator-float-ball-container {

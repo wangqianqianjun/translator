@@ -127,6 +127,61 @@ function isClaudeAPI(endpoint) {
   return endpoint.includes('anthropic.com') || endpoint.includes('/v1/messages');
 }
 
+// Parse API error from response data (handles different vendor formats)
+function parseAPIError(data, httpStatus) {
+  // Check for error field in response body (OpenAI, OpenRouter, etc.)
+  if (data?.error) {
+    const error = data.error;
+    // OpenAI/OpenRouter format: {"error": {"message": "...", "code": ...}}
+    if (typeof error === 'object') {
+      const message = error.message || error.msg || JSON.stringify(error);
+      const code = error.code || error.type || httpStatus;
+      return { isError: true, message, code };
+    }
+    // Simple string error
+    if (typeof error === 'string') {
+      return { isError: true, message: error, code: httpStatus };
+    }
+  }
+
+  // Claude API format: {"type": "error", "error": {...}}
+  if (data?.type === 'error' && data?.error) {
+    const message = data.error.message || JSON.stringify(data.error);
+    return { isError: true, message, code: data.error.type || httpStatus };
+  }
+
+  // Ollama format: {"error": "..."}
+  if (typeof data?.error === 'string') {
+    return { isError: true, message: data.error, code: httpStatus };
+  }
+
+  // No error found
+  return { isError: false };
+}
+
+// Format error message for user display
+function formatErrorMessage(message, code) {
+  // Common error code mappings
+  const errorCodeMessages = {
+    401: '认证失败：请检查 API Key 是否正确',
+    402: '额度不足：请检查账户余额或升级套餐',
+    403: '访问被拒绝：API Key 可能没有权限',
+    404: '模型不存在：请检查模型名称是否正确',
+    429: '请求过于频繁：请稍后重试',
+    500: '服务器错误：API 服务暂时不可用',
+    502: '网关错误：API 服务暂时不可用',
+    503: '服务不可用：API 服务暂时不可用'
+  };
+
+  // If code is a known HTTP status, prepend a helpful message
+  const numericCode = parseInt(code);
+  if (errorCodeMessages[numericCode]) {
+    return `${errorCodeMessages[numericCode]}\n${message}`;
+  }
+
+  return message;
+}
+
 // Call Claude API with Anthropic-specific format
 async function callClaudeAPI(endpoint, apiKey, model, systemPrompt, userContent, maxTokens = 4096) {
   const response = await fetch(endpoint, {
@@ -146,12 +201,23 @@ async function callClaudeAPI(endpoint, apiKey, model, systemPrompt, userContent,
     })
   });
 
+  const data = await response.json().catch(() => ({}));
+
+  // Check HTTP status first
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+    const errorInfo = parseAPIError(data, response.status);
+    const message = errorInfo.isError
+      ? formatErrorMessage(errorInfo.message, errorInfo.code)
+      : `API 错误: ${response.status}`;
+    throw new Error(message);
   }
 
-  const data = await response.json();
+  // Also check for error in response body (some APIs return 200 with error)
+  const errorInfo = parseAPIError(data, response.status);
+  if (errorInfo.isError) {
+    throw new Error(formatErrorMessage(errorInfo.message, errorInfo.code));
+  }
+
   // Claude response format: { content: [{ type: "text", text: "..." }] }
   return data.content?.[0]?.text?.trim() || '';
 }
@@ -175,12 +241,23 @@ async function callOpenAIAPI(endpoint, apiKey, model, systemPrompt, userContent,
     })
   });
 
+  const data = await response.json().catch(() => ({}));
+
+  // Check HTTP status first
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API 错误: ${response.status}`);
+    const errorInfo = parseAPIError(data, response.status);
+    const message = errorInfo.isError
+      ? formatErrorMessage(errorInfo.message, errorInfo.code)
+      : `API 错误: ${response.status}`;
+    throw new Error(message);
   }
 
-  const data = await response.json();
+  // Also check for error in response body (some APIs like OpenRouter return 200 with error)
+  const errorInfo = parseAPIError(data, response.status);
+  if (errorInfo.isError) {
+    throw new Error(formatErrorMessage(errorInfo.message, errorInfo.code));
+  }
+
   // OpenAI response format: { choices: [{ message: { content: "..." } }] }
   return data.choices?.[0]?.message?.content?.trim() || '';
 }

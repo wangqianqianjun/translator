@@ -1200,10 +1200,16 @@
 
       translationProgress.total = translatableBlocks.length;
 
+      // Track if any batch failed
+      let batchError = null;
+
       // 使用 Promise 池进行并发控制
       const processBatch = async (batch) => {
+        // Skip if we already have an error
+        if (batchError) return;
+
         const texts = batch.map(item => item.text);
-        
+
         try {
           const response = await chrome.runtime.sendMessage({
             type: 'TRANSLATE_BATCH_FAST',
@@ -1211,6 +1217,12 @@
             targetLang: settings.targetLang,
             delimiter: DELIMITER
           });
+
+          // Check for error in response
+          if (response.error) {
+            batchError = response.error;
+            throw new Error(response.error);
+          }
 
           if (response.translations) {
             response.translations.forEach((translation, i) => {
@@ -1221,6 +1233,9 @@
           }
         } catch (error) {
           console.error('AI Translator: Batch translation failed', error);
+          if (!batchError) {
+            batchError = error.message || t('translationFailed');
+          }
         }
 
         translationProgress.current += batch.length;
@@ -1230,12 +1245,17 @@
       // 并发执行所有批次
       await runWithConcurrency(batches, processBatch, CONCURRENCY);
 
-      // 标记页面已翻译
-      pageHasBeenTranslated = true;
-      hidePageTranslationProgress();
+      // Check if there was an error during translation
+      if (batchError) {
+        showTranslationError(batchError);
+      } else {
+        // 标记页面已翻译
+        pageHasBeenTranslated = true;
+        hidePageTranslationProgress();
+      }
     } catch (error) {
       console.error('AI Translator: Page translation failed', error);
-      hidePageTranslationProgress();
+      showTranslationError(error.message || t('translationFailed'));
     } finally {
       isTranslatingPage = false;
       translationProgress = { current: 0, total: 0 };
@@ -2025,6 +2045,53 @@
           }, 300);
         }
       }, 3000);
+    }
+  }
+
+  function showTranslationError(errorMessage) {
+    const progressEl = document.getElementById('ai-translator-progress');
+    if (progressEl) {
+      // Escape HTML in error message
+      const escapedMessage = escapeHtml(errorMessage);
+
+      progressEl.innerHTML = `
+        <div class="ai-translator-progress-content ai-translator-progress-error">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div class="ai-translator-progress-error-text">${escapedMessage}</div>
+        </div>
+        <button class="ai-translator-progress-close" title="${t('close')}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      `;
+      progressEl.classList.remove('ai-translator-progress-info-state');
+      progressEl.classList.add('ai-translator-progress-error-state');
+
+      // Rebind close button event
+      const closeBtn = progressEl.querySelector('.ai-translator-progress-close');
+      closeBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        forceHideProgressBar();
+      });
+
+      // Auto close after 8 seconds (longer for errors so user can read)
+      setTimeout(() => {
+        if (progressEl.parentNode) {
+          progressEl.classList.add('ai-translator-progress-done');
+          setTimeout(() => {
+            if (progressEl.parentNode) progressEl.remove();
+          }, 300);
+        }
+      }, 8000);
     }
   }
 
