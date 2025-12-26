@@ -1571,9 +1571,9 @@
     // 注意：不移除整个元素，只移除 aria-hidden 属性下的某些特定子元素
 
     // 确保数学公式保持内联显示
-    // 为克隆的元素添加内联样式以确保正确渲染
-    clone.style.display = 'inline';
-    clone.style.verticalAlign = 'baseline';
+    // 使用 !important 覆盖页面 CSS（如 MathJax 默认的 display: block）
+    clone.style.setProperty('display', 'inline', 'important');
+    clone.style.setProperty('vertical-align', 'baseline', 'important');
 
     return clone.outerHTML;
   }

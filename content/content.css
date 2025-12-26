@@ -256,12 +256,28 @@ button.ai-translator-inline-block {
 }
 
 /* 确保翻译块中的数学公式正确内联显示 */
+/* 顶层容器 */
 .ai-translator-inline-block mjx-container,
 .ai-translator-inline-block .MathJax,
 .ai-translator-inline-block .katex,
 .ai-translator-inline-block math {
   display: inline !important;
   vertical-align: baseline !important;
+}
+
+/* MathJax 3 内部元素 - 全部强制内联 */
+.ai-translator-inline-block mjx-container *,
+.ai-translator-inline-block mjx-math,
+.ai-translator-inline-block mjx-mrow,
+.ai-translator-inline-block mjx-mi,
+.ai-translator-inline-block mjx-mo,
+.ai-translator-inline-block mjx-mn,
+.ai-translator-inline-block mjx-mtext,
+.ai-translator-inline-block mjx-mfrac,
+.ai-translator-inline-block mjx-msub,
+.ai-translator-inline-block mjx-msup,
+.ai-translator-inline-block mjx-msubsup {
+  display: inline !important;
 }
 
 /* 隐藏数学公式的辅助元素（屏幕阅读器用） */
@@ -293,6 +309,13 @@ button.ai-translator-inline-block {
 .ai-translator-inline-right math {
   display: inline !important;
   vertical-align: baseline !important;
+}
+
+/* MathJax 3 内部元素 - 全部强制内联 */
+.ai-translator-inline-right mjx-container *,
+.ai-translator-inline-right mjx-math,
+.ai-translator-inline-right mjx-mrow {
+  display: inline !important;
 }
 
 .ai-translator-inline-right .MJX_Assistive_MathML,
