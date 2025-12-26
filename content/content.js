@@ -1651,6 +1651,9 @@
           content = content.replace(/\.[\w-]+\s*\{[^}]*\}/g, '');
           // 过滤掉 CSS 选择器残留
           content = content.replace(/\.fa-[\w-]+/g, '');
+          // 将换行符和多余空白规范化为单个空格
+          // HTML 源码中的换行符仅用于可读性，不应影响翻译格式
+          content = content.replace(/\s+/g, ' ');
           if (content.trim()) {
             text += content;
           }
