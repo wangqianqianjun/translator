@@ -265,16 +265,8 @@ button.ai-translator-inline-block {
   vertical-align: baseline !important;
 }
 
-/* 原生 MathML 内部元素 - 全部强制内联 */
-/* arXiv 等网站使用原生 <math> 标签，内部的 semantics 等可能是 block */
-.ai-translator-inline-block math *,
-.ai-translator-inline-block math semantics,
-.ai-translator-inline-block math mrow {
-  display: inline !important;
-}
-
 /* 隐藏 MathML 语义注释 - annotation-xml 是机器可读的注释，不应可视化渲染 */
-/* 这些元素如果被渲染会导致公式内容重复或换行 */
+/* 注意：不能用 math * 通配符，会破坏 msub/msup 等上下标元素的渲染 */
 .ai-translator-inline-block math annotation,
 .ai-translator-inline-block math annotation-xml {
   display: none !important;
@@ -333,13 +325,7 @@ button.ai-translator-inline-block {
   display: inline !important;
 }
 
-/* 原生 MathML 内部元素 */
-.ai-translator-inline-right math *,
-.ai-translator-inline-right math semantics,
-.ai-translator-inline-right math mrow {
-  display: inline !important;
-}
-
+/* 隐藏 MathML 语义注释 */
 .ai-translator-inline-right math annotation,
 .ai-translator-inline-right math annotation-xml {
   display: none !important;
