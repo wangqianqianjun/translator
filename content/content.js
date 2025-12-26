@@ -1505,7 +1505,7 @@
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 2000) {
           // 跳过看起来像代码的文本（排除数学占位符后判断）
-          const textWithoutMath = text.replace(/【MATH_\d+】/g, '');
+          const textWithoutMath = text.replace(/\{\{\d+\}\}/g, '');
           if (textWithoutMath && looksLikeCode(textWithoutMath)) {
             // 递归处理子元素，可能有非代码的部分
             for (const child of element.children) {
@@ -1782,6 +1782,12 @@
     // 还原数学公式：将占位符替换回原始 HTML
     let finalTranslation = translation;
     if (block.mathElements && block.mathElements.length > 0) {
+      // 清理 LLM 可能添加的换行
+      // 原文是 inline 格式（文本和公式混排），翻译结果也应该是 inline
+      // 将所有换行替换为空格
+      finalTranslation = finalTranslation.replace(/\s*\n\s*/g, ' ');
+
+      // 替换占位符为实际的数学公式 HTML
       for (const math of block.mathElements) {
         finalTranslation = finalTranslation.replace(math.placeholder, math.html);
       }
