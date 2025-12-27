@@ -1135,7 +1135,7 @@
 
   const MAX_BATCH_CHARS = 9000; // 每批次最大字符数（加大以减少请求）
   const MAX_BATCH_ITEMS = 40;   // 每批次最大段落数（加大以减少请求）
-  const MAX_BATCH_TOKENS = 3200; // 估算 token 上限（输入侧保守值）
+  const MAX_BATCH_TOKENS = 6400; // 估算 token 上限（输入侧保守值）
   const CONCURRENCY = 8;        // 并发数
   const DELIMITER = '<<<>>>';   // 分隔符
 
