@@ -1136,7 +1136,7 @@
   const MAX_BATCH_CHARS = 9000; // 每批次最大字符数（加大以减少请求）
   const MAX_BATCH_ITEMS = 40;   // 每批次最大段落数（加大以减少请求）
   const MAX_BATCH_TOKENS = 3200; // 估算 token 上限（输入侧保守值）
-  const CONCURRENCY = 8;        // 并发数
+  const CONCURRENCY = 12;       // 并发数
   const DELIMITER = '<<<>>>';   // 分隔符
 
   // 翻译进度追踪
@@ -1201,6 +1201,7 @@
       // 按 token/字符数/段落数智能分批
       const priorityBatches = createSmartBatches(priorityBlocks);
       const deferredBatches = createSmartBatches(deferredBlocks);
+      // 软优先：首屏批次排在前面，但不阻塞后续批次启动
       const batches = priorityBatches.concat(deferredBatches);
       
       console.log(`AI Translator: ${translatableBlocks.length} blocks, ${batches.length} batches, concurrency: ${CONCURRENCY}`);
@@ -1249,12 +1250,9 @@
         updatePageTranslationProgress(translationProgress.current, translationProgress.total);
       };
 
-      // 优先并发执行首屏相关批次，再执行剩余批次
-      if (priorityBatches.length > 0) {
-        await runWithConcurrency(priorityBatches, processBatch, CONCURRENCY);
-      }
-      if (deferredBatches.length > 0 && !batchError) {
-        await runWithConcurrency(deferredBatches, processBatch, CONCURRENCY);
+      // 并发执行所有批次，首屏批次在队列前优先开始
+      if (batches.length > 0) {
+        await runWithConcurrency(batches, processBatch, CONCURRENCY);
       }
 
       // Check if there was an error during translation
