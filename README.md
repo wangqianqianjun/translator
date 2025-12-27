@@ -140,6 +140,32 @@ translator/
 └── icons/                 # Extension icons
 ```
 
+### 🧱 Technical Architecture
+
+The extension follows a content-first architecture: content scripts collect and batch text, background scripts handle API calls, and UI surfaces manage user settings.
+
+- **Content Script**: scans DOM, filters code/table/math, batches text with token estimation, inserts translations.
+- **Background Worker**: builds prompts, calls OpenAI-compatible or Claude APIs, parses errors.
+- **Options/Popup UI**: manages API key, model, prompt, theme, and quick actions.
+- **Storage**: settings persisted in `chrome.storage.sync`.
+
+### 🔁 Architecture Flowchart
+
+```mermaid
+flowchart LR
+  U[User Action] --> C[Content Script]
+  C --> D[DOM Scan + Filters]
+  D --> P[Priority Split]
+  P --> B[Token-Aware Batching]
+  B -->|TRANSLATE / TRANSLATE_BATCH_FAST| W[Background Worker]
+  W -->|Prompt Build + Placeholder Rules| A[LLM API]
+  A --> W --> R[Translations]
+  R --> C --> I[Insert Translations into DOM]
+  S[Options/Popup] --> K[chrome.storage.sync]
+  K --> C
+  K --> W
+```
+
 ### 📄 License
 
 MIT License
@@ -278,6 +304,32 @@ translator/
 ├── options/               # 设置页面
 ├── i18n/                  # 国际化
 └── icons/                 # 插件图标
+```
+
+### 🧱 技术架构说明
+
+插件采用内容脚本驱动的架构：内容脚本负责收集与分批，后台负责调用 API，UI 管理用户配置。
+
+- **Content Script**：扫描 DOM，过滤代码/表格/公式，基于 token 估算分批并插入译文。
+- **Background Worker**：构建 Prompt，调用 OpenAI 兼容或 Claude API，统一错误处理。
+- **Options/Popup UI**：管理 API Key、模型、Prompt、主题与快捷操作。
+- **Storage**：配置持久化在 `chrome.storage.sync`。
+
+### 🔁 技术架构流程图
+
+```mermaid
+flowchart LR
+  U[用户触发] --> C[Content Script]
+  C --> D[DOM 扫描与过滤]
+  D --> P[首屏优先分组]
+  P --> B[Token 估算分批]
+  B -->|TRANSLATE / TRANSLATE_BATCH_FAST| W[Background Worker]
+  W -->|构建 Prompt + 占位符规则| A[LLM API]
+  A --> W --> R[译文结果]
+  R --> C --> I[插入译文到页面]
+  S[Options/Popup] --> K[chrome.storage.sync]
+  K --> C
+  K --> W
 ```
 
 ### 📄 License
