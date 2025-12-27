@@ -15,6 +15,7 @@
   const DOCK_PADDING_FRONT = -6;  // Ball extends BEYOND container front (negative = ball sticks out)
   const DOCK_PADDING_BACK = 8;    // Tail behind ball
   const DOCK_PADDING_VERTICAL = 4;
+  const MATH_CONTAINER_SELECTOR = 'math, mjx-container, mjx-math, .MathJax, .MathJax_Display, .MathJax_CHTML, .mjx-chtml, .mjx-math, .MJXc-display, .katex, .katex-display';
 
   // State
   let settings = {
@@ -1437,7 +1438,7 @@
       if (element.closest('.highlight, .codehilite, .sourceCode, .code-block, [class*="language-"], [class*="highlight"]')) return;
 
       // 跳过数学公式内部的所有元素 - 数学公式应该整体保留，不单独翻译内部元素
-      if (element.closest('math, mjx-container, mjx-math, .MathJax, .katex')) return;
+      if (element.closest(MATH_CONTAINER_SELECTOR)) return;
 
       // 跳过数学公式的隐藏辅助元素（只跳过重复的隐藏版本）
       if (element.classList.contains('MJX_Assistive_MathML') ||
@@ -1606,7 +1607,7 @@
     if (el.hasAttribute?.('data-mathml') || el.hasAttribute?.('data-latex')) return true;
 
     // 检查是否在数学容器内部（通过 closest 查找祖先）
-    if (el.closest('math, mjx-container, mjx-math, .MathJax, .katex')) return true;
+    if (el.closest(MATH_CONTAINER_SELECTOR)) return true;
 
     return false;
   }
