@@ -76,6 +76,12 @@ Rules:
 5. If a text is already in the target language, return it as is
 6. Translate naturally, not literally`;
 
+// Batch output rules appended when using custom prompts
+const BATCH_OUTPUT_RULES = `BATCH FORMAT RULES:
+1. Return translations in the SAME numbered format: [1] translation1 [2] translation2 etc.
+2. Keep the numbering system exactly as given
+3. Output ONLY the translations, nothing else`;
+
 // Get browser language and map to supported language
 function getBrowserLanguage() {
   const browserLang = navigator.language || navigator.userLanguage || 'en';
@@ -330,8 +336,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Build prompt with variable substitution
 // Always appends MATH_PLACEHOLDER_RULE to ensure math anchors are preserved
-function buildPrompt(template, targetLangName) {
-  const prompt = template.replace(/\{targetLang\}/g, targetLangName);
+function buildPrompt(template, targetLangName, variables = {}, extraRules = '') {
+  let prompt = template.replace(/\{targetLang\}/g, targetLangName);
+  for (const [key, value] of Object.entries(variables)) {
+    prompt = prompt.replaceAll(`{${key}}`, value);
+  }
+  if (extraRules) {
+    return prompt + MATH_PLACEHOLDER_RULE + '\n\n' + extraRules;
+  }
   return prompt + MATH_PLACEHOLDER_RULE;
 }
 
@@ -437,8 +449,11 @@ async function translateBatchWithAI(texts, targetLang, settings) {
   // Create numbered list for batch translation
   const numberedTexts = texts.map((text, i) => `[${i + 1}] ${text}`).join('\n\n');
 
-  // For batch translation, always use the batch prompt format
-  const systemPrompt = buildPrompt(DEFAULT_BATCH_PROMPT, targetLangName);
+  // For batch translation, apply custom prompt with enforced output format
+  const hasCustomPrompt = settings.customPrompt && settings.customPrompt.trim();
+  const systemPrompt = hasCustomPrompt
+    ? buildPrompt(settings.customPrompt, targetLangName, {}, BATCH_OUTPUT_RULES)
+    : buildPrompt(DEFAULT_BATCH_PROMPT, targetLangName);
 
   // Auto-detect API type and call appropriate function
   let content;
@@ -472,16 +487,25 @@ async function translateBatchWithAI(texts, targetLang, settings) {
 const FAST_BATCH_PROMPT = `You are a professional translator. Translate multiple text segments to {targetLang}.
 
 CRITICAL RULES:
-1. Input segments are separated by "<<<>>>"
-2. Output translations MUST be separated by "<<<>>>" in the EXACT same order
+1. Input segments are separated by "{delimiter}"
+2. Output translations MUST be separated by "{delimiter}" in the EXACT same order
 3. Output ONLY the translations, nothing else
 4. Keep technical terms, brand names, proper nouns in original form
 5. If already in target language, return as is
 6. MUST have exactly the same number of output segments as input
 
 Example:
-Input: Hello<<<>>>How are you<<<>>>Thank you
-Output: 你好<<<>>>你好吗<<<>>>谢谢`;
+Input: Hello{delimiter}How are you{delimiter}Thank you
+Output: 你好{delimiter}你好吗{delimiter}谢谢`;
+
+// Fast batch output rules appended when using custom prompts
+function getFastBatchOutputRules(delimiter) {
+  return `BATCH FORMAT RULES:
+1. Input segments are separated by "${delimiter}"
+2. Output translations MUST be separated by "${delimiter}" in the EXACT same order
+3. Output ONLY the translations, nothing else
+4. MUST have exactly the same number of output segments as input`;
+}
 
 // Fast batch translation with delimiter
 async function translateBatchFastWithAI(texts, targetLang, settings, delimiter = '<<<>>>') {
@@ -490,7 +514,10 @@ async function translateBatchFastWithAI(texts, targetLang, settings, delimiter =
   // Join texts with delimiter
   const joinedTexts = texts.join(delimiter);
 
-  const systemPrompt = FAST_BATCH_PROMPT.replace(/\{targetLang\}/g, targetLangName) + MATH_PLACEHOLDER_RULE;
+  const hasCustomPrompt = settings.customPrompt && settings.customPrompt.trim();
+  const systemPrompt = hasCustomPrompt
+    ? buildPrompt(settings.customPrompt, targetLangName, { delimiter }, getFastBatchOutputRules(delimiter))
+    : buildPrompt(FAST_BATCH_PROMPT, targetLangName, { delimiter });
 
   // Auto-detect API type and call appropriate function
   let content;

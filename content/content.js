@@ -1210,9 +1210,6 @@
 
         const texts = batch.map(item => item.text);
 
-        // DEBUG: 打印发送给 LLM 的文本
-        console.log('AI Translator DEBUG - Texts sent to LLM:', JSON.stringify(texts));
-
         try {
           const response = await chrome.runtime.sendMessage({
             type: 'TRANSLATE_BATCH_FAST',
@@ -1220,9 +1217,6 @@
             targetLang: settings.targetLang,
             delimiter: DELIMITER
           });
-
-          // DEBUG: 打印 LLM 返回的翻译
-          console.log('AI Translator DEBUG - Translations received:', JSON.stringify(response.translations));
 
           // Check for error in response
           if (response.error) {
@@ -1494,7 +1488,8 @@
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 500) {
           // 跳过看起来像代码的文本
-          if (!looksLikeCode(text)) {
+          const textWithoutMath = text.replace(/\{\{\d+\}\}/g, '');
+          if (textWithoutMath && !looksLikeCode(textWithoutMath)) {
             blocks.push({
               element: element,
               text: text,
@@ -1638,8 +1633,8 @@
   }
 
   // 获取元素内容，用占位符替换数学公式（图标直接跳过）
-  // 返回 { text: string, mathElements: Array<{placeholder: string, element: Element}> }
-  // 注意：mathElements 保存的是原始 DOM 元素引用，用于后续 cloneNode
+  // 返回 { text: string, mathElements: Array<{placeholder: string, type: string, element?: Element, text?: string}> }
+  // 注意：mathElements 保存 DOM 引用或 LaTeX 文本，用于后续还原
   function getTextWithMathPlaceholders(element) {
     let text = '';
     const mathElements = [];
@@ -1651,6 +1646,45 @@
       'visually-hidden', 'MathJax_Preview'
     ];
 
+    function addMathPlaceholder(entry) {
+      mathIndex += 1;
+      const placeholder = `{{${mathIndex}}}`;
+      mathElements.push({ placeholder, ...entry });
+      return placeholder;
+    }
+
+    function shouldTreatAsInlineLatex(content) {
+      const trimmed = content.trim();
+      if (!trimmed) return false;
+      if (/^\d[\d,.\s]*$/.test(trimmed)) return false;
+      if (/\\/.test(trimmed)) return true;
+      if (/[\^_={}|<>]/.test(trimmed)) return true;
+      if (/[\p{Sm}]/u.test(trimmed)) return true;
+      if (/[\p{L}]/u.test(trimmed)) return true;
+      return false;
+    }
+
+    function replaceInlineLatex(content) {
+      let result = content;
+      result = result.replace(/\\\(([\s\S]+?)\\\)/g, (match) => {
+        return addMathPlaceholder({ type: 'text', text: match });
+      });
+      result = result.replace(/\\\[([\s\S]+?)\\\]/g, (match) => {
+        return addMathPlaceholder({ type: 'text', text: match });
+      });
+      result = result.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
+        return addMathPlaceholder({ type: 'text', text: match });
+      });
+      result = result.replace(/(^|[^\\])\$([^\n$]+?)\$/g, (match, prefix, inner) => {
+        if (!shouldTreatAsInlineLatex(inner)) {
+          return match;
+        }
+        const placeholder = addMathPlaceholder({ type: 'text', text: `$${inner}$` });
+        return prefix + placeholder;
+      });
+      return result;
+    }
+
     function processNode(node) {
       if (node.nodeType === Node.TEXT_NODE) {
         let content = node.textContent;
@@ -1659,6 +1693,8 @@
           content = content.replace(/\.[\w-]+\s*\{[^}]*\}/g, '');
           // 过滤掉 CSS 选择器残留
           content = content.replace(/\.fa-[\w-]+/g, '');
+          // 保护纯文本中的 LaTeX 表达式
+          content = replaceInlineLatex(content);
           // 将换行符和多余空白规范化为单个空格
           // HTML 源码中的换行符仅用于可读性，不应影响翻译格式
           content = content.replace(/\s+/g, ' ');
@@ -1686,14 +1722,7 @@
         // 检测是否是数学公式 - 使用锚点占位符
         // 使用 {{1}}、{{2}} 格式，LLM 熟悉模板语法，会保持原样
         if (isMathElement(node)) {
-          mathIndex++;
-          const placeholder = `{{${mathIndex}}}`;
-          // 保存原始 DOM 元素引用（不是 HTML 字符串）
-          // 后续用 cloneNode 复制，避免 HTML 序列化/反序列化带来的问题
-          mathElements.push({
-            placeholder: placeholder,
-            element: node  // 保存 DOM 引用
-          });
+          const placeholder = addMathPlaceholder({ type: 'element', element: node });
           text += placeholder;
           return;
         }
@@ -1803,9 +1832,13 @@
         container.appendChild(document.createTextNode(textBefore));
       }
 
-      // 克隆并添加原始数学元素（保持完整的 DOM 结构）
-      const mathClone = math.element.cloneNode(true);
-      container.appendChild(mathClone);
+      // 添加原始数学元素或 LaTeX 文本
+      if (math.type === 'text') {
+        container.appendChild(document.createTextNode(math.text));
+      } else if (math.element) {
+        const mathClone = math.element.cloneNode(true);
+        container.appendChild(mathClone);
+      }
 
       // 更新剩余文本
       remaining = remaining.substring(placeholderIndex + math.placeholder.length);
@@ -1887,18 +1920,21 @@
       if (hasMathElements) {
         // 使用 DOM 操作构建内容，不用 innerHTML
         buildTranslationContentWithMath(translationEl, translation, block.mathElements);
+        // 有数学公式时，尽量少设置内联样式，让页面 CSS 控制布局
+        // 只设置 opacity 来区分译文
+        translationEl.style.opacity = '0.85';
       } else {
         translationEl.textContent = translation;
+        // 无数学公式时，设置完整样式
+        translationEl.style.cssText = baseStyle + `
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        `;
       }
 
       // 计算原文文本相对于元素的偏移量（跳过 icon 等前置元素）
       const textOffset = getTextOffsetLeft(element);
-
-      translationEl.style.cssText = baseStyle + `
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      `;
 
       // 使用 setProperty 设置 padding-left，加 !important 防止被页面 CSS 覆盖
       if (textOffset > 0) {
