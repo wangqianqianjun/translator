@@ -1133,8 +1133,9 @@
 
   // ==================== Page Translation ====================
 
-  const MAX_BATCH_CHARS = 2500; // 每批次最大字符数
-  const MAX_BATCH_ITEMS = 25;   // 每批次最大段落数
+  const MAX_BATCH_CHARS = 9000; // 每批次最大字符数（加大以减少请求）
+  const MAX_BATCH_ITEMS = 40;   // 每批次最大段落数（加大以减少请求）
+  const MAX_BATCH_TOKENS = 3200; // 估算 token 上限（输入侧保守值）
   const CONCURRENCY = 8;        // 并发数
   const DELIMITER = '<<<>>>';   // 分隔符
 
@@ -1194,8 +1195,13 @@
         return;
       }
 
-      // 按字符数和段落数智能分批
-      const batches = createSmartBatches(translatableBlocks);
+      // 优先处理首屏相关内容
+      const { priorityBlocks, deferredBlocks } = splitBlocksByViewport(translatableBlocks);
+
+      // 按 token/字符数/段落数智能分批
+      const priorityBatches = createSmartBatches(priorityBlocks);
+      const deferredBatches = createSmartBatches(deferredBlocks);
+      const batches = priorityBatches.concat(deferredBatches);
       
       console.log(`AI Translator: ${translatableBlocks.length} blocks, ${batches.length} batches, concurrency: ${CONCURRENCY}`);
 
@@ -1243,8 +1249,13 @@
         updatePageTranslationProgress(translationProgress.current, translationProgress.total);
       };
 
-      // 并发执行所有批次
-      await runWithConcurrency(batches, processBatch, CONCURRENCY);
+      // 优先并发执行首屏相关批次，再执行剩余批次
+      if (priorityBatches.length > 0) {
+        await runWithConcurrency(priorityBatches, processBatch, CONCURRENCY);
+      }
+      if (deferredBatches.length > 0 && !batchError) {
+        await runWithConcurrency(deferredBatches, processBatch, CONCURRENCY);
+      }
 
       // Check if there was an error during translation
       if (batchError) {
@@ -1263,25 +1274,71 @@
     }
   }
 
-  // 智能分批：根据字符数和段落数限制
+  function estimateTokens(text) {
+    if (!text) return 0;
+    const cjkMatches = text.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu);
+    const cjkCount = cjkMatches ? cjkMatches.length : 0;
+    const nonCjkCount = Math.max(0, text.length - cjkCount);
+    return Math.ceil(cjkCount * 1.1 + nonCjkCount / 4);
+  }
+
+  // 按视口优先拆分：首屏和附近内容优先处理
+  function splitBlocksByViewport(blocks) {
+    const priorityBlocks = [];
+    const deferredBlocks = [];
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+    const margin = viewportHeight * 1.2;
+
+    blocks.forEach(block => {
+      const el = block.element;
+      if (!el || !el.getBoundingClientRect) {
+        deferredBlocks.push(block);
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        deferredBlocks.push(block);
+        return;
+      }
+
+      const inPriorityRange = rect.bottom >= -margin && rect.top <= viewportHeight + margin;
+      if (inPriorityRange) {
+        priorityBlocks.push(block);
+      } else {
+        deferredBlocks.push(block);
+      }
+    });
+
+    return { priorityBlocks, deferredBlocks };
+  }
+
+  // 智能分批：根据 token/字符数/段落数限制
   function createSmartBatches(blocks) {
     const batches = [];
     let currentBatch = [];
     let currentChars = 0;
+    let currentTokens = 0;
+    const itemTokenOverhead = 6;
 
     for (const block of blocks) {
       const textLen = block.text.length;
+      const tokenEstimate = estimateTokens(block.text) + itemTokenOverhead;
       
       // 如果当前批次加入这个 block 后会超限，先保存当前批次
       if (currentBatch.length > 0 && 
-          (currentChars + textLen > MAX_BATCH_CHARS || currentBatch.length >= MAX_BATCH_ITEMS)) {
+          (currentTokens + tokenEstimate > MAX_BATCH_TOKENS ||
+           currentChars + textLen > MAX_BATCH_CHARS ||
+           currentBatch.length >= MAX_BATCH_ITEMS)) {
         batches.push(currentBatch);
         currentBatch = [];
         currentChars = 0;
+        currentTokens = 0;
       }
       
       currentBatch.push(block);
       currentChars += textLen;
+      currentTokens += tokenEstimate;
     }
     
     // 保存最后一个批次
