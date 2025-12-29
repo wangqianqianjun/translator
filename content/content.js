@@ -1843,22 +1843,57 @@
     return 0;
   }
 
-  // 检测父元素是否是水平 flex 布局
+  // 检测父元素是否是水平布局（flex 或内联水平排列）
   function isHorizontalFlexParent(element) {
     const parent = element.parentElement;
     if (!parent) return false;
 
-    const style = window.getComputedStyle(parent);
-    const display = style.display;
-    const flexDirection = style.flexDirection;
+    const parentStyle = window.getComputedStyle(parent);
+    const parentDisplay = parentStyle.display;
+    const flexDirection = parentStyle.flexDirection;
 
     // 检查是否是水平 flex 布局（flex-direction: row 或 row-reverse）
-    if ((display === 'flex' || display === 'inline-flex') &&
+    if ((parentDisplay === 'flex' || parentDisplay === 'inline-flex') &&
         (flexDirection === 'row' || flexDirection === 'row-reverse' || flexDirection === '')) {
       return true;
     }
 
+    const inlineLayoutTags = new Set(['LI', 'A', 'SPAN', 'LABEL', 'BUTTON']);
+    if (!inlineLayoutTags.has(element.tagName)) return false;
+
+    const elementStyle = window.getComputedStyle(element);
+    const elementDisplay = elementStyle.display;
+
+    const floatValue = elementStyle.cssFloat || elementStyle.getPropertyValue('float');
+    if (floatValue && floatValue !== 'none') {
+      return true;
+    }
+
+    if (elementDisplay === 'inline' || elementDisplay === 'inline-block' || elementDisplay === 'inline-flex') {
+      return true;
+    }
+
     return false;
+  }
+
+  function getInlineTranslationTarget(element) {
+    if (!element || element.tagName !== 'LI') return element;
+
+    const children = Array.from(element.children).filter((child) => {
+      if (isMathElement(child) || isIconElement(child)) return false;
+      return true;
+    });
+
+    if (children.length !== 1) return element;
+
+    const child = children[0];
+    const inlineTranslationTags = new Set(['A', 'SPAN', 'LABEL', 'BUTTON']);
+    if (!inlineTranslationTags.has(child.tagName)) return element;
+
+    const text = child.textContent ? child.textContent.trim() : '';
+    if (text.length < 2) return element;
+
+    return child;
   }
 
   // 用 DOM 操作构建包含数学公式的译文内容
@@ -1917,8 +1952,12 @@
     // 标记为已翻译
     element.classList.add('ai-translator-translated');
 
+    // 检测是否在水平布局中
+    const isHorizontalFlex = isHorizontalFlexParent(element);
+    const inlineTarget = isHorizontalFlex ? getInlineTranslationTarget(element) : element;
+
     // 复制所有关键样式，包括颜色
-    const computedStyle = window.getComputedStyle(element);
+    const computedStyle = window.getComputedStyle(inlineTarget);
     const baseStyle = `
       font-size: ${computedStyle.fontSize};
       font-family: ${computedStyle.fontFamily};
@@ -1930,8 +1969,6 @@
       opacity: 0.85;
     `;
 
-    // 检测是否在水平 flex 布局中
-    const isHorizontalFlex = isHorizontalFlexParent(element);
     const hasMathElements = block.mathElements && block.mathElements.length > 0;
 
     if (isHorizontalFlex) {
@@ -1961,7 +1998,7 @@
       `;
 
       // 将翻译作为子元素追加到原元素内部（显示在原文右侧）
-      element.appendChild(translationEl);
+      inlineTarget.appendChild(translationEl);
     } else {
       // 对于非水平 flex 布局（如侧边栏），插入为同级元素
       const translationEl = document.createElement(element.tagName);
