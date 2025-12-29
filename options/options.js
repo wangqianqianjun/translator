@@ -4,7 +4,7 @@ Rules:
 1. Provide ONLY the translation, no explanations or notes
 2. Maintain the original formatting (line breaks, punctuation)
 3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-4. If the text is already in the target language, return it as is
+4. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
 5. Translate naturally, not literally`;
 
 // Provider configurations
@@ -244,7 +244,7 @@ Rules:
 1. Provide ONLY the translation, no explanations or notes
 2. Maintain the original formatting (line breaks, punctuation)
 3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-4. If the text is already in the target language, return it as is
+4. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
 5. Translate naturally, not literally`,
 
   literal: `You are a precise translator. Translate the given text to {targetLang}.
@@ -253,7 +253,7 @@ Rules:
 2. Translate as literally as possible while maintaining grammatical correctness
 3. Preserve the original sentence structure when possible
 4. Keep all technical terms, names, and proper nouns unchanged
-5. If the text is already in the target language, return it as is`,
+5. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)`,
 
   creative: `You are a creative translator and language artist. Translate the given text to {targetLang}.
 Rules:
@@ -261,7 +261,7 @@ Rules:
 2. Prioritize natural, fluent expression in the target language
 3. Adapt idioms and cultural references to equivalent expressions in the target culture
 4. Maintain the tone and emotion of the original text
-5. If the text is already in the target language, return it as is`
+5. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)`
 };
 
 // Get browser language and map to supported language

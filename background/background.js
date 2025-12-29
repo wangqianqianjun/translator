@@ -63,7 +63,7 @@ Rules:
 1. Provide ONLY the translation, no explanations or notes
 2. Maintain the original formatting (line breaks, punctuation)
 3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-4. If the text is already in the target language, return it as is
+4. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
 5. Translate naturally, not literally`;
 
 // Default batch prompt template
@@ -73,7 +73,7 @@ Rules:
 2. Keep the numbering system exactly as given
 3. Maintain original formatting within each translation
 4. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-5. If a text is already in the target language, return it as is
+5. If a text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
 6. Translate naturally, not literally`;
 
 // Batch output rules appended when using custom prompts
@@ -491,7 +491,7 @@ CRITICAL RULES:
 2. Output translations MUST be separated by "{delimiter}" in the EXACT same order
 3. Output ONLY the translations, nothing else
 4. Keep technical terms, brand names, proper nouns in original form
-5. If already in target language, return as is
+5. If already in target language, return EXACTLY as is (no paraphrasing or reordering)
 6. MUST have exactly the same number of output segments as input
 
 Example:

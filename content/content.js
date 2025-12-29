@@ -1187,10 +1187,12 @@
 
     try {
       // 收集需要翻译的元素（以块级元素为单位）
-      const translatableBlocks = collectTranslatableBlocks(document.body);
+      let translatableBlocks = collectTranslatableBlocks(document.body);
+      translatableBlocks = await filterBlocksByLanguage(translatableBlocks);
       
       if (translatableBlocks.length === 0) {
-        hidePageTranslationProgress();
+        pageHasBeenTranslated = true;
+        showAlreadyTranslatedMessage();
         isTranslatingPage = false;
         return;
       }
@@ -1897,6 +1899,38 @@
     return lang.split('-')[0].toLowerCase();
   }
 
+  function getLanguageDetectionText(text) {
+    if (!text) return '';
+    const cleaned = text.replace(/\{\{\d+\}\}/g, '').replace(/\s+/g, ' ').trim();
+    return cleaned.slice(0, 400);
+  }
+
+  async function detectLanguage(text) {
+    if (!chrome?.i18n?.detectLanguage) return null;
+    return new Promise((resolve) => {
+      chrome.i18n.detectLanguage(text, resolve);
+    });
+  }
+
+  async function isTargetLanguageText(text) {
+    const targetLang = getEffectiveTargetLang();
+    const targetBase = getLangBase(targetLang);
+    if (!targetBase) return false;
+
+    const detectText = getLanguageDetectionText(text);
+    if (detectText.length < 4) return false;
+
+    const result = await detectLanguage(detectText);
+    const topLang = result?.languages?.[0];
+    if (!topLang) return false;
+
+    const detectedBase = getLangBase(topLang.language);
+    if (detectedBase !== targetBase) return false;
+
+    const confidence = typeof topLang.percentage === 'number' ? topLang.percentage : 0;
+    return confidence >= 85 && result.isReliable !== false;
+  }
+
   async function shouldSkipTranslation(block, translation) {
     const normalizedOriginal = normalizeComparableText(block.text);
     const normalizedTranslation = normalizeComparableText(translation);
@@ -1904,32 +1938,33 @@
       return true;
     }
 
-    if (!chrome?.i18n?.detectLanguage) return false;
-
-    const targetLang = getEffectiveTargetLang();
-    const targetBase = getLangBase(targetLang);
-    if (!targetBase) return false;
-
-    const detectText = (block.text || '').replace(/\{\{\d+\}\}/g, '').trim();
-    if (detectText.length < 4) return false;
-
     try {
-      const result = await new Promise((resolve) => {
-        chrome.i18n.detectLanguage(detectText, resolve);
-      });
-
-      const topLang = result?.languages?.[0];
-      if (!topLang) return false;
-
-      const detectedBase = getLangBase(topLang.language);
-      if (detectedBase !== targetBase) return false;
-
-      const confidence = typeof topLang.percentage === 'number' ? topLang.percentage : 0;
-      return confidence >= 85 && result.isReliable !== false;
+      if (!settings.autoDetect) return false;
+      return await isTargetLanguageText(block.text);
     } catch (error) {
       console.warn('AI Translator: Language detection failed', error);
       return false;
     }
+  }
+
+  async function filterBlocksByLanguage(blocks) {
+    if (!chrome?.i18n?.detectLanguage) return blocks;
+    if (!settings.autoDetect) return blocks;
+
+    const keep = new Array(blocks.length).fill(true);
+    const tasks = blocks.map((block, index) => ({ block, index }));
+
+    await runWithConcurrency(tasks, async ({ block, index }) => {
+      try {
+        if (await isTargetLanguageText(block.text)) {
+          keep[index] = false;
+        }
+      } catch (error) {
+        console.warn('AI Translator: Language pre-check failed', error);
+      }
+    }, 8);
+
+    return blocks.filter((_, index) => keep[index]);
   }
 
   function getInlineTranslationTarget(element) {
