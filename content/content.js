@@ -1233,11 +1233,12 @@
           }
 
           if (response.translations) {
-            response.translations.forEach((translation, i) => {
-              if (batch[i] && translation) {
-                insertTranslationBlock(batch[i], translation);
-              }
+            const insertTasks = response.translations.map(async (translation, i) => {
+              if (!batch[i] || !translation) return;
+              if (await shouldSkipTranslation(batch[i], translation)) return;
+              insertTranslationBlock(batch[i], translation);
             });
+            await Promise.all(insertTasks);
           }
         } catch (error) {
           console.error('AI Translator: Batch translation failed', error);
@@ -1874,6 +1875,61 @@
     }
 
     return false;
+  }
+
+  function normalizeComparableText(text) {
+    if (!text) return '';
+    return text
+      .replace(/\{\{\d+\}\}/g, '')
+      .replace(/\s+/g, '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function getEffectiveTargetLang() {
+    if (settings.targetLang) return settings.targetLang;
+    return navigator.language || navigator.userLanguage || 'en';
+  }
+
+  function getLangBase(lang) {
+    if (!lang) return '';
+    return lang.split('-')[0].toLowerCase();
+  }
+
+  async function shouldSkipTranslation(block, translation) {
+    const normalizedOriginal = normalizeComparableText(block.text);
+    const normalizedTranslation = normalizeComparableText(translation);
+    if (normalizedOriginal && normalizedOriginal === normalizedTranslation) {
+      return true;
+    }
+
+    if (!chrome?.i18n?.detectLanguage) return false;
+
+    const targetLang = getEffectiveTargetLang();
+    const targetBase = getLangBase(targetLang);
+    if (!targetBase) return false;
+
+    const detectText = (block.text || '').replace(/\{\{\d+\}\}/g, '').trim();
+    if (detectText.length < 4) return false;
+
+    try {
+      const result = await new Promise((resolve) => {
+        chrome.i18n.detectLanguage(detectText, resolve);
+      });
+
+      const topLang = result?.languages?.[0];
+      if (!topLang) return false;
+
+      const detectedBase = getLangBase(topLang.language);
+      if (detectedBase !== targetBase) return false;
+
+      const confidence = typeof topLang.percentage === 'number' ? topLang.percentage : 0;
+      return confidence >= 85 && result.isReliable !== false;
+    } catch (error) {
+      console.warn('AI Translator: Language detection failed', error);
+      return false;
+    }
   }
 
   function getInlineTranslationTarget(element) {
