@@ -16,6 +16,18 @@
   const DOCK_PADDING_BACK = 8;    // Tail behind ball
   const DOCK_PADDING_VERTICAL = 4;
   const MATH_CONTAINER_SELECTOR = 'math, mjx-container, mjx-math, .MathJax, .MathJax_Display, .MathJax_CHTML, .mjx-chtml, .mjx-math, .MJXc-display, .katex, .katex-display';
+  const TARGET_LANGUAGE_OPTIONS = [
+    { value: 'zh-CN', label: '简体中文' },
+    { value: 'zh-TW', label: '繁体中文' },
+    { value: 'en', label: 'English' },
+    { value: 'ja', label: '日本語' },
+    { value: 'ko', label: '한국어' },
+    { value: 'fr', label: 'Français' },
+    { value: 'de', label: 'Deutsch' },
+    { value: 'es', label: 'Español' },
+    { value: 'pt', label: 'Português' },
+    { value: 'ru', label: 'Русский' }
+  ];
 
   // State
   let settings = {
@@ -898,11 +910,26 @@
       <div class="ai-translator-content">
         <div class="ai-translator-source">
           <div class="ai-translator-label">${t('original')}</div>
-          <div class="ai-translator-text">${escapeHtml(text)}</div>
+          <div class="ai-translator-text-row">
+            <div class="ai-translator-text">${escapeHtml(text)}</div>
+            <button class="ai-translator-icon-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+                <path d="M16 9a5 5 0 010 6"/>
+                <path d="M19 7a8 8 0 010 10"/>
+              </svg>
+            </button>
+          </div>
+          <div class="ai-translator-phonetic" hidden></div>
         </div>
         <div class="ai-translator-divider"></div>
         <div class="ai-translator-result">
-          <div class="ai-translator-label">${t('translation')}</div>
+          <div class="ai-translator-result-header">
+            <div class="ai-translator-label">${t('translation')}</div>
+            <select class="ai-translator-target-select" title="${t('targetLanguage')}">
+              ${buildTargetLangOptions(getEffectiveTargetLang())}
+            </select>
+          </div>
           <div class="ai-translator-translation">
             <div class="ai-translator-loading">
               <div class="ai-translator-spinner"></div>
@@ -914,23 +941,11 @@
             </div>
             <div class="ai-translator-result-body" hidden>
               <div class="ai-translator-translation-text"></div>
-              <div class="ai-translator-phonetic-row" hidden>
-                <span class="ai-translator-phonetic-label">${t('phonetic')}</span>
-                <span class="ai-translator-phonetic-text"></span>
-              </div>
             </div>
           </div>
         </div>
       </div>
       <div class="ai-translator-actions">
-        <button class="ai-translator-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
-            <path d="M16 9a5 5 0 010 6"/>
-            <path d="M19 7a8 8 0 010 10"/>
-          </svg>
-          ${t('pronounce')}
-        </button>
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -977,12 +992,20 @@
         speakText(translationPopup?.dataset.sourceText || '');
       });
     }
+    const langSelect = translationPopup.querySelector('.ai-translator-target-select');
+    if (langSelect) {
+      translationPopup.dataset.targetLang = langSelect.value;
+      langSelect.addEventListener('change', () => {
+        translationPopup.dataset.targetLang = langSelect.value;
+        translateText(translationPopup?.dataset.sourceText || text, langSelect.value);
+      });
+    }
 
     // 添加拖动功能
     setupPopupDrag(translationPopup);
 
     // Trigger translation
-    translateText(text);
+    translateText(text, langSelect?.value);
   }
 
   // 显示已完成的翻译结果（用于右键菜单翻译）
@@ -1003,11 +1026,26 @@
       <div class="ai-translator-content">
         <div class="ai-translator-source">
           <div class="ai-translator-label">${t('original')}</div>
-          <div class="ai-translator-text">${escapeHtml(text)}</div>
+          <div class="ai-translator-text-row">
+            <div class="ai-translator-text">${escapeHtml(text)}</div>
+            <button class="ai-translator-icon-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+                <path d="M16 9a5 5 0 010 6"/>
+                <path d="M19 7a8 8 0 010 10"/>
+              </svg>
+            </button>
+          </div>
+          <div class="ai-translator-phonetic" ${phonetic ? '' : 'hidden'}>${escapeHtml(phonetic)}</div>
         </div>
-        <div class="ai-translator-divider"></div>
-        <div class="ai-translator-result">
-          <div class="ai-translator-label">${t('translation')}</div>
+      <div class="ai-translator-divider"></div>
+      <div class="ai-translator-result">
+          <div class="ai-translator-result-header">
+            <div class="ai-translator-label">${t('translation')}</div>
+            <select class="ai-translator-target-select" title="${t('targetLanguage')}">
+              ${buildTargetLangOptions(getEffectiveTargetLang())}
+            </select>
+          </div>
           <div class="ai-translator-translation">
             <div class="ai-translator-loading" style="display: none;">
               <div class="ai-translator-spinner"></div>
@@ -1015,23 +1053,11 @@
             </div>
             <div class="ai-translator-result-body">
               <div class="ai-translator-translation-text">${escapeHtml(translation)}</div>
-              <div class="ai-translator-phonetic-row" ${phonetic ? '' : 'hidden'}>
-                <span class="ai-translator-phonetic-label">${t('phonetic')}</span>
-                <span class="ai-translator-phonetic-text">${escapeHtml(phonetic)}</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
       <div class="ai-translator-actions">
-        <button class="ai-translator-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
-            <path d="M16 9a5 5 0 010 6"/>
-            <path d="M19 7a8 8 0 010 10"/>
-          </svg>
-          ${t('pronounce')}
-        </button>
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -1063,6 +1089,14 @@
     if (speakBtn) {
       speakBtn.addEventListener('click', () => {
         speakText(translationPopup?.dataset.sourceText || '');
+      });
+    }
+    const langSelect = translationPopup.querySelector('.ai-translator-target-select');
+    if (langSelect) {
+      translationPopup.dataset.targetLang = langSelect.value;
+      langSelect.addEventListener('change', () => {
+        translationPopup.dataset.targetLang = langSelect.value;
+        translateText(translationPopup?.dataset.sourceText || text, langSelect.value);
       });
     }
 
@@ -1170,24 +1204,39 @@
     window.speechSynthesis.speak(utterance);
   }
 
-  async function translateText(text) {
+  let translationRequestId = 0;
+
+  async function translateText(text, targetLangOverride = '') {
+    const requestId = String(++translationRequestId);
     try {
       const isWord = isSingleWordText(text);
+      const targetLang = targetLangOverride || getEffectiveTargetLang();
+      if (translationPopup) {
+        translationPopup.dataset.requestId = requestId;
+        translationPopup.dataset.targetLang = targetLang;
+        const loadingEl = translationPopup.querySelector('.ai-translator-loading');
+        const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+        const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+        const phoneticEl = translationPopup.querySelector('.ai-translator-phonetic');
+        if (loadingEl) loadingEl.style.display = 'flex';
+        if (loadingLines) loadingLines.style.display = 'flex';
+        if (resultBody) resultBody.hidden = true;
+        if (phoneticEl) phoneticEl.hidden = true;
+      }
       const response = await chrome.runtime.sendMessage({
         type: 'TRANSLATE',
         text: text,
-        targetLang: settings.targetLang,
+        targetLang: targetLang,
         mode: isWord ? 'word' : 'text'
       });
 
-      if (!translationPopup) return;
+      if (!translationPopup || translationPopup.dataset.requestId !== requestId) return;
 
       const translationTextEl = translationPopup.querySelector('.ai-translator-translation-text');
       const resultBody = translationPopup.querySelector('.ai-translator-result-body');
       const loadingEl = translationPopup.querySelector('.ai-translator-loading');
       const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
-      const phoneticRow = translationPopup.querySelector('.ai-translator-phonetic-row');
-      const phoneticText = translationPopup.querySelector('.ai-translator-phonetic-text');
+      const phoneticEl = translationPopup.querySelector('.ai-translator-phonetic');
       const speakBtn = translationPopup.querySelector('.ai-translator-speak');
       
       if (response.error) {
@@ -1207,12 +1256,12 @@
           void translationTextEl.offsetWidth;
           translationTextEl.classList.add('ai-translator-translation-flow');
         }
-        if (phoneticRow && phoneticText) {
+        if (phoneticEl) {
           if (response.phonetic) {
-            phoneticText.textContent = response.phonetic;
-            phoneticRow.hidden = false;
+            phoneticEl.textContent = response.phonetic;
+            phoneticEl.hidden = false;
           } else {
-            phoneticRow.hidden = true;
+            phoneticEl.hidden = true;
           }
         }
         if (speakBtn) {
@@ -1227,7 +1276,7 @@
       }
     } catch (error) {
       console.error('AI Translator: Translation failed', error);
-      if (translationPopup) {
+      if (translationPopup && translationPopup.dataset.requestId === requestId) {
         const resultBody = translationPopup.querySelector('.ai-translator-result-body');
         const loadingEl = translationPopup.querySelector('.ai-translator-loading');
         const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
@@ -2015,6 +2064,26 @@
   function getEffectiveTargetLang() {
     if (settings.targetLang) return settings.targetLang;
     return navigator.language || navigator.userLanguage || 'en';
+  }
+
+  function normalizeTargetLang(lang) {
+    if (!lang) return 'en';
+    if (TARGET_LANGUAGE_OPTIONS.some((option) => option.value === lang)) {
+      return lang;
+    }
+    const base = lang.split('-')[0];
+    const baseMatch = TARGET_LANGUAGE_OPTIONS.find((option) => option.value === base);
+    if (baseMatch) return baseMatch.value;
+    if (base === 'zh') return 'zh-CN';
+    return 'en';
+  }
+
+  function buildTargetLangOptions(selectedLang) {
+    const normalized = normalizeTargetLang(selectedLang);
+    return TARGET_LANGUAGE_OPTIONS.map((option) => {
+      const isSelected = option.value === normalized ? ' selected' : '';
+      return `<option value="${option.value}"${isSelected}>${option.label}</option>`;
+    }).join('');
   }
 
   function getLangBase(lang) {

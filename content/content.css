@@ -91,6 +91,34 @@
   margin-bottom: 6px;
 }
 
+.ai-translator-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ai-translator-result-header .ai-translator-label {
+  margin-bottom: 0;
+}
+
+.ai-translator-target-select {
+  background: #1f1f2a;
+  border: 1px solid #2a2a3a;
+  border-radius: 6px;
+  color: #e6e6f0;
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.ai-translator-target-select:focus {
+  outline: none;
+  border-color: #7c5cff;
+  box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.15);
+}
+
 .ai-translator-text {
   font-size: 13px;
   line-height: 1.5;
@@ -98,6 +126,36 @@
   word-break: break-word;
   max-height: 80px;
   overflow-y: auto;
+}
+
+.ai-translator-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ai-translator-text-row .ai-translator-text {
+  flex: 1;
+}
+
+.ai-translator-icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1f1f2a;
+  border: 1px solid #2a2a3a;
+  border-radius: 6px;
+  color: #b8b8d0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-translator-icon-btn:hover {
+  background: #2a2a3a;
+  color: #f0f0f5;
+  border-color: #7c5cff;
 }
 
 .ai-translator-divider {
@@ -127,9 +185,10 @@
 .ai-translator-translation-text {
   font-size: 14px;
   line-height: 1.6;
-  color: #f0f0f5;
+  color: #ffffff;
   word-break: break-word;
   background: transparent;
+  font-weight: 500;
 }
 
 .ai-translator-translation-text.ai-translator-translation-flow {
@@ -148,23 +207,8 @@
   }
 }
 
-.ai-translator-phonetic-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 2px;
-  font-size: 12px;
-  color: #9a9ab0;
-}
-
-.ai-translator-phonetic-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: #7c5cff;
-}
-
-.ai-translator-phonetic-text {
+.ai-translator-phonetic {
+  margin-top: 6px;
   font-family: 'Times New Roman', serif;
   font-size: 12px;
   color: #d0d0df;
@@ -253,15 +297,6 @@
   border-color: #7c5cff;
 }
 
-.ai-translator-btn.ai-translator-speak {
-  background: linear-gradient(135deg, rgba(124, 92, 255, 0.25) 0%, rgba(92, 140, 255, 0.15) 100%);
-  border-color: rgba(124, 92, 255, 0.4);
-  color: #f0f0f5;
-}
-
-.ai-translator-btn.ai-translator-speak:hover {
-  background: linear-gradient(135deg, rgba(124, 92, 255, 0.35) 0%, rgba(92, 140, 255, 0.25) 100%);
-}
 
 /* Scrollbar */
 .ai-translator-popup ::-webkit-scrollbar {
