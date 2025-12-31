@@ -583,9 +583,28 @@
     inputDialog.innerHTML = `
       <div class="ai-translator-input-overlay"></div>
       <div class="ai-translator-input-modal">
-        <div class="ai-translator-input-header">
-          <span class="ai-translator-input-title">${t('inputTextTranslation')}</span>
-          <button class="ai-translator-input-close" title="${t('close')}">×</button>
+        <div class="ai-translator-header">
+          <div class="ai-translator-header-left">
+            <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z"/>
+              <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+            </svg>
+            <span class="ai-translator-title">${t('inputTextTranslation')}</span>
+          </div>
+          <div class="ai-translator-header-right">
+            <div class="ai-translator-lang-dropdown">
+              <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
+                <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
+                <svg class="ai-translator-lang-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <div class="ai-translator-lang-menu" hidden>
+                ${buildTargetLangMenu(getEffectiveTargetLang())}
+              </div>
+            </div>
+            <button class="ai-translator-close" title="${t('close')}">×</button>
+          </div>
         </div>
         <div class="ai-translator-input-body">
           <div class="ai-translator-input-section">
@@ -598,8 +617,8 @@
             ></textarea>
           </div>
           <div class="ai-translator-input-actions">
-            <button class="ai-translator-input-btn ai-translator-input-btn-primary" id="ai-translator-do-translate">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="ai-translator-btn ai-translator-btn-primary" id="ai-translator-do-translate">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
                 <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
               </svg>
@@ -609,8 +628,8 @@
           <div class="ai-translator-input-section ai-translator-result-section" id="ai-translator-result-section" style="display: none;">
             <label class="ai-translator-input-label">${t('translatedText')}</label>
             <div class="ai-translator-input-result" id="ai-translator-result-text"></div>
-            <button class="ai-translator-input-btn ai-translator-input-btn-copy" id="ai-translator-copy-result">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="ai-translator-btn ai-translator-input-btn-copy" id="ai-translator-copy-result">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
               </svg>
@@ -628,10 +647,10 @@
     setTimeout(() => textarea.focus(), 100);
 
     // Event listeners
-    inputDialog.querySelector('.ai-translator-input-close').addEventListener('click', hideInputDialog);
+    inputDialog.querySelector('.ai-translator-close').addEventListener('click', hideInputDialog);
     inputDialog.querySelector('.ai-translator-input-overlay').addEventListener('click', hideInputDialog);
-    
-    inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
+
+    const translateInputText = async (targetLangOverride = '') => {
       const text = textarea.value.trim();
       if (!text) return;
       
@@ -642,10 +661,12 @@
       resultText.innerHTML = `<div class="ai-translator-input-loading"><div class="ai-translator-spinner"></div><span>${t('translating')}</span></div>`;
       
       try {
+        const targetLang = targetLangOverride || inputDialog.dataset.targetLang || settings.targetLang;
         const response = await chrome.runtime.sendMessage({
           type: 'TRANSLATE',
           text: text,
-          targetLang: settings.targetLang
+          targetLang: targetLang,
+          mode: isSingleWordText(text) ? 'word' : 'text'
         });
         
         if (response.error) {
@@ -656,6 +677,10 @@
       } catch (error) {
         resultText.innerHTML = `<div class="ai-translator-input-error">${t('translationFailed')}</div>`;
       }
+    };
+
+    inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
+      await translateInputText();
     });
 
     inputDialog.querySelector('#ai-translator-copy-result').addEventListener('click', async () => {
@@ -665,7 +690,7 @@
         const copyBtn = inputDialog.querySelector('#ai-translator-copy-result');
         const originalHTML = copyBtn.innerHTML;
         copyBtn.innerHTML = `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
           ${t('copied')}
@@ -682,6 +707,12 @@
       }
     });
 
+    setupLanguageDropdown(inputDialog, getEffectiveTargetLang(), (lang) => {
+      const text = textarea.value.trim();
+      if (!text) return;
+      translateInputText(lang);
+    });
+
     // Escape to close
     document.addEventListener('keydown', handleInputDialogEscape);
   }
@@ -694,6 +725,9 @@
 
   function hideInputDialog() {
     if (inputDialog) {
+      if (inputDialog._langOutsideHandler) {
+        document.removeEventListener('mousedown', inputDialog._langOutsideHandler);
+      }
       inputDialog.remove();
       inputDialog = null;
       document.removeEventListener('keydown', handleInputDialogEscape);
@@ -915,7 +949,7 @@
           <div class="ai-translator-lang-dropdown">
             <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
               <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
-              <svg class="ai-translator-lang-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg class="ai-translator-lang-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
             </button>
@@ -961,7 +995,7 @@
       </div>
       <div class="ai-translator-actions">
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
           </svg>
@@ -1040,7 +1074,7 @@
           <div class="ai-translator-lang-dropdown">
             <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
               <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
-              <svg class="ai-translator-lang-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg class="ai-translator-lang-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
             </button>
@@ -1082,7 +1116,7 @@
       </div>
       <div class="ai-translator-actions">
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
           </svg>
@@ -1248,6 +1282,10 @@
     const outsideHandler = (event) => {
       if (!popup.contains(event.target)) {
         closeMenu();
+        return;
+      }
+      if (!event.target.closest('.ai-translator-lang-dropdown')) {
+        closeMenu();
       }
     };
 
@@ -1395,7 +1433,7 @@
     if (copyBtn) {
       const originalText = copyBtn.innerHTML;
       copyBtn.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 6L9 17l-5-5"/>
         </svg>
         ${t('copied')}
