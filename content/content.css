@@ -107,10 +107,67 @@
 }
 
 .ai-translator-translation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.ai-translator-result-body {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.ai-translator-result-body.ai-translator-reveal {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.ai-translator-translation-text {
   font-size: 14px;
   line-height: 1.6;
   color: #f0f0f5;
   word-break: break-word;
+  background: transparent;
+}
+
+.ai-translator-translation-text.ai-translator-translation-flow {
+  background: linear-gradient(90deg, rgba(124, 92, 255, 0) 0%, rgba(124, 92, 255, 0.18) 45%, rgba(124, 92, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: ai-translator-flow 0.7s ease;
+  border-radius: 6px;
+}
+
+@keyframes ai-translator-flow {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.ai-translator-phonetic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+  font-size: 12px;
+  color: #9a9ab0;
+}
+
+.ai-translator-phonetic-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7c5cff;
+}
+
+.ai-translator-phonetic-text {
+  font-family: 'Times New Roman', serif;
+  font-size: 12px;
+  color: #d0d0df;
 }
 
 /* Loading State */
@@ -119,6 +176,24 @@
   align-items: center;
   gap: 10px;
   color: #7c5cff;
+}
+
+.ai-translator-loading-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-translator-loading-line {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(124, 92, 255, 0.12) 0%, rgba(124, 92, 255, 0.35) 50%, rgba(124, 92, 255, 0.12) 100%);
+  background-size: 200% 100%;
+  animation: ai-translator-shimmer 1.2s ease infinite;
+}
+
+.ai-translator-loading-line.short {
+  width: 70%;
 }
 
 .ai-translator-spinner {
@@ -133,6 +208,12 @@
 @keyframes ai-translator-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes ai-translator-shimmer {
+  to {
+    background-position: -200% 0;
   }
 }
 
@@ -170,6 +251,16 @@
   background: #2a2a3a;
   color: #f0f0f5;
   border-color: #7c5cff;
+}
+
+.ai-translator-btn.ai-translator-speak {
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.25) 0%, rgba(92, 140, 255, 0.15) 100%);
+  border-color: rgba(124, 92, 255, 0.4);
+  color: #f0f0f5;
+}
+
+.ai-translator-btn.ai-translator-speak:hover {
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.35) 0%, rgba(92, 140, 255, 0.25) 100%);
 }
 
 /* Scrollbar */
@@ -1292,4 +1383,3 @@ button.ai-translator-inline-block {
   background: #f0f0f2;
   color: #1d1d1f;
 }
-

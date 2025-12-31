@@ -24,6 +24,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Translation failed, please retry',
     copy: 'Copy',
     copied: 'Copied',
+    phonetic: 'Phonetic',
+    pronounce: 'Pronounce',
     
     // Input Dialog
     inputTextTranslation: 'Input Text Translation',
@@ -107,6 +109,8 @@ const I18N_MESSAGES = {
     translationFailed: '翻译失败，请重试',
     copy: '复制',
     copied: '已复制',
+    phonetic: '音标',
+    pronounce: '发音',
     
     // Input Dialog
     inputTextTranslation: '输入文本翻译',
@@ -185,6 +189,8 @@ const I18N_MESSAGES = {
     translationFailed: '翻譯失敗，請重試',
     copy: '複製',
     copied: '已複製',
+    phonetic: '音標',
+    pronounce: '發音',
     inputTextTranslation: '輸入文本翻譯',
     inputText: '輸入文本',
     inputPlaceholder: '請輸入要翻譯的文本或單詞...',
@@ -253,6 +259,8 @@ const I18N_MESSAGES = {
     translationFailed: '翻訳に失敗しました。再試行してください',
     copy: 'コピー',
     copied: 'コピーしました',
+    phonetic: '発音記号',
+    pronounce: '発音',
     inputTextTranslation: 'テキスト入力翻訳',
     inputText: 'テキスト入力',
     inputPlaceholder: '翻訳するテキストや単語を入力...',
@@ -321,6 +329,8 @@ const I18N_MESSAGES = {
     translationFailed: '번역 실패, 다시 시도해주세요',
     copy: '복사',
     copied: '복사됨',
+    phonetic: '발음 기호',
+    pronounce: '발음',
     inputTextTranslation: '텍스트 입력 번역',
     inputText: '텍스트 입력',
     inputPlaceholder: '번역할 텍스트나 단어를 입력하세요...',
@@ -389,6 +399,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Échec de la traduction, veuillez réessayer',
     copy: 'Copier',
     copied: 'Copié',
+    phonetic: 'Phonétique',
+    pronounce: 'Prononcer',
     inputTextTranslation: 'Saisir le texte à traduire',
     inputText: 'Texte à saisir',
     inputPlaceholder: 'Entrez le texte ou les mots à traduire...',
@@ -457,6 +469,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Übersetzung fehlgeschlagen, bitte erneut versuchen',
     copy: 'Kopieren',
     copied: 'Kopiert',
+    phonetic: 'Lautschrift',
+    pronounce: 'Aussprache',
     inputTextTranslation: 'Text eingeben und übersetzen',
     inputText: 'Text eingeben',
     inputPlaceholder: 'Text oder Wörter zum Übersetzen eingeben...',
@@ -525,6 +539,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Error en la traducción, por favor reinténtelo',
     copy: 'Copiar',
     copied: 'Copiado',
+    phonetic: 'Fonética',
+    pronounce: 'Pronunciar',
     inputTextTranslation: 'Introducir texto a traducir',
     inputText: 'Introducir texto',
     inputPlaceholder: 'Introduzca texto o palabras para traducir...',
@@ -593,6 +609,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Falha na tradução, tente novamente',
     copy: 'Copiar',
     copied: 'Copiado',
+    phonetic: 'Fonética',
+    pronounce: 'Pronunciar',
     inputTextTranslation: 'Inserir texto para traduzir',
     inputText: 'Inserir texto',
     inputPlaceholder: 'Digite texto ou palavras para traduzir...',
@@ -661,6 +679,8 @@ const I18N_MESSAGES = {
     translationFailed: 'Ошибка перевода, попробуйте снова',
     copy: 'Копировать',
     copied: 'Скопировано',
+    phonetic: 'Фонетика',
+    pronounce: 'Произнести',
     inputTextTranslation: 'Введите текст для перевода',
     inputText: 'Введите текст',
     inputPlaceholder: 'Введите текст или слова для перевода...',
@@ -757,4 +777,3 @@ function getUILanguage(targetLang) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { I18N_MESSAGES, getMessage, getUILanguage };
 }
-

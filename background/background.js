@@ -57,6 +57,16 @@ const languageNames = {
 const MATH_PLACEHOLDER_RULE = `
 IMPORTANT: Keep placeholders like {{1}}, {{2}} etc. exactly as they are - do not translate, modify, or add line breaks around them.`;
 
+// Single word prompt template (no math placeholder rule)
+const SINGLE_WORD_PROMPT = `You are a bilingual dictionary. Translate the given word to {targetLang}.
+Return JSON only with keys "translation" and "phonetic".
+- "phonetic" should be the IPA of the source word
+- If phonetic is unavailable, use an empty string`;
+
+const WORD_OUTPUT_RULES = `OUTPUT FORMAT:
+Return JSON only with keys "translation" and "phonetic".
+"phonetic" should be the IPA of the source word; if unavailable, use an empty string.`;
+
 // Default prompt template
 const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}.
 Rules:
@@ -276,7 +286,7 @@ async function callOpenAIAPI(endpoint, apiKey, model, systemPrompt, userContent,
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'TRANSLATE':
-      handleTranslate(message.text, message.targetLang)
+      handleTranslate(message.text, message.targetLang, message.mode)
         .then(sendResponse)
         .catch(error => sendResponse({ error: error.message }));
       return true; // Keep channel open for async response
@@ -319,12 +329,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
       const settings = await chrome.storage.sync.get(defaultSettings);
       const effectiveLang = getEffectiveTargetLang(settings);
-      const result = await translateWithAI(info.selectionText, effectiveLang, settings);
+      const result = await translateTextWithMode(info.selectionText, effectiveLang, settings);
 
       chrome.tabs.sendMessage(tab.id, {
         type: 'SHOW_TRANSLATION',
         text: info.selectionText,
-        translation: result
+        translation: result.translation,
+        phonetic: result.phonetic || '',
+        isWord: result.isWord === true
       });
     } catch (error) {
       console.error('Translation failed:', error);
@@ -335,16 +347,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // Build prompt with variable substitution
-// Always appends MATH_PLACEHOLDER_RULE to ensure math anchors are preserved
-function buildPrompt(template, targetLangName, variables = {}, extraRules = '') {
+// Appends MATH_PLACEHOLDER_RULE unless includeMathRule is false
+function buildPrompt(template, targetLangName, variables = {}, extraRules = '', options = {}) {
+  const includeMathRule = options.includeMathRule !== false;
   let prompt = template.replace(/\{targetLang\}/g, targetLangName);
   for (const [key, value] of Object.entries(variables)) {
     prompt = prompt.replaceAll(`{${key}}`, value);
   }
   if (extraRules) {
-    return prompt + MATH_PLACEHOLDER_RULE + '\n\n' + extraRules;
+    const mathRule = includeMathRule ? MATH_PLACEHOLDER_RULE : '';
+    return prompt + mathRule + '\n\n' + extraRules;
   }
-  return prompt + MATH_PLACEHOLDER_RULE;
+  return includeMathRule ? prompt + MATH_PLACEHOLDER_RULE : prompt;
 }
 
 // Get effective target language (browser language if not set by user)
@@ -355,8 +369,67 @@ function getEffectiveTargetLang(settings) {
   return getBrowserLanguage();
 }
 
+function isSingleWordText(text) {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (/[\s\r\n\t]/.test(trimmed)) return false;
+  return trimmed.length <= 40;
+}
+
+function parseWordTranslation(content) {
+  const trimmed = (content || '').trim();
+  if (!trimmed) {
+    return { translation: '', phonetic: '' };
+  }
+
+  let candidate = trimmed;
+  if (!candidate.startsWith('{')) {
+    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      candidate = jsonMatch[0];
+    }
+  }
+
+  if (candidate.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(candidate);
+      return {
+        translation: typeof parsed.translation === 'string' ? parsed.translation.trim() : trimmed,
+        phonetic: typeof parsed.phonetic === 'string' ? parsed.phonetic.trim() : ''
+      };
+    } catch (error) {
+      // Fall through to heuristic parsing
+    }
+  }
+
+  const lines = trimmed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  let translation = '';
+  let phonetic = '';
+
+  for (const line of lines) {
+    if (!phonetic && /(phonetic|ipa)/i.test(line)) {
+      phonetic = line.replace(/^(phonetic|ipa)\s*[:：]\s*/i, '').trim();
+      continue;
+    }
+    if (!phonetic && /^[/\[].+[/\]]$/.test(line)) {
+      phonetic = line;
+      continue;
+    }
+    if (!translation) {
+      translation = line;
+    }
+  }
+
+  if (!translation) {
+    translation = trimmed;
+  }
+
+  return { translation, phonetic };
+}
+
 // Handle single text translation
-async function handleTranslate(text, targetLang) {
+async function handleTranslate(text, targetLang, mode) {
   const settings = await chrome.storage.sync.get(defaultSettings);
 
   if (!settings.apiKey) {
@@ -365,8 +438,8 @@ async function handleTranslate(text, targetLang) {
 
   try {
     const effectiveLang = targetLang || getEffectiveTargetLang(settings);
-    const translation = await translateWithAI(text, effectiveLang, settings);
-    return { translation };
+    const result = await translateTextWithMode(text, effectiveLang, settings, mode === 'word');
+    return result;
   } catch (error) {
     console.error('Translation error:', error);
     return { error: error.message || '翻译失败，请重试' };
@@ -440,6 +513,53 @@ async function translateWithAI(text, targetLang, settings) {
     );
     return result || text;
   }
+}
+
+// Translate single word with IPA (no math placeholder rule)
+async function translateSingleWordWithAI(text, targetLang, settings) {
+  const targetLangName = languageNames[targetLang] || targetLang;
+  const hasCustomPrompt = settings.customPrompt && settings.customPrompt.trim();
+  const systemPrompt = hasCustomPrompt
+    ? buildPrompt(settings.customPrompt, targetLangName, {}, WORD_OUTPUT_RULES, { includeMathRule: false })
+    : buildPrompt(SINGLE_WORD_PROMPT, targetLangName, {}, '', { includeMathRule: false });
+
+  let content;
+  if (isClaudeAPI(settings.apiEndpoint)) {
+    content = await callClaudeAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      text,
+      800
+    );
+  } else {
+    content = await callOpenAIAPI(
+      settings.apiEndpoint,
+      settings.apiKey,
+      settings.modelName,
+      systemPrompt,
+      text,
+      800,
+      0.3
+    );
+  }
+
+  const parsed = parseWordTranslation(content);
+  if (!parsed.translation) {
+    parsed.translation = text.trim();
+  }
+  return parsed;
+}
+
+async function translateTextWithMode(text, targetLang, settings, forceWord = false) {
+  if (forceWord || isSingleWordText(text)) {
+    const result = await translateSingleWordWithAI(text, targetLang, settings);
+    return { ...result, isWord: true };
+  }
+
+  const translation = await translateWithAI(text, targetLang, settings);
+  return { translation, phonetic: '', isWord: false };
 }
 
 // Translate batch of texts with AI (numbered format)

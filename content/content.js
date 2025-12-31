@@ -885,8 +885,11 @@
     // Ensure theme is applied
     applyTheme(settings.theme);
 
+    const isWord = isSingleWordText(text);
+
     translationPopup = document.createElement('div');
     translationPopup.className = 'ai-translator-popup';
+    translationPopup.dataset.sourceText = text;
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <span class="ai-translator-title">${t('aiTranslate')}</span>
@@ -905,10 +908,29 @@
               <div class="ai-translator-spinner"></div>
               <span>${t('translating')}</span>
             </div>
+            <div class="ai-translator-loading-lines">
+              <div class="ai-translator-loading-line"></div>
+              <div class="ai-translator-loading-line short"></div>
+            </div>
+            <div class="ai-translator-result-body" hidden>
+              <div class="ai-translator-translation-text"></div>
+              <div class="ai-translator-phonetic-row" hidden>
+                <span class="ai-translator-phonetic-label">${t('phonetic')}</span>
+                <span class="ai-translator-phonetic-text"></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="ai-translator-actions">
+        <button class="ai-translator-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+            <path d="M16 9a5 5 0 010 6"/>
+            <path d="M19 7a8 8 0 010 10"/>
+          </svg>
+          ${t('pronounce')}
+        </button>
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -943,12 +965,18 @@
     // Event listeners
     translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
     translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
-      const translationText = translationPopup.querySelector('.ai-translator-translation').textContent;
+      const translationText = translationPopup.querySelector('.ai-translator-translation-text')?.textContent;
       if (translationText && !translationText.includes(t('translating'))) {
         copyToClipboard(translationText);
         showCopyFeedback();
       }
     });
+    const speakBtn = translationPopup.querySelector('.ai-translator-speak');
+    if (speakBtn) {
+      speakBtn.addEventListener('click', () => {
+        speakText(translationPopup?.dataset.sourceText || '');
+      });
+    }
 
     // 添加拖动功能
     setupPopupDrag(translationPopup);
@@ -958,7 +986,7 @@
   }
 
   // 显示已完成的翻译结果（用于右键菜单翻译）
-  function showTranslationResult(text, translation) {
+  function showTranslationResult(text, translation, phonetic = '', isWord = false) {
     hideTranslationPopup();
 
     // Ensure theme is applied
@@ -966,6 +994,7 @@
 
     translationPopup = document.createElement('div');
     translationPopup.className = 'ai-translator-popup';
+    translationPopup.dataset.sourceText = text;
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <span class="ai-translator-title">${t('aiTranslate')}</span>
@@ -979,10 +1008,30 @@
         <div class="ai-translator-divider"></div>
         <div class="ai-translator-result">
           <div class="ai-translator-label">${t('translation')}</div>
-          <div class="ai-translator-translation">${escapeHtml(translation)}</div>
+          <div class="ai-translator-translation">
+            <div class="ai-translator-loading" style="display: none;">
+              <div class="ai-translator-spinner"></div>
+              <span>${t('translating')}</span>
+            </div>
+            <div class="ai-translator-result-body">
+              <div class="ai-translator-translation-text">${escapeHtml(translation)}</div>
+              <div class="ai-translator-phonetic-row" ${phonetic ? '' : 'hidden'}>
+                <span class="ai-translator-phonetic-label">${t('phonetic')}</span>
+                <span class="ai-translator-phonetic-text">${escapeHtml(phonetic)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="ai-translator-actions">
+        <button class="ai-translator-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+            <path d="M16 9a5 5 0 010 6"/>
+            <path d="M19 7a8 8 0 010 10"/>
+          </svg>
+          ${t('pronounce')}
+        </button>
         <button class="ai-translator-btn ai-translator-copy" title="${t('copyTranslation')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -1010,6 +1059,21 @@
       copyToClipboard(translation);
       showCopyFeedback();
     });
+    const speakBtn = translationPopup.querySelector('.ai-translator-speak');
+    if (speakBtn) {
+      speakBtn.addEventListener('click', () => {
+        speakText(translationPopup?.dataset.sourceText || '');
+      });
+    }
+
+    const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+    if (resultBody) {
+      resultBody.classList.add('ai-translator-reveal');
+    }
+    const translationTextEl = translationPopup.querySelector('.ai-translator-translation-text');
+    if (translationTextEl) {
+      translationTextEl.classList.add('ai-translator-translation-flow');
+    }
 
     // 添加拖动功能
     setupPopupDrag(translationPopup);
@@ -1074,28 +1138,105 @@
     }
   }
 
+  function isSingleWordText(text) {
+    if (!text) return false;
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+    if (/[\s\r\n\t]/.test(trimmed)) return false;
+    return trimmed.length <= 40;
+  }
+
+  function getDetectedLang(text) {
+    if (!chrome?.i18n?.detectLanguage) return Promise.resolve('');
+    return new Promise((resolve) => {
+      chrome.i18n.detectLanguage(text, (result) => {
+        const topLang = result?.languages?.[0]?.language || '';
+        resolve(topLang);
+      });
+    });
+  }
+
+  async function speakText(text) {
+    const trimmed = text.trim();
+    if (!trimmed || !window.speechSynthesis) return;
+
+    const utterance = new SpeechSynthesisUtterance(trimmed);
+    const detectedLang = await getDetectedLang(trimmed);
+    if (detectedLang) {
+      utterance.lang = detectedLang;
+    }
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function translateText(text) {
     try {
+      const isWord = isSingleWordText(text);
       const response = await chrome.runtime.sendMessage({
         type: 'TRANSLATE',
         text: text,
-        targetLang: settings.targetLang
+        targetLang: settings.targetLang,
+        mode: isWord ? 'word' : 'text'
       });
 
       if (!translationPopup) return;
 
-      const translationEl = translationPopup.querySelector('.ai-translator-translation');
+      const translationTextEl = translationPopup.querySelector('.ai-translator-translation-text');
+      const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+      const loadingEl = translationPopup.querySelector('.ai-translator-loading');
+      const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+      const phoneticRow = translationPopup.querySelector('.ai-translator-phonetic-row');
+      const phoneticText = translationPopup.querySelector('.ai-translator-phonetic-text');
+      const speakBtn = translationPopup.querySelector('.ai-translator-speak');
       
       if (response.error) {
-        translationEl.innerHTML = `<div class="ai-translator-error">${escapeHtml(response.error)}</div>`;
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (loadingLines) loadingLines.style.display = 'none';
+        if (resultBody) {
+          resultBody.hidden = false;
+          resultBody.innerHTML = `<div class="ai-translator-error">${escapeHtml(response.error)}</div>`;
+        }
       } else {
-        translationEl.textContent = response.translation;
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (loadingLines) loadingLines.style.display = 'none';
+        if (translationTextEl) {
+          translationTextEl.textContent = response.translation || '';
+          translationTextEl.classList.remove('ai-translator-translation-flow');
+          // Trigger flow animation
+          void translationTextEl.offsetWidth;
+          translationTextEl.classList.add('ai-translator-translation-flow');
+        }
+        if (phoneticRow && phoneticText) {
+          if (response.phonetic) {
+            phoneticText.textContent = response.phonetic;
+            phoneticRow.hidden = false;
+          } else {
+            phoneticRow.hidden = true;
+          }
+        }
+        if (speakBtn) {
+          speakBtn.hidden = response.isWord !== true;
+        }
+        if (resultBody) {
+          resultBody.hidden = false;
+          resultBody.classList.remove('ai-translator-reveal');
+          void resultBody.offsetWidth;
+          resultBody.classList.add('ai-translator-reveal');
+        }
       }
     } catch (error) {
       console.error('AI Translator: Translation failed', error);
       if (translationPopup) {
-        const translationEl = translationPopup.querySelector('.ai-translator-translation');
-        translationEl.innerHTML = `<div class="ai-translator-error">${t('translationFailed')}</div>`;
+        const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+        const loadingEl = translationPopup.querySelector('.ai-translator-loading');
+        const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (loadingLines) loadingLines.style.display = 'none';
+        if (resultBody) {
+          resultBody.hidden = false;
+          resultBody.innerHTML = `<div class="ai-translator-error">${t('translationFailed')}</div>`;
+        }
       }
     }
   }
@@ -2433,7 +2574,7 @@
           break;
         case 'SHOW_TRANSLATION':
           // 右键菜单翻译选中文本的结果显示
-          showTranslationResult(message.text, message.translation);
+          showTranslationResult(message.text, message.translation, message.phonetic, message.isWord);
           break;
         case 'SETTINGS_UPDATED':
           // Only update showFloatBall if explicitly provided in the message
