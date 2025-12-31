@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Paper Translator",
+  "name": "AI Academic Paper Translator",
   "version": "1.0.1",
-  "description": "AI-powered translation extension with selection and full-page translation",
+  "description": "AI-powered translation extension with academic paper full-page translation",
   "permissions": [
     "storage",
     "activeTab",
