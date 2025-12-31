@@ -912,9 +912,17 @@
           <span class="ai-translator-title">${t('aiTranslate')}</span>
         </div>
         <div class="ai-translator-header-right">
-          <select class="ai-translator-target-select" title="${t('targetLanguage')}">
-            ${buildTargetLangOptions(getEffectiveTargetLang())}
-          </select>
+          <div class="ai-translator-lang-dropdown">
+            <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
+              <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
+              <svg class="ai-translator-lang-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+            <div class="ai-translator-lang-menu" hidden>
+              ${buildTargetLangMenu(getEffectiveTargetLang())}
+            </div>
+          </div>
           <button class="ai-translator-close" title="${t('close')}">×</button>
         </div>
       </div>
@@ -998,20 +1006,15 @@
         speakText(translationPopup?.dataset.sourceText || '');
       });
     }
-    const langSelect = translationPopup.querySelector('.ai-translator-target-select');
-    if (langSelect) {
-      translationPopup.dataset.targetLang = langSelect.value;
-      langSelect.addEventListener('change', () => {
-        translationPopup.dataset.targetLang = langSelect.value;
-        translateText(translationPopup?.dataset.sourceText || text, langSelect.value);
-      });
-    }
+    const initialLang = setupLanguageDropdown(translationPopup, getEffectiveTargetLang(), (lang) => {
+      translateText(translationPopup?.dataset.sourceText || text, lang);
+    });
 
     // 添加拖动功能
     setupPopupDrag(translationPopup);
 
     // Trigger translation
-    translateText(text, langSelect?.value);
+    translateText(text, initialLang);
   }
 
   // 显示已完成的翻译结果（用于右键菜单翻译）
@@ -1034,9 +1037,17 @@
           <span class="ai-translator-title">${t('aiTranslate')}</span>
         </div>
         <div class="ai-translator-header-right">
-          <select class="ai-translator-target-select" title="${t('targetLanguage')}">
-            ${buildTargetLangOptions(getEffectiveTargetLang())}
-          </select>
+          <div class="ai-translator-lang-dropdown">
+            <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
+              <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
+              <svg class="ai-translator-lang-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+            <div class="ai-translator-lang-menu" hidden>
+              ${buildTargetLangMenu(getEffectiveTargetLang())}
+            </div>
+          </div>
           <button class="ai-translator-close" title="${t('close')}">×</button>
         </div>
       </div>
@@ -1103,14 +1114,9 @@
         speakText(translationPopup?.dataset.sourceText || '');
       });
     }
-    const langSelect = translationPopup.querySelector('.ai-translator-target-select');
-    if (langSelect) {
-      translationPopup.dataset.targetLang = langSelect.value;
-      langSelect.addEventListener('change', () => {
-        translationPopup.dataset.targetLang = langSelect.value;
-        translateText(translationPopup?.dataset.sourceText || text, langSelect.value);
-      });
-    }
+    setupLanguageDropdown(translationPopup, getEffectiveTargetLang(), (lang) => {
+      translateText(translationPopup?.dataset.sourceText || text, lang);
+    });
 
     const resultBody = translationPopup.querySelector('.ai-translator-result-body');
     if (resultBody) {
@@ -1179,9 +1185,76 @@
 
   function hideTranslationPopup() {
     if (translationPopup) {
+      if (translationPopup._langOutsideHandler) {
+        document.removeEventListener('mousedown', translationPopup._langOutsideHandler);
+      }
       translationPopup.remove();
       translationPopup = null;
     }
+  }
+
+  function setupLanguageDropdown(popup, selectedLang, onChange) {
+    const trigger = popup.querySelector('.ai-translator-lang-trigger');
+    const menu = popup.querySelector('.ai-translator-lang-menu');
+    const label = popup.querySelector('.ai-translator-lang-label');
+    if (!trigger || !menu || !label) return selectedLang;
+
+    const normalized = normalizeTargetLang(selectedLang);
+    label.textContent = getTargetLangLabel(normalized);
+    popup.dataset.targetLang = normalized;
+
+    const items = menu.querySelectorAll('.ai-translator-lang-item');
+    items.forEach((item) => {
+      item.classList.toggle('is-selected', item.dataset.lang === normalized);
+    });
+
+    const closeMenu = () => {
+      if (menu.hidden) return;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const openMenu = () => {
+      if (!menu.hidden) return;
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    };
+
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (menu.hidden) {
+        openMenu();
+      } else {
+        closeMenu();
+      }
+    });
+
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.ai-translator-lang-item');
+      if (!item) return;
+      const lang = item.dataset.lang;
+      if (!lang) return;
+      label.textContent = item.textContent || getTargetLangLabel(lang);
+      items.forEach((btn) => {
+        btn.classList.toggle('is-selected', btn.dataset.lang === lang);
+      });
+      popup.dataset.targetLang = lang;
+      closeMenu();
+      if (typeof onChange === 'function') {
+        onChange(lang);
+      }
+    });
+
+    const outsideHandler = (event) => {
+      if (!popup.contains(event.target)) {
+        closeMenu();
+      }
+    };
+
+    popup._langOutsideHandler = outsideHandler;
+    document.addEventListener('mousedown', outsideHandler);
+
+    return normalized;
   }
 
   function isSingleWordText(text) {
@@ -2090,11 +2163,17 @@
     return 'en';
   }
 
-  function buildTargetLangOptions(selectedLang) {
+  function getTargetLangLabel(lang) {
+    const normalized = normalizeTargetLang(lang);
+    const match = TARGET_LANGUAGE_OPTIONS.find((option) => option.value === normalized);
+    return match ? match.label : normalized;
+  }
+
+  function buildTargetLangMenu(selectedLang) {
     const normalized = normalizeTargetLang(selectedLang);
     return TARGET_LANGUAGE_OPTIONS.map((option) => {
-      const isSelected = option.value === normalized ? ' selected' : '';
-      return `<option value="${option.value}"${isSelected}>${option.label}</option>`;
+      const isSelected = option.value === normalized ? ' is-selected' : '';
+      return `<button class="ai-translator-lang-item${isSelected}" type="button" data-lang="${option.value}">${escapeHtml(option.label)}</button>`;
     }).join('');
   }
 
