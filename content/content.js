@@ -1146,14 +1146,6 @@
   let pageHasBeenTranslated = false;
 
   async function translatePage() {
-    // 检查是否已经翻译过此页面
-    if (pageHasBeenTranslated) {
-      console.log('AI Translator: Page already translated');
-      showPageTranslationProgress();
-      showAlreadyTranslatedMessage();
-      return;
-    }
-
     if (isTranslatingPage) {
       console.log('AI Translator: Already translating page');
       // 如果进度条被关闭了，重新显示它并恢复进度
@@ -1168,16 +1160,6 @@
       }
       // 闪烁提示正在翻译中
       showTranslatingHint(existingProgress);
-      return;
-    }
-
-    // 检查是否已经有翻译内容（页面可能在之前的会话中翻译过）
-    const existingTranslations = document.querySelectorAll('.ai-translator-inline-block').length;
-    if (existingTranslations > 0) {
-      console.log('AI Translator: Found existing translations');
-      pageHasBeenTranslated = true;
-      showPageTranslationProgress();
-      showAlreadyTranslatedMessage();
       return;
     }
 
@@ -1486,7 +1468,7 @@
       // 跳过不需要翻译的元素
       if (skipTags.includes(tagName)) return;
       if (element.isContentEditable) return;
-      if (element.closest('.ai-translator-popup, .ai-translator-translated, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
+      if (element.closest('.ai-translator-popup, .ai-translator-translated, .ai-translator-inline-block, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
       if (element.classList.contains('ai-translator-translated')) return;
 
       // 跳过被 skipTags 包含的元素
