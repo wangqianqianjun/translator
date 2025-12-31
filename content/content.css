@@ -5,8 +5,8 @@
 .ai-translator-popup {
   position: fixed;
   z-index: 2147483647;
-  width: 360px;
-  max-height: 420px;
+  width: 400px;
+  max-height: 480px;
   --popup-bg: #15161c;
   --popup-border: #2a2d36;
   --popup-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
@@ -16,20 +16,20 @@
   --text-muted: #8a8f9f;
   --divider: #262a33;
   --accent: #6f63ff;
-  --pill-bg: #1e2028;
-  --pill-border: #2f333d;
+  --pill-bg: #232632;
+  --pill-border: #323744;
   --icon-hover-bg: rgba(111, 99, 255, 0.12);
   --icon-hover-border: rgba(111, 99, 255, 0.4);
   --btn-bg: #1e2028;
   --btn-border: #2f333d;
-  --btn-text: #c7c9d6;
+  --btn-text: #d0d3dd;
   --btn-hover-bg: #2a2d36;
   background: var(--popup-bg);
   border: 1px solid var(--popup-border);
   border-radius: 14px;
   box-shadow: var(--popup-shadow);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
   overflow: hidden;
   animation: ai-translator-fade-in 0.2s ease;
@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--header-bg);
   border-bottom: 1px solid var(--divider);
 }
@@ -59,7 +59,7 @@
 .ai-translator-header-right {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ai-translator-title-icon {
@@ -67,14 +67,14 @@
 }
 
 .ai-translator-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .ai-translator-close {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,7 +82,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--text-muted);
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -94,8 +94,8 @@
 }
 
 .ai-translator-content {
-  padding: 12px 16px 14px;
-  max-height: 280px;
+  padding: 14px 18px 16px;
+  max-height: 340px;
   overflow-y: auto;
 }
 
@@ -109,7 +109,7 @@
 }
 
 .ai-translator-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.3px;
   color: var(--text-muted);
@@ -122,14 +122,14 @@
   border: 1px solid var(--pill-border);
   border-radius: 999px;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 6px 28px 6px 12px;
+  padding: 7px 32px 7px 14px;
   cursor: pointer;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239198a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  max-width: 180px;
+  background-position: right 12px center;
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -142,7 +142,7 @@
 }
 
 .ai-translator-text {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-secondary);
   word-break: break-word;
@@ -161,14 +161,14 @@
 }
 
 .ai-translator-icon-btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--accent);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -205,7 +205,7 @@
 }
 
 .ai-translator-translation-text {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--text-primary);
   word-break: break-word;
@@ -232,7 +232,7 @@
 .ai-translator-phonetic {
   margin-top: 6px;
   font-family: 'Times New Roman', serif;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
@@ -294,7 +294,7 @@
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding: 10px 16px 12px;
+  padding: 12px 18px 14px;
   background: transparent;
   border-top: 1px solid var(--divider);
 }
@@ -303,13 +303,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 9px 14px;
   background: var(--btn-bg);
   border: 1px solid var(--btn-border);
   border-radius: 999px;
   color: var(--btn-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1201,8 +1201,8 @@ button.ai-translator-inline-block {
   --text-muted: #9aa0ac;
   --divider: #eef0f3;
   --accent: #6f63ff;
-  --pill-bg: #f3f4f6;
-  --pill-border: #e5e7eb;
+  --pill-bg: #f1f3f5;
+  --pill-border: #e2e6ea;
   --icon-hover-bg: rgba(111, 99, 255, 0.12);
   --icon-hover-border: rgba(111, 99, 255, 0.3);
   --btn-bg: #f3f4f6;

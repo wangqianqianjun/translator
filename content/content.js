@@ -905,9 +905,9 @@
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <div class="ai-translator-header-left">
-          <svg class="ai-translator-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 5h7M7.5 5v8M5 13h5"/>
-            <path d="M14 7h6M17 7v12M14 19h6"/>
+          <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z"/>
+            <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
           </svg>
           <span class="ai-translator-title">${t('aiTranslate')}</span>
         </div>
@@ -924,7 +924,7 @@
           <div class="ai-translator-text-row">
             <div class="ai-translator-text">${escapeHtml(text)}</div>
             <button class="ai-translator-icon-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 9v6h4l5 4V5L8 9H4z"/>
                 <path d="M16 9a5 5 0 010 6"/>
                 <path d="M19 7a8 8 0 010 10"/>
@@ -963,8 +963,8 @@
     `;
 
     // Position popup
-    const popupWidth = 360;
-    const popupHeight = 220;
+    const popupWidth = 400;
+    const popupHeight = 250;
     let posX = x + 10;
     let posY = y + 10;
 
@@ -1027,9 +1027,9 @@
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <div class="ai-translator-header-left">
-          <svg class="ai-translator-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 5h7M7.5 5v8M5 13h5"/>
-            <path d="M14 7h6M17 7v12M14 19h6"/>
+          <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z"/>
+            <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
           </svg>
           <span class="ai-translator-title">${t('aiTranslate')}</span>
         </div>
@@ -1046,7 +1046,7 @@
           <div class="ai-translator-text-row">
             <div class="ai-translator-text">${escapeHtml(text)}</div>
             <button class="ai-translator-icon-btn ai-translator-speak" title="${t('pronounce')}" ${isWord ? '' : 'hidden'}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 9v6h4l5 4V5L8 9H4z"/>
                 <path d="M16 9a5 5 0 010 6"/>
                 <path d="M19 7a8 8 0 010 10"/>
@@ -1081,8 +1081,8 @@
     `;
 
     // 居中显示弹窗
-    const popupWidth = 360;
-    const popupHeight = 220;
+    const popupWidth = 400;
+    const popupHeight = 250;
     let posX = (window.innerWidth - popupWidth) / 2;
     let posY = (window.innerHeight - popupHeight) / 2;
 
