@@ -904,8 +904,19 @@
     translationPopup.dataset.sourceText = text;
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
-        <span class="ai-translator-title">${t('aiTranslate')}</span>
-        <button class="ai-translator-close" title="${t('close')}">×</button>
+        <div class="ai-translator-header-left">
+          <svg class="ai-translator-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h7M7.5 5v8M5 13h5"/>
+            <path d="M14 7h6M17 7v12M14 19h6"/>
+          </svg>
+          <span class="ai-translator-title">${t('aiTranslate')}</span>
+        </div>
+        <div class="ai-translator-header-right">
+          <select class="ai-translator-target-select" title="${t('targetLanguage')}">
+            ${buildTargetLangOptions(getEffectiveTargetLang())}
+          </select>
+          <button class="ai-translator-close" title="${t('close')}">×</button>
+        </div>
       </div>
       <div class="ai-translator-content">
         <div class="ai-translator-source">
@@ -924,12 +935,7 @@
         </div>
         <div class="ai-translator-divider"></div>
         <div class="ai-translator-result">
-          <div class="ai-translator-result-header">
-            <div class="ai-translator-label">${t('translation')}</div>
-            <select class="ai-translator-target-select" title="${t('targetLanguage')}">
-              ${buildTargetLangOptions(getEffectiveTargetLang())}
-            </select>
-          </div>
+          <div class="ai-translator-label">${t('translation')}</div>
           <div class="ai-translator-translation">
             <div class="ai-translator-loading">
               <div class="ai-translator-spinner"></div>
@@ -957,8 +963,8 @@
     `;
 
     // Position popup
-    const popupWidth = 320;
-    const popupHeight = 200;
+    const popupWidth = 360;
+    const popupHeight = 220;
     let posX = x + 10;
     let posY = y + 10;
 
@@ -1020,8 +1026,19 @@
     translationPopup.dataset.sourceText = text;
     translationPopup.innerHTML = `
       <div class="ai-translator-header">
-        <span class="ai-translator-title">${t('aiTranslate')}</span>
-        <button class="ai-translator-close" title="${t('close')}">×</button>
+        <div class="ai-translator-header-left">
+          <svg class="ai-translator-title-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h7M7.5 5v8M5 13h5"/>
+            <path d="M14 7h6M17 7v12M14 19h6"/>
+          </svg>
+          <span class="ai-translator-title">${t('aiTranslate')}</span>
+        </div>
+        <div class="ai-translator-header-right">
+          <select class="ai-translator-target-select" title="${t('targetLanguage')}">
+            ${buildTargetLangOptions(getEffectiveTargetLang())}
+          </select>
+          <button class="ai-translator-close" title="${t('close')}">×</button>
+        </div>
       </div>
       <div class="ai-translator-content">
         <div class="ai-translator-source">
@@ -1039,13 +1056,8 @@
           <div class="ai-translator-phonetic" ${phonetic ? '' : 'hidden'}>${escapeHtml(phonetic)}</div>
         </div>
       <div class="ai-translator-divider"></div>
-      <div class="ai-translator-result">
-          <div class="ai-translator-result-header">
-            <div class="ai-translator-label">${t('translation')}</div>
-            <select class="ai-translator-target-select" title="${t('targetLanguage')}">
-              ${buildTargetLangOptions(getEffectiveTargetLang())}
-            </select>
-          </div>
+        <div class="ai-translator-result">
+          <div class="ai-translator-label">${t('translation')}</div>
           <div class="ai-translator-translation">
             <div class="ai-translator-loading" style="display: none;">
               <div class="ai-translator-spinner"></div>
@@ -1069,8 +1081,8 @@
     `;
 
     // 居中显示弹窗
-    const popupWidth = 320;
-    const popupHeight = 200;
+    const popupWidth = 360;
+    const popupHeight = 220;
     let posX = (window.innerWidth - popupWidth) / 2;
     let posY = (window.innerHeight - popupHeight) / 2;
 
@@ -1124,8 +1136,8 @@
     header.style.cursor = 'move';
 
     header.addEventListener('mousedown', (e) => {
-      // 忽略关闭按钮
-      if (e.target.classList.contains('ai-translator-close')) return;
+      // 忽略交互元素
+      if (e.target.closest('button, select, option')) return;
 
       isDragging = true;
       startX = e.clientX;
