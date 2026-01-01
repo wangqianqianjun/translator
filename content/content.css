@@ -1019,9 +1019,11 @@ button.ai-translator-inline-block {
 .ai-translator-menu-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   width: 100%;
   padding: 12px 14px;
+  margin: 0;
   background: transparent;
   border: none;
   color: #f0f0f5;
@@ -1030,6 +1032,7 @@ button.ai-translator-inline-block {
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
+  box-sizing: border-box;
 }
 
 .ai-translator-menu-item:hover {
@@ -1043,6 +1046,14 @@ button.ai-translator-inline-block {
 .ai-translator-menu-item svg {
   color: #7c5cff;
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+}
+
+.ai-translator-menu-item span {
+  flex: 1;
+  text-align: left;
 }
 
 .ai-translator-menu-divider {
