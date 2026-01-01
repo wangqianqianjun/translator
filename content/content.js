@@ -62,6 +62,17 @@
     }
   }
 
+  function isExtensionContextAvailable() {
+    return typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage;
+  }
+
+  function isExtensionContextInvalidated(error) {
+    if (!isExtensionContextAvailable()) return true;
+    if (!error) return false;
+    const message = String(error?.message || error);
+    return message.includes('Extension context invalidated');
+  }
+
   // Listen for storage changes to stay in sync
   function setupStorageListener() {
     chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -661,6 +672,10 @@
       resultText.innerHTML = `<div class="ai-translator-input-loading"><div class="ai-translator-spinner"></div><span>${t('translating')}</span></div>`;
       
       try {
+        if (!isExtensionContextAvailable()) {
+          resultText.innerHTML = `<div class="ai-translator-input-error">${t('extensionContextInvalidated')}</div>`;
+          return;
+        }
         const targetLang = targetLangOverride || inputDialog.dataset.targetLang || settings.targetLang;
         const response = await chrome.runtime.sendMessage({
           type: 'TRANSLATE',
@@ -675,7 +690,10 @@
           resultText.textContent = response.translation;
         }
       } catch (error) {
-        resultText.innerHTML = `<div class="ai-translator-input-error">${t('translationFailed')}</div>`;
+        const message = isExtensionContextInvalidated(error)
+          ? t('extensionContextInvalidated')
+          : t('translationFailed');
+        resultText.innerHTML = `<div class="ai-translator-input-error">${message}</div>`;
       }
     };
 
@@ -1334,6 +1352,20 @@
     try {
       const isWord = isSingleWordText(text);
       const targetLang = targetLangOverride || getEffectiveTargetLang();
+      if (!isExtensionContextAvailable()) {
+        if (translationPopup) {
+          const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+          const loadingEl = translationPopup.querySelector('.ai-translator-loading');
+          const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+          if (loadingEl) loadingEl.style.display = 'none';
+          if (loadingLines) loadingLines.style.display = 'none';
+          if (resultBody) {
+            resultBody.hidden = false;
+            resultBody.innerHTML = `<div class="ai-translator-error">${t('extensionContextInvalidated')}</div>`;
+          }
+        }
+        return;
+      }
       if (translationPopup) {
         translationPopup.dataset.requestId = requestId;
         translationPopup.dataset.targetLang = targetLang;
@@ -1407,7 +1439,10 @@
         if (loadingLines) loadingLines.style.display = 'none';
         if (resultBody) {
           resultBody.hidden = false;
-          resultBody.innerHTML = `<div class="ai-translator-error">${t('translationFailed')}</div>`;
+          const message = isExtensionContextInvalidated(error)
+            ? t('extensionContextInvalidated')
+            : t('translationFailed');
+          resultBody.innerHTML = `<div class="ai-translator-error">${message}</div>`;
         }
       }
     }
@@ -1459,6 +1494,11 @@
   let pageHasBeenTranslated = false;
 
   async function translatePage() {
+    if (!isExtensionContextAvailable()) {
+      showPageTranslationProgress();
+      showTranslationError(t('extensionContextInvalidated'));
+      return;
+    }
     if (isTranslatingPage) {
       console.log('AI Translator: Already translating page');
       // 如果进度条被关闭了，重新显示它并恢复进度
@@ -1512,6 +1552,10 @@
       const processBatch = async (batch) => {
         // Skip if we already have an error
         if (batchError) return;
+        if (!isExtensionContextAvailable()) {
+          batchError = t('extensionContextInvalidated');
+          return;
+        }
 
         const texts = batch.map(item => item.text);
 
@@ -1540,7 +1584,9 @@
         } catch (error) {
           console.error('AI Translator: Batch translation failed', error);
           if (!batchError) {
-            batchError = error.message || t('translationFailed');
+            batchError = isExtensionContextInvalidated(error)
+              ? t('extensionContextInvalidated')
+              : (error.message || t('translationFailed'));
           }
         }
 
