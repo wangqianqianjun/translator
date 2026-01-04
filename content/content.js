@@ -1764,6 +1764,27 @@
       return false;
     }
 
+    // 检查文本是否主要是URL（不需要翻译）
+    function isMainlyUrl(text) {
+      // URL正则模式
+      const urlPattern = /https?:\/\/[^\s]+/gi;
+      const urls = text.match(urlPattern) || [];
+      if (urls.length === 0) return false;
+
+      // 计算URL占文本的比例
+      const urlLength = urls.reduce((sum, url) => sum + url.length, 0);
+      const textWithoutUrls = text.replace(urlPattern, '').trim();
+
+      // 如果移除URL后剩余文本很短（少于10个字符或只有标签如 "DOI:", "URL:" 等）
+      // 则认为主要是URL
+      if (textWithoutUrls.length < 10) return true;
+
+      // 如果URL占总文本长度的70%以上，认为主要是URL
+      if (urlLength / text.length > 0.7) return true;
+
+      return false;
+    }
+
     // 检查元素是否有可翻译的子元素（用于判断是否应该递归而非整体翻译）
     function hasTranslatableChildren(element) {
       for (const child of element.children) {
@@ -1901,9 +1922,9 @@
       if (inlineTags.includes(tagName)) {
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 500) {
-          // 跳过看起来像代码的文本
+          // 跳过看起来像代码或主要是URL的文本
           const textWithoutMath = text.replace(/\{\{\d+\}\}/g, '');
-          if (textWithoutMath && !looksLikeCode(textWithoutMath)) {
+          if (textWithoutMath && !looksLikeCode(textWithoutMath) && !isMainlyUrl(textWithoutMath)) {
             blocks.push({
               element: element,
               text: text,
@@ -1919,10 +1940,10 @@
       if (blockTags.includes(tagName) || hasDirectText) {
         const { text, mathElements } = getTextWithMathPlaceholders(element);
         if (text && text.length >= 2 && text.length <= 2000) {
-          // 跳过看起来像代码的文本（排除数学占位符后判断）
+          // 跳过看起来像代码或主要是URL的文本（排除数学占位符后判断）
           const textWithoutMath = text.replace(/\{\{\d+\}\}/g, '');
-          if (textWithoutMath && looksLikeCode(textWithoutMath)) {
-            // 递归处理子元素，可能有非代码的部分
+          if (textWithoutMath && (looksLikeCode(textWithoutMath) || isMainlyUrl(textWithoutMath))) {
+            // 递归处理子元素，可能有非代码/非URL的部分
             for (const child of element.children) {
               processElement(child);
             }
