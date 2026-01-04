@@ -1846,6 +1846,20 @@
           element.classList.contains('visually-hidden') ||
           element.classList.contains('MathJax_Preview')) return;
 
+      // 跳过 Web Components 的覆盖层 slot 元素
+      // 这些元素通常是 absolute 定位覆盖整个区域用于点击跳转
+      // 例如 Reddit 的 slot="full-post-link" 元素
+      if (element.hasAttribute('slot')) {
+        const classList = element.classList;
+        // 检测是否是覆盖层元素（absolute 定位 + inset-0 或类似的全覆盖类）
+        if ((classList.contains('absolute') || classList.contains('fixed')) &&
+            (classList.contains('inset-0') ||
+             (classList.contains('top-0') && classList.contains('left-0') &&
+              classList.contains('right-0') && classList.contains('bottom-0')))) {
+          return; // 跳过覆盖层元素
+        }
+      }
+
       // 检查是否有直接文本内容
       const directText = getDirectText(element);
       const hasDirectText = directText.length >= 2;
@@ -2463,8 +2477,13 @@
 
       // 复制原始元素的类名，保留页面的 CSS 样式（如 ltx_p 用于 MathML 内联显示）
       // 然后添加我们的标记类
+      // 需要移除位置相关的类，避免破坏布局（如 absolute, fixed, inset-* 等）
       if (element.className) {
-        translationEl.className = element.className.replace('ai-translator-translated', '').trim();
+        const positionClasses = /\b(absolute|fixed|sticky|relative|inset-\S*|top-\S*|bottom-\S*|left-\S*|right-\S*|z-\S*)\b/g;
+        translationEl.className = element.className
+          .replace('ai-translator-translated', '')
+          .replace(positionClasses, '')
+          .trim();
       }
       translationEl.classList.add('ai-translator-inline-block');
 
@@ -2492,8 +2511,27 @@
         translationEl.style.setProperty('padding-left', `${textOffset}px`, 'important');
       }
 
-      // 插入到原元素后面
-      element.after(translationEl);
+      // 检查元素是否有 slot 属性（Web Components 的内容分发机制）
+      // 如果有 slot 属性，在元素旁边插入兄弟元素会破坏 Shadow DOM 的结构
+      // 应该将翻译追加到元素内部
+      const hasSlotAttr = element.hasAttribute('slot');
+      if (hasSlotAttr) {
+        // 对于有 slot 属性的元素，将翻译作为子元素追加到内部
+        // 使用 span 而不是复制标签名，避免嵌套问题（如 a > a）
+        const internalTranslation = document.createElement('span');
+        internalTranslation.className = 'ai-translator-inline-block';
+        internalTranslation.textContent = translation;
+        internalTranslation.style.cssText = baseStyle + `
+          display: block;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        `;
+        element.appendChild(internalTranslation);
+      } else {
+        // 插入到原元素后面
+        element.after(translationEl);
+      }
     }
   }
 
