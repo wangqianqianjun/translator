@@ -318,7 +318,7 @@ const defaultSettings = {
   showFloatBall: true,
   autoDetect: true,
   customPrompt: '',
-  theme: 'dark'
+  theme: 'light'
 };
 
 // Update model dropdown based on provider
@@ -472,7 +472,7 @@ async function loadSettings() {
     elements.customPrompt.value = result.customPrompt || '';
 
     // Apply theme
-    applyTheme(result.theme || 'dark');
+    applyTheme(result.theme || 'light');
 
     // Apply i18n based on target language
     applyI18n(targetLang);
@@ -490,7 +490,7 @@ function applyTheme(theme) {
 
 // Toggle theme
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(newTheme);
   
@@ -526,7 +526,7 @@ async function saveSettings() {
     showFloatBall: elements.showFloatBall.checked,
     autoDetect: elements.autoDetect.checked,
     customPrompt: elements.customPrompt.value.trim(),
-    theme: document.documentElement.getAttribute('data-theme') || 'dark'
+    theme: document.documentElement.getAttribute('data-theme') || 'light'
   };
 
   // Validation

@@ -36,7 +36,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 });
 
 // Initialize icon on startup
-chrome.storage.sync.get({ theme: 'dark' }, (result) => {
+chrome.storage.sync.get({ theme: 'light' }, (result) => {
   updateIcon(result.theme);
 });
 

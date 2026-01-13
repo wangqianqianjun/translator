@@ -12,7 +12,7 @@ const defaultSettings = {
   apiKey: '',
   showFloatBall: true,
   targetLang: 'zh-CN',
-  theme: 'dark'
+  theme: 'light'
 };
 
 // Apply theme
@@ -54,7 +54,7 @@ async function checkStatus() {
     const settings = await chrome.storage.sync.get(defaultSettings);
     
     // Apply theme
-    applyTheme(settings.theme || 'dark');
+    applyTheme(settings.theme || 'light');
     
     // Apply i18n based on target language
     applyI18n(settings.targetLang);

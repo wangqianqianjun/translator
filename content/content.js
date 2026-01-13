@@ -35,7 +35,7 @@
     showFloatBall: true,
     autoDetect: true,
     targetLang: 'zh-CN',
-    theme: 'dark'
+    theme: 'light'
   };
   let translationPopup = null;
   let floatBall = null;
@@ -99,7 +99,7 @@
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
-        theme: 'dark'
+        theme: 'light'
       });
       settings = result;
       console.log('AI Translator: Settings loaded', { showFloatBall: settings.showFloatBall, theme: settings.theme });
@@ -112,7 +112,7 @@
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
-        theme: 'dark'
+        theme: 'light'
       };
     }
   }
