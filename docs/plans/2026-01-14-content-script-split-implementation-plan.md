@@ -474,6 +474,10 @@ Skip (tests require Playwright install).
 
 Add a short note in the plan about Playwright browser install requirement and the fixture change.
 
+Notes:
+- Playwright requires `npx playwright install` to download the Chromium browser used by tests.
+- Fixed `test/e2e/fixtures.js` CommonJS destructuring (`test: base`) to avoid syntax errors.
+
 **Step 4: Run test to verify it passes**
 
 Skip.
