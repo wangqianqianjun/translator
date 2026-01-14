@@ -1,0 +1,191 @@
+// AI Translator Content Script Input Dialog
+(function() {
+  'use strict';
+
+  const ctx = window.AI_TRANSLATOR_CONTENT;
+  if (!ctx) return;
+
+  const { settings, state } = ctx;
+  const t = ctx.t;
+  const applyTheme = ctx.applyTheme;
+  const escapeHtml = ctx.escapeHtml;
+  const copyToClipboard = ctx.copyToClipboard;
+  const getEffectiveTargetLang = ctx.getEffectiveTargetLang;
+  const getTargetLangLabel = ctx.getTargetLangLabel;
+  const buildTargetLangMenu = ctx.buildTargetLangMenu;
+  const isExtensionContextAvailable = ctx.isExtensionContextAvailable;
+  const isExtensionContextInvalidated = ctx.isExtensionContextInvalidated;
+
+  function showInputTranslateDialog() {
+    if (state.inputDialog) {
+      state.inputDialog.remove();
+    }
+
+    // Ensure theme is applied
+    applyTheme(settings.theme);
+
+    state.inputDialog = document.createElement('div');
+    state.inputDialog.id = 'ai-translator-input-dialog';
+    state.inputDialog.innerHTML = `
+      <div class="ai-translator-input-overlay"></div>
+      <div class="ai-translator-input-modal">
+        <div class="ai-translator-header">
+          <div class="ai-translator-header-left">
+            <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z"/>
+              <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+            </svg>
+            <span class="ai-translator-title">${t('inputTextTranslation')}</span>
+          </div>
+          <div class="ai-translator-header-right">
+            <div class="ai-translator-lang-dropdown">
+              <button class="ai-translator-lang-trigger" type="button" title="${t('targetLanguage')}" aria-expanded="false">
+                <span class="ai-translator-lang-label">${escapeHtml(getTargetLangLabel(getEffectiveTargetLang()))}</span>
+                <svg class="ai-translator-lang-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <div class="ai-translator-lang-menu" hidden>
+                ${buildTargetLangMenu(getEffectiveTargetLang())}
+              </div>
+            </div>
+            <button class="ai-translator-close" title="${t('close')}">×</button>
+          </div>
+        </div>
+        <div class="ai-translator-input-body">
+          <div class="ai-translator-input-section">
+            <label class="ai-translator-input-label">${t('inputText')}</label>
+            <textarea 
+              class="ai-translator-input-textarea" 
+              id="ai-translator-input-text"
+              placeholder="${t('inputPlaceholder')}"
+              rows="4"
+            ></textarea>
+          </div>
+          <div class="ai-translator-input-actions">
+            <button class="ai-translator-btn ai-translator-btn-primary" id="ai-translator-do-translate">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
+                <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
+              </svg>
+              ${t('translate')}
+            </button>
+          </div>
+          <div class="ai-translator-input-section ai-translator-result-section" id="ai-translator-result-section" style="display: none;">
+            <label class="ai-translator-input-label">${t('translatedText')}</label>
+            <div class="ai-translator-input-result" id="ai-translator-result-text"></div>
+            <button class="ai-translator-btn ai-translator-input-btn-copy" id="ai-translator-copy-result">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              ${t('copyTranslation')}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(state.inputDialog);
+    
+    const textarea = state.inputDialog.querySelector('#ai-translator-input-text');
+    setTimeout(() => textarea.focus(), 100);
+
+    state.inputDialog.querySelector('.ai-translator-close').addEventListener('click', hideInputDialog);
+    state.inputDialog.querySelector('.ai-translator-input-overlay').addEventListener('click', hideInputDialog);
+
+    const translateInputText = async (targetLangOverride = '') => {
+      const text = textarea.value.trim();
+      if (!text) return;
+      
+      const resultSection = state.inputDialog.querySelector('#ai-translator-result-section');
+      const resultText = state.inputDialog.querySelector('#ai-translator-result-text');
+      
+      resultSection.style.display = 'block';
+      resultText.innerHTML = `<div class="ai-translator-input-loading"><div class="ai-translator-spinner"></div><span>${t('translating')}</span></div>`;
+      
+      try {
+        if (!isExtensionContextAvailable()) {
+          resultText.innerHTML = `<div class="ai-translator-input-error">${t('extensionContextInvalidated')}</div>`;
+          return;
+        }
+        const targetLang = targetLangOverride || state.inputDialog.dataset.targetLang || settings.targetLang;
+        const response = await chrome.runtime.sendMessage({
+          type: 'TRANSLATE',
+          text: text,
+          targetLang: targetLang,
+          mode: ctx.isSingleWordText ? (ctx.isSingleWordText(text) ? 'word' : 'text') : 'text'
+        });
+        
+        if (response.error) {
+          resultText.innerHTML = `<div class="ai-translator-input-error">${escapeHtml(response.error)}</div>`;
+        } else {
+          resultText.textContent = response.translation;
+        }
+      } catch (error) {
+        const message = isExtensionContextInvalidated(error)
+          ? t('extensionContextInvalidated')
+          : t('translationFailed');
+        resultText.innerHTML = `<div class="ai-translator-input-error">${message}</div>`;
+      }
+    };
+
+    state.inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
+      await translateInputText();
+    });
+
+    state.inputDialog.querySelector('#ai-translator-copy-result').addEventListener('click', async () => {
+      const resultText = state.inputDialog.querySelector('#ai-translator-result-text').textContent;
+      if (resultText && !resultText.includes(t('translating'))) {
+        await copyToClipboard(resultText);
+        const copyBtn = state.inputDialog.querySelector('#ai-translator-copy-result');
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          ${t('copied')}
+        `;
+        setTimeout(() => copyBtn.innerHTML = originalHTML, 1500);
+      }
+    });
+
+    // Enter key to translate (Ctrl+Enter or Cmd+Enter)
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        state.inputDialog.querySelector('#ai-translator-do-translate').click();
+      }
+    });
+
+    if (ctx.setupLanguageDropdown) {
+      ctx.setupLanguageDropdown(state.inputDialog, getEffectiveTargetLang(), (lang) => {
+        const text = textarea.value.trim();
+        if (!text) return;
+        translateInputText(lang);
+      });
+    }
+
+    // Escape to close
+    document.addEventListener('keydown', handleInputDialogEscape);
+  }
+
+  function handleInputDialogEscape(e) {
+    if (e.key === 'Escape' && state.inputDialog) {
+      hideInputDialog();
+    }
+  }
+
+  function hideInputDialog() {
+    if (state.inputDialog) {
+      if (state.inputDialog._langOutsideHandler) {
+        document.removeEventListener('mousedown', state.inputDialog._langOutsideHandler);
+      }
+      state.inputDialog.remove();
+      state.inputDialog = null;
+      document.removeEventListener('keydown', handleInputDialogEscape);
+    }
+  }
+
+  ctx.showInputTranslateDialog = showInputTranslateDialog;
+})();
