@@ -43,6 +43,7 @@
         "content/content-float-ball.js",
         "content/content-popup.js",
         "content/content-input-dialog.js",
+        "content/content-page-translation.js",
         "content/content.js"
       ],
       "css": ["content/content.css"],
