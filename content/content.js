@@ -12,14 +12,21 @@
     DOCK_PADDING_FRONT,
     DOCK_PADDING_BACK,
     DOCK_PADDING_VERTICAL,
-    MATH_CONTAINER_SELECTOR,
-    TARGET_LANGUAGE_OPTIONS
+    MATH_CONTAINER_SELECTOR
   } = constants;
 
   const t = ctx.t;
   const applyTheme = ctx.applyTheme;
   const isExtensionContextAvailable = ctx.isExtensionContextAvailable;
   const isExtensionContextInvalidated = ctx.isExtensionContextInvalidated;
+  const escapeHtml = ctx.escapeHtml;
+  const copyToClipboard = ctx.copyToClipboard;
+  const getEffectiveTargetLang = ctx.getEffectiveTargetLang;
+  const normalizeTargetLang = ctx.normalizeTargetLang;
+  const getTargetLangLabel = ctx.getTargetLangLabel;
+  const buildTargetLangMenu = ctx.buildTargetLangMenu;
+  const getLangBase = ctx.getLangBase;
+  const getLanguageDetectionText = ctx.getLanguageDetectionText;
 
   // ==================== Float Ball ====================
 
@@ -1339,21 +1346,6 @@
     }
   }
 
-  async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
-  }
-
   function showCopyFeedback() {
     const copyBtn = state.translationPopup?.querySelector('.ai-translator-copy');
     if (copyBtn) {
@@ -2150,48 +2142,6 @@
       .toLowerCase();
   }
 
-  function getEffectiveTargetLang() {
-    if (settings.targetLang) return settings.targetLang;
-    return navigator.language || navigator.userLanguage || 'en';
-  }
-
-  function normalizeTargetLang(lang) {
-    if (!lang) return 'en';
-    if (TARGET_LANGUAGE_OPTIONS.some((option) => option.value === lang)) {
-      return lang;
-    }
-    const base = lang.split('-')[0];
-    const baseMatch = TARGET_LANGUAGE_OPTIONS.find((option) => option.value === base);
-    if (baseMatch) return baseMatch.value;
-    if (base === 'zh') return 'zh-CN';
-    return 'en';
-  }
-
-  function getTargetLangLabel(lang) {
-    const normalized = normalizeTargetLang(lang);
-    const match = TARGET_LANGUAGE_OPTIONS.find((option) => option.value === normalized);
-    return match ? match.label : normalized;
-  }
-
-  function buildTargetLangMenu(selectedLang) {
-    const normalized = normalizeTargetLang(selectedLang);
-    return TARGET_LANGUAGE_OPTIONS.map((option) => {
-      const isSelected = option.value === normalized ? ' is-selected' : '';
-      return `<button class="ai-translator-lang-item${isSelected}" type="button" data-lang="${option.value}">${escapeHtml(option.label)}</button>`;
-    }).join('');
-  }
-
-  function getLangBase(lang) {
-    if (!lang) return '';
-    return lang.split('-')[0].toLowerCase();
-  }
-
-  function getLanguageDetectionText(text) {
-    if (!text) return '';
-    const cleaned = text.replace(/\{\{\d+\}\}/g, '').replace(/\s+/g, ' ').trim();
-    return cleaned.slice(0, 400);
-  }
-
   async function detectLanguage(text) {
     if (!chrome?.i18n?.detectLanguage) return null;
     return new Promise((resolve) => {
@@ -2791,12 +2741,6 @@
   }
 
   // ==================== Utility Functions ====================
-
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   ctx.ensureFloatBallExists = ensureFloatBallExists;
   ctx.createFloatBall = createFloatBall;
