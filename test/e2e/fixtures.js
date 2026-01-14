@@ -2,7 +2,7 @@
  * Playwright fixtures for Chrome Extension testing
  * Extends base test with extension-loaded browser context
  */
-const { test as base, chromium } = require('@playwright/test');
+const { test: base, chromium } = require('@playwright/test');
 const path = require('path');
 
 // Path to the extension
