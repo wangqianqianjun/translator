@@ -32,6 +32,8 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Git worktrees
+.worktrees/
 
 # Debug images
 *.png
