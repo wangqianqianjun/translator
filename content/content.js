@@ -2,139 +2,38 @@
 (function() {
   'use strict';
 
-  // i18n helper - get UI language based on target language
-  function t(key) {
-    const uiLang = getUILanguage(settings.targetLang);
-    return getMessage(key, uiLang);
-  }
+  const ctx = window.AI_TRANSLATOR_CONTENT;
+  if (!ctx) return;
 
-  // Constants
-  const FLOAT_BALL_SIZE = 36;  // Slightly larger ball for better presence
-  const EDGE_SNAP_THRESHOLD = 100;
-  // Monica-style: ball at front, small tail extends to edge
-  const DOCK_PADDING_FRONT = -6;  // Ball extends BEYOND container front (negative = ball sticks out)
-  const DOCK_PADDING_BACK = 8;    // Tail behind ball
-  const DOCK_PADDING_VERTICAL = 4;
-  const MATH_CONTAINER_SELECTOR = 'math, mjx-container, mjx-math, .MathJax, .MathJax_Display, .MathJax_CHTML, .mjx-chtml, .mjx-math, .MJXc-display, .katex, .katex-display';
-  const TARGET_LANGUAGE_OPTIONS = [
-    { value: 'zh-CN', label: '简体中文' },
-    { value: 'zh-TW', label: '繁体中文' },
-    { value: 'en', label: 'English' },
-    { value: 'ja', label: '日本語' },
-    { value: 'ko', label: '한국어' },
-    { value: 'fr', label: 'Français' },
-    { value: 'de', label: 'Deutsch' },
-    { value: 'es', label: 'Español' },
-    { value: 'pt', label: 'Português' },
-    { value: 'ru', label: 'Русский' }
-  ];
+  const { constants, settings, state } = ctx;
+  const {
+    FLOAT_BALL_SIZE,
+    EDGE_SNAP_THRESHOLD,
+    DOCK_PADDING_FRONT,
+    DOCK_PADDING_BACK,
+    DOCK_PADDING_VERTICAL,
+    MATH_CONTAINER_SELECTOR,
+    TARGET_LANGUAGE_OPTIONS
+  } = constants;
 
-  // State
-  let settings = {
-    enableSelection: true,
-    showFloatBall: true,
-    autoDetect: true,
-    targetLang: 'zh-CN',
-    theme: 'light'
-  };
-  let translationPopup = null;
-  let floatBall = null;
-  let floatBallContainer = null; // Background container for docked state
-  let floatMenu = null;
-  let isTranslatingPage = false;
-  let floatBallDragged = false; // Track if ball was dragged (not just clicked)
-  let translationsVisible = true; // Track if page translations are visible
-
-  // Initialize
-  init();
-
-  async function init() {
-    console.log('AI Translator: Initializing...');
-    try {
-      await loadSettings();
-      setupSelectionListener();
-      setupMessageListener();
-      setupStorageListener();
-      createFloatBall();
-      console.log('AI Translator: Initialization complete, showFloatBall =', settings.showFloatBall);
-    } catch (error) {
-      console.error('AI Translator: Initialization failed', error);
-    }
-  }
-
-  function isExtensionContextAvailable() {
-    return typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage;
-  }
-
-  function isExtensionContextInvalidated(error) {
-    if (!isExtensionContextAvailable()) return true;
-    if (!error) return false;
-    const message = String(error?.message || error);
-    return message.includes('Extension context invalidated');
-  }
-
-  // Listen for storage changes to stay in sync
-  function setupStorageListener() {
-    chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace !== 'sync') return;
-
-      if (changes.showFloatBall) {
-        console.log('AI Translator: Storage changed, showFloatBall:', changes.showFloatBall.oldValue, '->', changes.showFloatBall.newValue);
-        settings.showFloatBall = changes.showFloatBall.newValue;
-        updateFloatBallVisibility();
-      }
-
-      if (changes.theme) {
-        settings.theme = changes.theme.newValue;
-        applyTheme(settings.theme);
-      }
-    });
-  }
-
-  // Load settings from storage
-  async function loadSettings() {
-    try {
-      const result = await chrome.storage.sync.get({
-        enableSelection: true,
-        showFloatBall: true,
-        autoDetect: true,
-        targetLang: 'zh-CN',
-        theme: 'light'
-      });
-      settings = result;
-      console.log('AI Translator: Settings loaded', { showFloatBall: settings.showFloatBall, theme: settings.theme });
-      applyTheme(settings.theme);
-    } catch (error) {
-      console.error('AI Translator: Failed to load settings', error);
-      // Use default settings on error
-      settings = {
-        enableSelection: true,
-        showFloatBall: true,
-        autoDetect: true,
-        targetLang: 'zh-CN',
-        theme: 'light'
-      };
-    }
-  }
-
-  // Apply theme to translator elements
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-ai-translator-theme', theme);
-  }
+  const t = ctx.t;
+  const applyTheme = ctx.applyTheme;
+  const isExtensionContextAvailable = ctx.isExtensionContextAvailable;
+  const isExtensionContextInvalidated = ctx.isExtensionContextInvalidated;
 
   // ==================== Float Ball ====================
 
   // Ensure float ball exists in DOM (recreate if removed by page's JS)
   function ensureFloatBallExists() {
     // Check if float ball was removed from DOM
-    if (floatBall && !document.body.contains(floatBall)) {
+    if (state.floatBall && !document.body.contains(state.floatBall)) {
       console.log('AI Translator: Float ball was removed from DOM, recreating...');
-      floatBall = null;
-      floatBallContainer = null;
+      state.floatBall = null;
+      state.floatBallContainer = null;
     }
 
     // Create if doesn't exist
-    if (!floatBall) {
+    if (!state.floatBall) {
       createFloatBall();
       // Reapply theme after recreation (React hydration may have removed attributes)
       applyTheme(settings.theme);
@@ -145,14 +44,14 @@
 
   function createFloatBall() {
     // Remove existing references if elements don't exist in DOM
-    if (floatBall && !document.body.contains(floatBall)) {
-      floatBall = null;
+    if (state.floatBall && !document.body.contains(state.floatBall)) {
+      state.floatBall = null;
     }
-    if (floatBallContainer && !document.body.contains(floatBallContainer)) {
-      floatBallContainer = null;
+    if (state.floatBallContainer && !document.body.contains(state.floatBallContainer)) {
+      state.floatBallContainer = null;
     }
 
-    if (floatBall) return;
+    if (state.floatBall) return;
 
     // Ensure document.body exists
     if (!document.body) {
@@ -161,14 +60,14 @@
     }
 
     // Create container for docked state background
-    floatBallContainer = document.createElement('div');
-    floatBallContainer.id = 'ai-translator-float-ball-container';
-    document.body.appendChild(floatBallContainer);
+    state.floatBallContainer = document.createElement('div');
+    state.floatBallContainer.id = 'ai-translator-float-ball-container';
+    document.body.appendChild(state.floatBallContainer);
 
     // Create float ball
-    floatBall = document.createElement('div');
-    floatBall.id = 'ai-translator-float-ball';
-    floatBall.innerHTML = `
+    state.floatBall = document.createElement('div');
+    state.floatBall.id = 'ai-translator-float-ball';
+    state.floatBall.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z" fill="url(#iconGradient)"/>
         <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="url(#iconGradient)"/>
@@ -206,10 +105,10 @@
 
           validY = Math.max(8, Math.min(y, viewportHeight - FLOAT_BALL_SIZE - 8));
 
-          floatBall.style.right = 'auto';
-          floatBall.style.bottom = 'auto';
-          floatBall.style.left = `${validX}px`;
-          floatBall.style.top = `${validY}px`;
+          state.floatBall.style.right = 'auto';
+          state.floatBall.style.bottom = 'auto';
+          state.floatBall.style.left = `${validX}px`;
+          state.floatBall.style.top = `${validY}px`;
 
           // Apply docked state
           if (validDocked) {
@@ -231,7 +130,7 @@
       localStorage.removeItem('ai-translator-float-position');
     }
 
-    document.body.appendChild(floatBall);
+    document.body.appendChild(state.floatBall);
     console.log('AI Translator: Float ball created');
 
     // Setup drag and click handling
@@ -250,30 +149,30 @@
 
   // Set docked state with container background
   function setDockedState(side, ballX, ballY) {
-    floatBall.classList.add('docked');
-    floatBallContainer.classList.remove('docked-left', 'docked-right');
-    floatBallContainer.classList.add('docked-' + side);
+    state.floatBall.classList.add('docked');
+    state.floatBallContainer.classList.remove('docked-left', 'docked-right');
+    state.floatBallContainer.classList.add('docked-' + side);
 
     // Container dimensions - minimal capsule wrapping the ball
     const containerWidth = FLOAT_BALL_SIZE + DOCK_PADDING_FRONT + DOCK_PADDING_BACK;
     const containerHeight = FLOAT_BALL_SIZE + DOCK_PADDING_VERTICAL * 2;
 
     if (side === 'right') {
-      floatBallContainer.style.right = '0';
-      floatBallContainer.style.left = 'auto';
+      state.floatBallContainer.style.right = '0';
+      state.floatBallContainer.style.left = 'auto';
     } else {
-      floatBallContainer.style.left = '0';
-      floatBallContainer.style.right = 'auto';
+      state.floatBallContainer.style.left = '0';
+      state.floatBallContainer.style.right = 'auto';
     }
-    floatBallContainer.style.top = (ballY - DOCK_PADDING_VERTICAL) + 'px';
-    floatBallContainer.style.width = containerWidth + 'px';
-    floatBallContainer.style.height = containerHeight + 'px';
+    state.floatBallContainer.style.top = (ballY - DOCK_PADDING_VERTICAL) + 'px';
+    state.floatBallContainer.style.width = containerWidth + 'px';
+    state.floatBallContainer.style.height = containerHeight + 'px';
   }
 
   // Clear docked state
   function clearDockedState() {
-    floatBall.classList.remove('docked');
-    floatBallContainer.classList.remove('docked-left', 'docked-right');
+    state.floatBall.classList.remove('docked');
+    state.floatBallContainer.classList.remove('docked-left', 'docked-right');
   }
 
   function setupFloatBallInteraction() {
@@ -283,23 +182,23 @@
     let dragDistance = 0;
 
     // Mouse down - start drag
-    floatBall.addEventListener('mousedown', (e) => {
+    state.floatBall.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return; // Only left click
 
       isDragging = true;
       dragDistance = 0;
-      floatBallDragged = false;
+      state.floatBallDragged = false;
 
       dragStartX = e.clientX;
       dragStartY = e.clientY;
 
-      const rect = floatBall.getBoundingClientRect();
+      const rect = state.floatBall.getBoundingClientRect();
       ballStartX = rect.left;
       ballStartY = rect.top;
 
       // Remove any transition during drag
-      floatBall.style.transition = 'none';
-      floatBall.classList.add('dragging');
+      state.floatBall.style.transition = 'none';
+      state.floatBall.classList.add('dragging');
 
       e.preventDefault();
     });
@@ -314,7 +213,7 @@
 
       // Mark as dragged if moved more than 3 pixels
       if (dragDistance > 3) {
-        floatBallDragged = true;
+        state.floatBallDragged = true;
         // Remove docked state while dragging
         clearDockedState();
       }
@@ -330,21 +229,21 @@
       newY = Math.max(0, Math.min(newY, maxY));
 
       // Apply position immediately (no transition)
-      floatBall.style.right = 'auto';
-      floatBall.style.bottom = 'auto';
-      floatBall.style.left = newX + 'px';
-      floatBall.style.top = newY + 'px';
+      state.floatBall.style.right = 'auto';
+      state.floatBall.style.bottom = 'auto';
+      state.floatBall.style.left = newX + 'px';
+      state.floatBall.style.top = newY + 'px';
     });
 
     // Mouse up - end drag, apply snap
     document.addEventListener('mouseup', (e) => {
       if (!isDragging) return;
       isDragging = false;
-      floatBall.classList.remove('dragging');
+      state.floatBall.classList.remove('dragging');
 
-      if (floatBallDragged) {
+      if (state.floatBallDragged) {
         // Get current position
-        const rect = floatBall.getBoundingClientRect();
+        const rect = state.floatBall.getBoundingClientRect();
         let finalX = rect.left;
         let finalY = rect.top;
 
@@ -372,9 +271,9 @@
         finalY = Math.max(8, Math.min(finalY, maxY));
 
         // Apply animation
-        floatBall.style.transition = 'left 0.2s ease-out, top 0.2s ease-out';
-        floatBall.style.left = finalX + 'px';
-        floatBall.style.top = finalY + 'px';
+        state.floatBall.style.transition = 'left 0.2s ease-out, top 0.2s ease-out';
+        state.floatBall.style.left = finalX + 'px';
+        state.floatBall.style.top = finalY + 'px';
 
         // Apply docked state with container
         if (dockedSide) {
@@ -384,7 +283,7 @@
         }
 
         setTimeout(() => {
-          if (floatBall) floatBall.style.transition = 'none';
+          if (state.floatBall) state.floatBall.style.transition = 'none';
         }, 200);
 
         // Save position and docked state
@@ -401,24 +300,24 @@
 
     // Handle window resize
     window.addEventListener('resize', () => {
-      if (!floatBall || isDragging) return;
+      if (!state.floatBall || isDragging) return;
 
-      const rect = floatBall.getBoundingClientRect();
+      const rect = state.floatBall.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
       // Recalculate position for docked state
-      const isDockedRight = floatBallContainer.classList.contains('docked-right');
-      const isDockedLeft = floatBallContainer.classList.contains('docked-left');
+      const isDockedRight = state.floatBallContainer.classList.contains('docked-right');
+      const isDockedLeft = state.floatBallContainer.classList.contains('docked-left');
 
       let newX = rect.left;
       if (isDockedRight) {
         newX = viewportWidth - FLOAT_BALL_SIZE - DOCK_PADDING_BACK;
-        floatBall.style.left = newX + 'px';
-        floatBallContainer.style.right = '0';
+        state.floatBall.style.left = newX + 'px';
+        state.floatBallContainer.style.right = '0';
       } else if (isDockedLeft) {
         newX = DOCK_PADDING_FRONT;
-        floatBall.style.left = newX + 'px';
+        state.floatBall.style.left = newX + 'px';
       }
 
       // Clamp vertical position
@@ -426,18 +325,18 @@
       const newY = Math.max(8, Math.min(rect.top, maxY));
 
       if (newY !== rect.top) {
-        floatBall.style.top = newY + 'px';
+        state.floatBall.style.top = newY + 'px';
       }
 
       // Update container position if docked
       if (isDockedRight || isDockedLeft) {
-        floatBallContainer.style.top = (newY - DOCK_PADDING_VERTICAL) + 'px';
+        state.floatBallContainer.style.top = (newY - DOCK_PADDING_VERTICAL) + 'px';
       }
     });
   }
 
   function toggleFloatMenu() {
-    if (floatMenu) {
+    if (state.floatMenu) {
       hideFloatMenu();
       return;
     }
@@ -445,9 +344,9 @@
     // Check if there are translations on the page
     const hasTranslations = document.querySelectorAll('.ai-translator-inline-block').length > 0;
     
-    floatMenu = document.createElement('div');
-    floatMenu.id = 'ai-translator-float-menu';
-    floatMenu.innerHTML = `
+    state.floatMenu = document.createElement('div');
+    state.floatMenu.id = 'ai-translator-float-menu';
+    state.floatMenu.innerHTML = `
       <button class="ai-translator-menu-item" data-action="translate-input">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -472,12 +371,12 @@
       ${hasTranslations ? `
       <button class="ai-translator-menu-item" data-action="toggle-translations">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          ${translationsVisible ?
+          ${state.translationsVisible ?
             '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>' :
             '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
           }
         </svg>
-        <span>${translationsVisible ? t('hideTranslations') : t('showTranslations')}</span>
+        <span>${state.translationsVisible ? t('hideTranslations') : t('showTranslations')}</span>
       </button>
       ` : ''}
       <div class="ai-translator-menu-divider"></div>
@@ -491,7 +390,7 @@
     `;
 
     // Position menu above the ball
-    const ballRect = floatBall.getBoundingClientRect();
+    const ballRect = state.floatBall.getBoundingClientRect();
     const menuWidth = 180;
     const menuHeight = hasTranslations ? 220 : 180;
     
@@ -503,13 +402,13 @@
     if (left + menuWidth > window.innerWidth - 10) left = window.innerWidth - menuWidth - 10;
     if (top < 10) top = ballRect.bottom + 10;
 
-    floatMenu.style.left = `${left}px`;
-    floatMenu.style.top = `${top}px`;
+    state.floatMenu.style.left = `${left}px`;
+    state.floatMenu.style.top = `${top}px`;
 
-    document.body.appendChild(floatMenu);
+    document.body.appendChild(state.floatMenu);
 
     // Menu item click handlers
-    floatMenu.querySelectorAll('.ai-translator-menu-item').forEach(item => {
+    state.floatMenu.querySelectorAll('.ai-translator-menu-item').forEach(item => {
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         const action = item.dataset.action;
@@ -525,15 +424,15 @@
   }
 
   function handleOutsideClick(e) {
-    if (floatMenu && !floatMenu.contains(e.target) && !floatBall.contains(e.target)) {
+    if (state.floatMenu && !state.floatMenu.contains(e.target) && !state.floatBall.contains(e.target)) {
       hideFloatMenu();
     }
   }
 
   function hideFloatMenu() {
-    if (floatMenu) {
-      floatMenu.remove();
-      floatMenu = null;
+    if (state.floatMenu) {
+      state.floatMenu.remove();
+      state.floatMenu = null;
       document.removeEventListener('mousedown', handleOutsideClick);
     }
   }
@@ -544,9 +443,9 @@
         showInputTranslateDialog();
         break;
       case 'translate-selection':
-        const selectedText = getSelectedText() || lastSelectedText;
+        const selectedText = getSelectedText() || state.lastSelectedText;
         if (selectedText) {
-          const pos = lastSelectionPos.x ? lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+          const pos = state.lastSelectionPos.x ? state.lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
           showTranslationPopup(selectedText, pos.x, pos.y);
           hideSelectionButton();
         }
@@ -565,11 +464,11 @@
 
   // Toggle visibility of all page translations
   function toggleTranslationsVisibility() {
-    translationsVisible = !translationsVisible;
+    state.translationsVisible = !state.translationsVisible;
     
     const translations = document.querySelectorAll('.ai-translator-inline-block');
     translations.forEach(el => {
-      if (translationsVisible) {
+      if (state.translationsVisible) {
         el.classList.remove('ai-translator-hidden');
       } else {
         el.classList.add('ai-translator-hidden');
@@ -579,19 +478,17 @@
 
   // ==================== Input Translate Dialog ====================
 
-  let inputDialog = null;
-
   function showInputTranslateDialog() {
-    if (inputDialog) {
-      inputDialog.remove();
+    if (state.inputDialog) {
+      state.inputDialog.remove();
     }
 
     // Ensure theme is applied
     applyTheme(settings.theme);
 
-    inputDialog = document.createElement('div');
-    inputDialog.id = 'ai-translator-input-dialog';
-    inputDialog.innerHTML = `
+    state.inputDialog = document.createElement('div');
+    state.inputDialog.id = 'ai-translator-input-dialog';
+    state.inputDialog.innerHTML = `
       <div class="ai-translator-input-overlay"></div>
       <div class="ai-translator-input-modal">
         <div class="ai-translator-header">
@@ -651,22 +548,22 @@
       </div>
     `;
 
-    document.body.appendChild(inputDialog);
+    document.body.appendChild(state.inputDialog);
 
     // Focus on textarea
-    const textarea = inputDialog.querySelector('#ai-translator-input-text');
+    const textarea = state.inputDialog.querySelector('#ai-translator-input-text');
     setTimeout(() => textarea.focus(), 100);
 
     // Event listeners
-    inputDialog.querySelector('.ai-translator-close').addEventListener('click', hideInputDialog);
-    inputDialog.querySelector('.ai-translator-input-overlay').addEventListener('click', hideInputDialog);
+    state.inputDialog.querySelector('.ai-translator-close').addEventListener('click', hideInputDialog);
+    state.inputDialog.querySelector('.ai-translator-input-overlay').addEventListener('click', hideInputDialog);
 
     const translateInputText = async (targetLangOverride = '') => {
       const text = textarea.value.trim();
       if (!text) return;
       
-      const resultSection = inputDialog.querySelector('#ai-translator-result-section');
-      const resultText = inputDialog.querySelector('#ai-translator-result-text');
+      const resultSection = state.inputDialog.querySelector('#ai-translator-result-section');
+      const resultText = state.inputDialog.querySelector('#ai-translator-result-text');
       
       resultSection.style.display = 'block';
       resultText.innerHTML = `<div class="ai-translator-input-loading"><div class="ai-translator-spinner"></div><span>${t('translating')}</span></div>`;
@@ -676,7 +573,7 @@
           resultText.innerHTML = `<div class="ai-translator-input-error">${t('extensionContextInvalidated')}</div>`;
           return;
         }
-        const targetLang = targetLangOverride || inputDialog.dataset.targetLang || settings.targetLang;
+        const targetLang = targetLangOverride || state.inputDialog.dataset.targetLang || settings.targetLang;
         const response = await chrome.runtime.sendMessage({
           type: 'TRANSLATE',
           text: text,
@@ -697,15 +594,15 @@
       }
     };
 
-    inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
+    state.inputDialog.querySelector('#ai-translator-do-translate').addEventListener('click', async () => {
       await translateInputText();
     });
 
-    inputDialog.querySelector('#ai-translator-copy-result').addEventListener('click', async () => {
-      const resultText = inputDialog.querySelector('#ai-translator-result-text').textContent;
+    state.inputDialog.querySelector('#ai-translator-copy-result').addEventListener('click', async () => {
+      const resultText = state.inputDialog.querySelector('#ai-translator-result-text').textContent;
       if (resultText && !resultText.includes(t('translating'))) {
         await copyToClipboard(resultText);
-        const copyBtn = inputDialog.querySelector('#ai-translator-copy-result');
+        const copyBtn = state.inputDialog.querySelector('#ai-translator-copy-result');
         const originalHTML = copyBtn.innerHTML;
         copyBtn.innerHTML = `
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -721,11 +618,11 @@
     textarea.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        inputDialog.querySelector('#ai-translator-do-translate').click();
+        state.inputDialog.querySelector('#ai-translator-do-translate').click();
       }
     });
 
-    setupLanguageDropdown(inputDialog, getEffectiveTargetLang(), (lang) => {
+    setupLanguageDropdown(state.inputDialog, getEffectiveTargetLang(), (lang) => {
       const text = textarea.value.trim();
       if (!text) return;
       translateInputText(lang);
@@ -736,18 +633,18 @@
   }
 
   function handleInputDialogEscape(e) {
-    if (e.key === 'Escape' && inputDialog) {
+    if (e.key === 'Escape' && state.inputDialog) {
       hideInputDialog();
     }
   }
 
   function hideInputDialog() {
-    if (inputDialog) {
-      if (inputDialog._langOutsideHandler) {
-        document.removeEventListener('mousedown', inputDialog._langOutsideHandler);
+    if (state.inputDialog) {
+      if (state.inputDialog._langOutsideHandler) {
+        document.removeEventListener('mousedown', state.inputDialog._langOutsideHandler);
       }
-      inputDialog.remove();
-      inputDialog = null;
+      state.inputDialog.remove();
+      state.inputDialog = null;
       document.removeEventListener('keydown', handleInputDialogEscape);
     }
   }
@@ -761,15 +658,15 @@
       ensureFloatBallExists();
     }
 
-    if (floatBall && document.body.contains(floatBall)) {
+    if (state.floatBall && document.body.contains(state.floatBall)) {
       // Use setProperty with !important to override any page CSS
-      floatBall.style.setProperty('display', shouldShow ? 'flex' : 'none', 'important');
-      floatBall.style.setProperty('visibility', shouldShow ? 'visible' : 'hidden', 'important');
-      floatBall.style.setProperty('opacity', shouldShow ? '1' : '0', 'important');
+      state.floatBall.style.setProperty('display', shouldShow ? 'flex' : 'none', 'important');
+      state.floatBall.style.setProperty('visibility', shouldShow ? 'visible' : 'hidden', 'important');
+      state.floatBall.style.setProperty('opacity', shouldShow ? '1' : '0', 'important');
 
       // Also update container visibility
-      if (floatBallContainer && document.body.contains(floatBallContainer)) {
-        floatBallContainer.style.setProperty('display', shouldShow ? 'block' : 'none', 'important');
+      if (state.floatBallContainer && document.body.contains(state.floatBallContainer)) {
+        state.floatBallContainer.style.setProperty('display', shouldShow ? 'block' : 'none', 'important');
       }
 
       // Ensure float ball is in viewport when showing
@@ -777,8 +674,8 @@
         ensureFloatBallInViewport();
       }
 
-      console.log('AI Translator: Float ball visibility updated, display =', floatBall.style.display,
-                  ', element in DOM =', document.body.contains(floatBall));
+      console.log('AI Translator: Float ball visibility updated, display =', state.floatBall.style.display,
+                  ', element in DOM =', document.body.contains(state.floatBall));
     } else if (shouldShow) {
       console.warn('AI Translator: Float ball not in DOM, cannot update visibility');
     }
@@ -786,9 +683,9 @@
 
   // Ensure float ball is within the visible viewport
   function ensureFloatBallInViewport() {
-    if (!floatBall || !document.body.contains(floatBall)) return;
+    if (!state.floatBall || !document.body.contains(state.floatBall)) return;
 
-    const rect = floatBall.getBoundingClientRect();
+    const rect = state.floatBall.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -827,10 +724,10 @@
     }
 
     if (needsAdjustment) {
-      floatBall.style.setProperty('left', `${newLeft}px`, 'important');
-      floatBall.style.setProperty('top', `${newTop}px`, 'important');
-      floatBall.style.setProperty('right', 'auto', 'important');
-      floatBall.style.setProperty('bottom', 'auto', 'important');
+      state.floatBall.style.setProperty('left', `${newLeft}px`, 'important');
+      state.floatBall.style.setProperty('top', `${newTop}px`, 'important');
+      state.floatBall.style.setProperty('right', 'auto', 'important');
+      state.floatBall.style.setProperty('bottom', 'auto', 'important');
       console.log('AI Translator: Float ball position adjusted to', newLeft, newTop);
 
       // Clear any invalid saved position
@@ -840,10 +737,6 @@
 
   // ==================== Selection Translation ====================
 
-  let selectionButton = null;
-  let lastSelectedText = '';
-  let lastSelectionPos = { x: 0, y: 0 };
-
   function setupSelectionListener() {
     let selectionTimeout = null;
 
@@ -851,10 +744,10 @@
       if (!settings.enableSelection) return;
       
       // Ignore if clicking inside our elements
-      if (translationPopup && translationPopup.contains(e.target)) return;
-      if (floatBall && floatBall.contains(e.target)) return;
-      if (floatMenu && floatMenu.contains(e.target)) return;
-      if (selectionButton && selectionButton.contains(e.target)) return;
+      if (state.translationPopup && state.translationPopup.contains(e.target)) return;
+      if (state.floatBall && state.floatBall.contains(e.target)) return;
+      if (state.floatMenu && state.floatMenu.contains(e.target)) return;
+      if (state.selectionButton && state.selectionButton.contains(e.target)) return;
 
       // Clear any existing timeout
       if (selectionTimeout) {
@@ -866,8 +759,8 @@
         const selectedText = getSelectedText();
         if (selectedText && selectedText.length >= 2 && selectedText.length <= 5000) {
           // Show translate button instead of auto-translating
-          lastSelectedText = selectedText;
-          lastSelectionPos = { x: e.clientX, y: e.clientY };
+          state.lastSelectedText = selectedText;
+          state.lastSelectionPos = { x: e.clientX, y: e.clientY };
           showSelectionButton(e.clientX, e.clientY);
         } else {
           hideSelectionButton();
@@ -877,7 +770,7 @@
 
     // Hide selection button on click outside (but not the popup)
     document.addEventListener('mousedown', (e) => {
-      if (selectionButton && !selectionButton.contains(e.target)) {
+      if (state.selectionButton && !state.selectionButton.contains(e.target)) {
         hideSelectionButton();
       }
     });
@@ -896,9 +789,9 @@
   function showSelectionButton(x, y) {
     hideSelectionButton();
 
-    selectionButton = document.createElement('div');
-    selectionButton.id = 'ai-translator-selection-btn';
-    selectionButton.innerHTML = `
+    state.selectionButton = document.createElement('div');
+    state.selectionButton.id = 'ai-translator-selection-btn';
+    state.selectionButton.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
         <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
@@ -915,25 +808,25 @@
     if (posX + 80 > window.innerWidth) posX = window.innerWidth - 90;
     if (posY < 10) posY = y + 20;
 
-    selectionButton.style.left = `${posX}px`;
-    selectionButton.style.top = `${posY}px`;
+    state.selectionButton.style.left = `${posX}px`;
+    state.selectionButton.style.top = `${posY}px`;
 
-    document.body.appendChild(selectionButton);
+    document.body.appendChild(state.selectionButton);
 
     // Click to translate
-    selectionButton.addEventListener('click', (e) => {
+    state.selectionButton.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (lastSelectedText) {
-        showTranslationPopup(lastSelectedText, lastSelectionPos.x, lastSelectionPos.y);
+      if (state.lastSelectedText) {
+        showTranslationPopup(state.lastSelectedText, state.lastSelectionPos.x, state.lastSelectionPos.y);
         hideSelectionButton();
       }
     });
   }
 
   function hideSelectionButton() {
-    if (selectionButton) {
-      selectionButton.remove();
-      selectionButton = null;
+    if (state.selectionButton) {
+      state.selectionButton.remove();
+      state.selectionButton = null;
     }
   }
 
@@ -951,10 +844,10 @@
 
     const isWord = isSingleWordText(text);
 
-    translationPopup = document.createElement('div');
-    translationPopup.className = 'ai-translator-popup';
-    translationPopup.dataset.sourceText = text;
-    translationPopup.innerHTML = `
+    state.translationPopup = document.createElement('div');
+    state.translationPopup.className = 'ai-translator-popup';
+    state.translationPopup.dataset.sourceText = text;
+    state.translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <div class="ai-translator-header-left">
           <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1038,32 +931,32 @@
     if (posX < 10) posX = 10;
     if (posY < 10) posY = 10;
 
-    translationPopup.style.left = `${posX}px`;
-    translationPopup.style.top = `${posY}px`;
+    state.translationPopup.style.left = `${posX}px`;
+    state.translationPopup.style.top = `${posY}px`;
 
-    document.body.appendChild(translationPopup);
+    document.body.appendChild(state.translationPopup);
 
     // Event listeners
-    translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
-    translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
-      const translationText = translationPopup.querySelector('.ai-translator-translation-text')?.textContent;
+    state.translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
+    state.translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
+      const translationText = state.translationPopup.querySelector('.ai-translator-translation-text')?.textContent;
       if (translationText && !translationText.includes(t('translating'))) {
         copyToClipboard(translationText);
         showCopyFeedback();
       }
     });
-    const speakBtn = translationPopup.querySelector('.ai-translator-speak');
+    const speakBtn = state.translationPopup.querySelector('.ai-translator-speak');
     if (speakBtn) {
       speakBtn.addEventListener('click', () => {
-        speakText(translationPopup?.dataset.sourceText || '');
+        speakText(state.translationPopup?.dataset.sourceText || '');
       });
     }
-    const initialLang = setupLanguageDropdown(translationPopup, getEffectiveTargetLang(), (lang) => {
-      translateText(translationPopup?.dataset.sourceText || text, lang);
+    const initialLang = setupLanguageDropdown(state.translationPopup, getEffectiveTargetLang(), (lang) => {
+      translateText(state.translationPopup?.dataset.sourceText || text, lang);
     });
 
     // 添加拖动功能
-    setupPopupDrag(translationPopup);
+    setupPopupDrag(state.translationPopup);
 
     // Trigger translation
     translateText(text, initialLang);
@@ -1076,10 +969,10 @@
     // Ensure theme is applied
     applyTheme(settings.theme);
 
-    translationPopup = document.createElement('div');
-    translationPopup.className = 'ai-translator-popup';
-    translationPopup.dataset.sourceText = text;
-    translationPopup.innerHTML = `
+    state.translationPopup = document.createElement('div');
+    state.translationPopup.className = 'ai-translator-popup';
+    state.translationPopup.dataset.sourceText = text;
+    state.translationPopup.innerHTML = `
       <div class="ai-translator-header">
         <div class="ai-translator-header-left">
           <svg class="ai-translator-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1149,38 +1042,38 @@
     let posX = (window.innerWidth - popupWidth) / 2;
     let posY = (window.innerHeight - popupHeight) / 2;
 
-    translationPopup.style.left = `${posX}px`;
-    translationPopup.style.top = `${posY}px`;
+    state.translationPopup.style.left = `${posX}px`;
+    state.translationPopup.style.top = `${posY}px`;
 
-    document.body.appendChild(translationPopup);
+    document.body.appendChild(state.translationPopup);
 
     // Event listeners
-    translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
-    translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
+    state.translationPopup.querySelector('.ai-translator-close').addEventListener('click', hideTranslationPopup);
+    state.translationPopup.querySelector('.ai-translator-copy').addEventListener('click', () => {
       copyToClipboard(translation);
       showCopyFeedback();
     });
-    const speakBtn = translationPopup.querySelector('.ai-translator-speak');
+    const speakBtn = state.translationPopup.querySelector('.ai-translator-speak');
     if (speakBtn) {
       speakBtn.addEventListener('click', () => {
-        speakText(translationPopup?.dataset.sourceText || '');
+        speakText(state.translationPopup?.dataset.sourceText || '');
       });
     }
-    setupLanguageDropdown(translationPopup, getEffectiveTargetLang(), (lang) => {
-      translateText(translationPopup?.dataset.sourceText || text, lang);
+    setupLanguageDropdown(state.translationPopup, getEffectiveTargetLang(), (lang) => {
+      translateText(state.translationPopup?.dataset.sourceText || text, lang);
     });
 
-    const resultBody = translationPopup.querySelector('.ai-translator-result-body');
+    const resultBody = state.translationPopup.querySelector('.ai-translator-result-body');
     if (resultBody) {
       resultBody.classList.add('ai-translator-reveal');
     }
-    const translationTextEl = translationPopup.querySelector('.ai-translator-translation-text');
+    const translationTextEl = state.translationPopup.querySelector('.ai-translator-translation-text');
     if (translationTextEl) {
       translationTextEl.classList.add('ai-translator-translation-flow');
     }
 
     // 添加拖动功能
-    setupPopupDrag(translationPopup);
+    setupPopupDrag(state.translationPopup);
   }
 
   // 设置弹窗拖动功能
@@ -1236,12 +1129,12 @@
   }
 
   function hideTranslationPopup() {
-    if (translationPopup) {
-      if (translationPopup._langOutsideHandler) {
-        document.removeEventListener('mousedown', translationPopup._langOutsideHandler);
+    if (state.translationPopup) {
+      if (state.translationPopup._langOutsideHandler) {
+        document.removeEventListener('mousedown', state.translationPopup._langOutsideHandler);
       }
-      translationPopup.remove();
-      translationPopup = null;
+      state.translationPopup.remove();
+      state.translationPopup = null;
     }
   }
 
@@ -1345,18 +1238,16 @@
     window.speechSynthesis.speak(utterance);
   }
 
-  let translationRequestId = 0;
-
   async function translateText(text, targetLangOverride = '') {
-    const requestId = String(++translationRequestId);
+    const requestId = String(++state.translationRequestId);
     try {
       const isWord = isSingleWordText(text);
       const targetLang = targetLangOverride || getEffectiveTargetLang();
       if (!isExtensionContextAvailable()) {
-        if (translationPopup) {
-          const resultBody = translationPopup.querySelector('.ai-translator-result-body');
-          const loadingEl = translationPopup.querySelector('.ai-translator-loading');
-          const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+        if (state.translationPopup) {
+          const resultBody = state.translationPopup.querySelector('.ai-translator-result-body');
+          const loadingEl = state.translationPopup.querySelector('.ai-translator-loading');
+          const loadingLines = state.translationPopup.querySelector('.ai-translator-loading-lines');
           if (loadingEl) loadingEl.style.display = 'none';
           if (loadingLines) loadingLines.style.display = 'none';
           if (resultBody) {
@@ -1366,13 +1257,13 @@
         }
         return;
       }
-      if (translationPopup) {
-        translationPopup.dataset.requestId = requestId;
-        translationPopup.dataset.targetLang = targetLang;
-        const loadingEl = translationPopup.querySelector('.ai-translator-loading');
-        const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
-        const resultBody = translationPopup.querySelector('.ai-translator-result-body');
-        const phoneticEl = translationPopup.querySelector('.ai-translator-phonetic');
+      if (state.translationPopup) {
+        state.translationPopup.dataset.requestId = requestId;
+        state.translationPopup.dataset.targetLang = targetLang;
+        const loadingEl = state.translationPopup.querySelector('.ai-translator-loading');
+        const loadingLines = state.translationPopup.querySelector('.ai-translator-loading-lines');
+        const resultBody = state.translationPopup.querySelector('.ai-translator-result-body');
+        const phoneticEl = state.translationPopup.querySelector('.ai-translator-phonetic');
         if (loadingEl) loadingEl.style.display = 'flex';
         if (loadingLines) loadingLines.style.display = 'flex';
         if (resultBody) resultBody.hidden = true;
@@ -1385,14 +1276,14 @@
         mode: isWord ? 'word' : 'text'
       });
 
-      if (!translationPopup || translationPopup.dataset.requestId !== requestId) return;
+      if (!state.translationPopup || state.translationPopup.dataset.requestId !== requestId) return;
 
-      const translationTextEl = translationPopup.querySelector('.ai-translator-translation-text');
-      const resultBody = translationPopup.querySelector('.ai-translator-result-body');
-      const loadingEl = translationPopup.querySelector('.ai-translator-loading');
-      const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
-      const phoneticEl = translationPopup.querySelector('.ai-translator-phonetic');
-      const speakBtn = translationPopup.querySelector('.ai-translator-speak');
+      const translationTextEl = state.translationPopup.querySelector('.ai-translator-translation-text');
+      const resultBody = state.translationPopup.querySelector('.ai-translator-result-body');
+      const loadingEl = state.translationPopup.querySelector('.ai-translator-loading');
+      const loadingLines = state.translationPopup.querySelector('.ai-translator-loading-lines');
+      const phoneticEl = state.translationPopup.querySelector('.ai-translator-phonetic');
+      const speakBtn = state.translationPopup.querySelector('.ai-translator-speak');
       
       if (response.error) {
         if (loadingEl) loadingEl.style.display = 'none';
@@ -1431,10 +1322,10 @@
       }
     } catch (error) {
       console.error('AI Translator: Translation failed', error);
-      if (translationPopup && translationPopup.dataset.requestId === requestId) {
-        const resultBody = translationPopup.querySelector('.ai-translator-result-body');
-        const loadingEl = translationPopup.querySelector('.ai-translator-loading');
-        const loadingLines = translationPopup.querySelector('.ai-translator-loading-lines');
+      if (state.translationPopup && state.translationPopup.dataset.requestId === requestId) {
+        const resultBody = state.translationPopup.querySelector('.ai-translator-result-body');
+        const loadingEl = state.translationPopup.querySelector('.ai-translator-loading');
+        const loadingLines = state.translationPopup.querySelector('.ai-translator-loading-lines');
         if (loadingEl) loadingEl.style.display = 'none';
         if (loadingLines) loadingLines.style.display = 'none';
         if (resultBody) {
@@ -1464,7 +1355,7 @@
   }
 
   function showCopyFeedback() {
-    const copyBtn = translationPopup?.querySelector('.ai-translator-copy');
+    const copyBtn = state.translationPopup?.querySelector('.ai-translator-copy');
     if (copyBtn) {
       const originalText = copyBtn.innerHTML;
       copyBtn.innerHTML = `
@@ -1487,19 +1378,13 @@
   const CONCURRENCY = 12;       // 并发数
   const DELIMITER = '<<<>>>';   // 分隔符
 
-  // 翻译进度追踪
-  let translationProgress = { current: 0, total: 0 };
-
-  // 追踪页面是否已经翻译过
-  let pageHasBeenTranslated = false;
-
   async function translatePage() {
     if (!isExtensionContextAvailable()) {
       showPageTranslationProgress();
       showTranslationError(t('extensionContextInvalidated'));
       return;
     }
-    if (isTranslatingPage) {
+    if (state.isTranslatingPage) {
       console.log('AI Translator: Already translating page');
       // 如果进度条被关闭了，重新显示它并恢复进度
       let existingProgress = document.getElementById('ai-translator-progress');
@@ -1507,8 +1392,8 @@
         showPageTranslationProgress();
         existingProgress = document.getElementById('ai-translator-progress');
         // 恢复当前进度
-        if (translationProgress.total > 0) {
-          updatePageTranslationProgress(translationProgress.current, translationProgress.total);
+        if (state.translationProgress.total > 0) {
+          updatePageTranslationProgress(state.translationProgress.current, state.translationProgress.total);
         }
       }
       // 闪烁提示正在翻译中
@@ -1516,8 +1401,8 @@
       return;
     }
 
-    isTranslatingPage = true;
-    translationProgress = { current: 0, total: 0 };
+    state.isTranslatingPage = true;
+    state.translationProgress = { current: 0, total: 0 };
     showPageTranslationProgress();
 
     try {
@@ -1526,9 +1411,9 @@
       translatableBlocks = await filterBlocksByLanguage(translatableBlocks);
       
       if (translatableBlocks.length === 0) {
-        pageHasBeenTranslated = true;
+        state.pageHasBeenTranslated = true;
         showAlreadyTranslatedMessage();
-        isTranslatingPage = false;
+        state.isTranslatingPage = false;
         return;
       }
 
@@ -1543,7 +1428,7 @@
       
       console.log(`AI Translator: ${translatableBlocks.length} blocks, ${batches.length} batches, concurrency: ${CONCURRENCY}`);
 
-      translationProgress.total = translatableBlocks.length;
+      state.translationProgress.total = translatableBlocks.length;
 
       // Track if any batch failed
       let batchError = null;
@@ -1590,8 +1475,8 @@
           }
         }
 
-        translationProgress.current += batch.length;
-        updatePageTranslationProgress(translationProgress.current, translationProgress.total);
+        state.translationProgress.current += batch.length;
+        updatePageTranslationProgress(state.translationProgress.current, state.translationProgress.total);
       };
 
       // 并发执行所有批次，首屏批次在队列前优先开始
@@ -1604,15 +1489,15 @@
         showTranslationError(batchError);
       } else {
         // 标记页面已翻译
-        pageHasBeenTranslated = true;
+        state.pageHasBeenTranslated = true;
         hidePageTranslationProgress();
       }
     } catch (error) {
       console.error('AI Translator: Page translation failed', error);
       showTranslationError(error.message || t('translationFailed'));
     } finally {
-      isTranslatingPage = false;
-      translationProgress = { current: 0, total: 0 };
+      state.isTranslatingPage = false;
+      state.translationProgress = { current: 0, total: 0 };
     }
   }
 
@@ -2648,9 +2533,9 @@
 
   function positionProgressBar() {
     const progressEl = document.getElementById('ai-translator-progress');
-    if (!progressEl || !floatBall) return;
+    if (!progressEl || !state.floatBall) return;
     
-    const ballRect = floatBall.getBoundingClientRect();
+    const ballRect = state.floatBall.getBoundingClientRect();
     const progressWidth = 220;
     
     let left = ballRect.left + (ballRect.width / 2) - (progressWidth / 2);
@@ -2675,8 +2560,8 @@
       progressEl.classList.add('ai-translator-progress-done');
       setTimeout(() => progressEl.remove(), 300);
     }
-    // 注意：不重置 isTranslatingPage，翻译任务可能还在后台运行
-    // isTranslatingPage 只在翻译真正完成时才重置（在 finally 块中）
+    // 注意：不重置 state.isTranslatingPage，翻译任务可能还在后台运行
+    // state.isTranslatingPage 只在翻译真正完成时才重置（在 finally 块中）
   }
 
   function showTranslatingHint(progressEl) {
@@ -2882,7 +2767,7 @@
         case 'SETTINGS_UPDATED':
           // Only update showFloatBall if explicitly provided in the message
           const prevShowFloatBall = settings.showFloatBall;
-          settings = { ...settings, ...message.settings };
+          Object.assign(settings, message.settings);
           // If showFloatBall was not in the message, preserve the previous value
           if (!('showFloatBall' in message.settings)) {
             settings.showFloatBall = prevShowFloatBall;
@@ -2912,4 +2797,12 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  ctx.ensureFloatBallExists = ensureFloatBallExists;
+  ctx.createFloatBall = createFloatBall;
+  ctx.updateFloatBallVisibility = updateFloatBallVisibility;
+  ctx.setupSelectionListener = setupSelectionListener;
+  ctx.setupMessageListener = setupMessageListener;
+
+  ctx.init();
 })();
