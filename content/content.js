@@ -1,63 +1,6 @@
-// AI Translator Content Script
+// AI Translator Content Script Entrypoint
 (function() {
   'use strict';
 
-  const ctx = window.AI_TRANSLATOR_CONTENT;
-  if (!ctx) return;
-
-  const { settings } = ctx;
-  const applyTheme = ctx.applyTheme;
-
-// ==================== Message Listener ====================
-
-  function setupMessageListener() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      console.log('AI Translator: Received message', message.type, message);
-      switch (message.type) {
-        case 'TRANSLATE_PAGE':
-          if (ctx.translatePage) {
-            ctx.translatePage();
-          }
-          break;
-        case 'SHOW_TRANSLATION':
-          // 右键菜单翻译选中文本的结果显示
-          if (ctx.showTranslationResult) {
-            ctx.showTranslationResult(message.text, message.translation, message.phonetic, message.isWord);
-          }
-          break;
-        case 'SETTINGS_UPDATED':
-          // Only update showFloatBall if explicitly provided in the message
-          const prevShowFloatBall = settings.showFloatBall;
-          Object.assign(settings, message.settings);
-          // If showFloatBall was not in the message, preserve the previous value
-          if (!('showFloatBall' in message.settings)) {
-            settings.showFloatBall = prevShowFloatBall;
-          }
-          console.log('AI Translator: Settings updated, showFloatBall changed from', prevShowFloatBall, 'to', settings.showFloatBall);
-          if (ctx.updateFloatBallVisibility) {
-            ctx.updateFloatBallVisibility();
-          }
-          if (message.settings.theme) {
-            applyTheme(message.settings.theme);
-          }
-          break;
-        case 'TOGGLE_FLOAT_BALL':
-          console.log('AI Translator: TOGGLE_FLOAT_BALL received, show =', message.show);
-          // 只有当值确实改变时才更新，避免无效的切换
-          if (settings.showFloatBall !== message.show) {
-            settings.showFloatBall = message.show;
-            if (ctx.updateFloatBallVisibility) {
-              ctx.updateFloatBallVisibility();
-            }
-          }
-          break;
-      }
-    });
-  }
-
-  // ==================== Exports ====================
-
-  ctx.setupMessageListener = setupMessageListener;
-
-  ctx.init();
+  window.AI_TRANSLATOR_CONTENT?.init?.();
 })();
