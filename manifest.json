@@ -39,6 +39,8 @@
         "content/content-bootstrap.js",
         "content/content-utils.js",
         "content/content-language.js",
+        "content/content-selection.js",
+        "content/content-float-ball.js",
         "content/content.js"
       ],
       "css": ["content/content.css"],

@@ -1,0 +1,114 @@
+// AI Translator Content Script Selection
+(function() {
+  'use strict';
+
+  const ctx = window.AI_TRANSLATOR_CONTENT;
+  if (!ctx) return;
+
+  const { settings, state } = ctx;
+  const t = ctx.t;
+
+  function setupSelectionListener() {
+    let selectionTimeout = null;
+
+    document.addEventListener('mouseup', (e) => {
+      if (!settings.enableSelection) return;
+
+      // Ignore if clicking inside our elements
+      if (state.translationPopup && state.translationPopup.contains(e.target)) return;
+      if (state.floatBall && state.floatBall.contains(e.target)) return;
+      if (state.floatMenu && state.floatMenu.contains(e.target)) return;
+      if (state.selectionButton && state.selectionButton.contains(e.target)) return;
+
+      // Clear any existing timeout
+      if (selectionTimeout) {
+        clearTimeout(selectionTimeout);
+      }
+
+      // Delay to allow selection to complete
+      selectionTimeout = setTimeout(() => {
+        const selectedText = getSelectedText();
+        if (selectedText && selectedText.length >= 2 && selectedText.length <= 5000) {
+          // Show translate button instead of auto-translating
+          state.lastSelectedText = selectedText;
+          state.lastSelectionPos = { x: e.clientX, y: e.clientY };
+          showSelectionButton(e.clientX, e.clientY);
+        } else {
+          hideSelectionButton();
+        }
+      }, 100);
+    });
+
+    // Hide selection button on click outside (but not the popup)
+    document.addEventListener('mousedown', (e) => {
+      if (state.selectionButton && !state.selectionButton.contains(e.target)) {
+        hideSelectionButton();
+      }
+    });
+
+    // Hide popup on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (ctx.hideTranslationPopup) ctx.hideTranslationPopup();
+        if (ctx.hideFloatMenu) ctx.hideFloatMenu();
+        hideSelectionButton();
+      }
+    });
+  }
+
+  // Show small translate button near selection
+  function showSelectionButton(x, y) {
+    hideSelectionButton();
+
+    state.selectionButton = document.createElement('div');
+    state.selectionButton.id = 'ai-translator-selection-btn';
+    state.selectionButton.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35"/>
+        <path d="M18.5 10l-4.5 12h2l1.12-3h4.75L23 22h2l-4.5-12h-2z"/>
+      </svg>
+      <span>${t('translate')}</span>
+    `;
+
+    // Position button above the selection
+    let posX = x - 40;
+    let posY = y - 45;
+
+    // Keep within viewport
+    if (posX < 10) posX = 10;
+    if (posX + 80 > window.innerWidth) posX = window.innerWidth - 90;
+    if (posY < 10) posY = y + 20;
+
+    state.selectionButton.style.left = `${posX}px`;
+    state.selectionButton.style.top = `${posY}px`;
+
+    document.body.appendChild(state.selectionButton);
+
+    // Click to translate
+    state.selectionButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (state.lastSelectedText && ctx.showTranslationPopup) {
+        ctx.showTranslationPopup(state.lastSelectedText, state.lastSelectionPos.x, state.lastSelectionPos.y);
+        hideSelectionButton();
+      }
+    });
+  }
+
+  function hideSelectionButton() {
+    if (state.selectionButton) {
+      state.selectionButton.remove();
+      state.selectionButton = null;
+    }
+  }
+
+  function getSelectedText() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return '';
+    return selection.toString().trim();
+  }
+
+  ctx.setupSelectionListener = setupSelectionListener;
+  ctx.showSelectionButton = showSelectionButton;
+  ctx.hideSelectionButton = hideSelectionButton;
+  ctx.getSelectedText = getSelectedText;
+})();
