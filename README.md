@@ -26,9 +26,16 @@ An AI-powered Chrome browser translation extension that supports selection trans
 
 #### Selection Translation
 - Shows a translate button when text is selected
-- Click the button to open translation popup
+- Click the button to translate (popup or inline based on settings)
 - Copy translation with one click
-- Translation window stays visible until explicitly closed
+- Translations stay visible until explicitly cleared
+
+#### Hover Translation
+- Hover a paragraph and press the hotkey (default: Shift) to translate inline
+- Translation appears directly below the paragraph as bilingual text
+- Press the hotkey again to restore the original view
+- Hotkey is configurable in Settings
+- Press `Esc` to clear inline translations, or right-click a paragraph/translation to cancel it
 
 #### Full-Page Translation
 - Translate the entire webpage with one click
@@ -36,6 +43,11 @@ An AI-powered Chrome browser translation extension that supports selection trans
 - Inherits original styling (font, color, size)
 - Toggle show/hide translations
 - High-performance batch translation (100 items/batch, 8 concurrent)
+
+#### UI Polish
+- Inline translations inherit original typography for a clean, consistent look
+- Inline loading indicator is more visible to show translation progress
+- Settings controls aligned for consistent spacing and visual hierarchy
 
 #### Float Ball
 - Draggable quick action button
@@ -53,7 +65,7 @@ An AI-powered Chrome browser translation extension that supports selection trans
 #### 1. Download
 
 ```bash
-git clone https://github.com/your-username/translator.git
+git clone https://github.com/wangqianqianjun/translator.git
 cd translator
 ```
 
@@ -82,8 +94,16 @@ cd translator
 
 1. Select text on any webpage
 2. Click the "Translate" button that appears
-3. View translation result, click to copy
-4. Press `Esc` or click × to close
+3. View translation in popup or inline (based on settings), click to copy
+4. Press `Esc` or click × to close/clear
+
+#### Hover Translation
+
+1. Move the mouse over a paragraph
+2. Press the hover hotkey (default: `Shift`)
+3. Translation appears below the paragraph
+4. Press the hotkey again to restore the original view
+5. Press `Esc` to clear inline translations, or right-click a paragraph/translation to cancel it
 
 #### Full-Page Translation
 
@@ -192,9 +212,16 @@ MIT License
 
 #### 划词翻译
 - 选中文本后显示翻译按钮
-- 点击按钮弹出翻译窗口
+- 点击按钮进行翻译（弹窗或段落内显示，可在设置中切换）
 - 支持复制译文
-- 翻译窗口保持显示，不会自动消失
+- 译文会保留，需手动清除
+
+#### 悬停翻译
+- 鼠标悬停段落并按下快捷键（默认：Shift）触发翻译
+- 译文显示在段落下方，呈双语形式
+- 再次按快捷键可恢复原文
+- 快捷键可在设置中自定义
+- 按 `Esc` 清除所有段落译文，或右键段落/译文选择取消
 
 #### 全文翻译
 - 一键翻译整个网页
@@ -202,6 +229,11 @@ MIT License
 - 继承原文样式（字体、颜色、大小）
 - 支持显示/隐藏译文切换
 - 高性能批量翻译（100条/批，8并发）
+
+#### UI 美化
+- 译文继承原始排版，整体视觉更统一
+- 内嵌加载提示更清晰，便于感知翻译进度
+- 设置页控件对齐，层级更清晰
 
 #### 悬浮球
 - 可拖动的快捷操作球
@@ -219,7 +251,7 @@ MIT License
 #### 1. 下载插件
 
 ```bash
-git clone https://github.com/your-username/translator.git
+git clone https://github.com/wangqianqianjun/translator.git
 cd translator
 ```
 
@@ -248,8 +280,16 @@ cd translator
 
 1. 在网页中选中需要翻译的文字
 2. 点击出现的「翻译」按钮
-3. 查看翻译结果，可点击复制
-4. 按 `Esc` 或点击 × 关闭翻译窗口
+3. 在弹窗或段落内查看译文（取决于设置），可点击复制
+4. 按 `Esc` 或点击 × 关闭/清除
+
+#### 悬停翻译
+
+1. 将鼠标移动到段落上
+2. 按下悬停快捷键（默认：`Shift`）
+3. 译文显示在段落下方
+4. 再次按快捷键恢复原文
+5. 按 `Esc` 清除所有段落译文，或右键段落/译文选择取消
 
 #### 全文翻译
 

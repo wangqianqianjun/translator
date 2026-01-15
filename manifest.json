@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Academic Paper Translator",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "AI-powered translation extension with academic paper full-page translation",
   "permissions": [
     "storage",
@@ -33,7 +33,9 @@
   "options_page": "options/options.html",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "js": [
         "i18n/messages.js",
         "content/content-bootstrap.js",
@@ -48,7 +50,9 @@
         "content/content-messaging.js",
         "content/content.js"
       ],
-      "css": ["content/content.css"],
+      "css": [
+        "content/content.css"
+      ],
       "run_at": "document_end"
     }
   ]
