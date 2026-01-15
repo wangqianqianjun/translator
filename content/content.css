@@ -434,6 +434,14 @@
   display: none !important;
 }
 
+.ai-translator-inline-loading {
+  color: #7c5cff !important;
+  font-weight: 600 !important;
+  font-size: 1.1em !important;
+  opacity: 1 !important;
+  text-shadow: 0 0 6px rgba(124, 92, 255, 0.35);
+}
+
 .ai-translator-inline-loading::after {
   content: '...';
   display: inline-block;

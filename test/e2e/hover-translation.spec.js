@@ -94,6 +94,24 @@ test.describe('Hover Translation', () => {
     await paragraph.hover();
 
     await loadingPromise;
+
+    const hoverLoaderStyles = await page.evaluate(() => {
+      const loader = document.querySelector('.ai-translator-inline-loading');
+      if (!loader) return null;
+      const loaderStyle = window.getComputedStyle(loader);
+      const parentStyle = loader.parentElement ? window.getComputedStyle(loader.parentElement) : loaderStyle;
+      return {
+        color: loaderStyle.color,
+        fontSize: parseFloat(loaderStyle.fontSize),
+        parentFontSize: parseFloat(parentStyle.fontSize),
+        fontWeight: parseInt(loaderStyle.fontWeight, 10),
+      };
+    });
+
+    expect(hoverLoaderStyles).not.toBeNull();
+    expect(hoverLoaderStyles.color).toBe('rgb(124, 92, 255)');
+    expect(hoverLoaderStyles.fontSize).toBeGreaterThan(hoverLoaderStyles.parentFontSize);
+    expect(hoverLoaderStyles.fontWeight).toBeGreaterThanOrEqual(600);
     await page.waitForSelector('.ai-translator-hover-translation', { state: 'attached' });
     await page.waitForSelector('.ai-translator-inline-loading', { state: 'detached', timeout: 3000 });
 
@@ -149,6 +167,24 @@ test.describe('Hover Translation', () => {
     await page.click('#ai-translator-selection-btn');
 
     await loadingPromise;
+
+    const selectionLoaderStyles = await page.evaluate(() => {
+      const loader = document.querySelector('.ai-translator-inline-loading');
+      if (!loader) return null;
+      const loaderStyle = window.getComputedStyle(loader);
+      const parentStyle = loader.parentElement ? window.getComputedStyle(loader.parentElement) : loaderStyle;
+      return {
+        color: loaderStyle.color,
+        fontSize: parseFloat(loaderStyle.fontSize),
+        parentFontSize: parseFloat(parentStyle.fontSize),
+        fontWeight: parseInt(loaderStyle.fontWeight, 10),
+      };
+    });
+
+    expect(selectionLoaderStyles).not.toBeNull();
+    expect(selectionLoaderStyles.color).toBe('rgb(124, 92, 255)');
+    expect(selectionLoaderStyles.fontSize).toBeGreaterThan(selectionLoaderStyles.parentFontSize);
+    expect(selectionLoaderStyles.fontWeight).toBeGreaterThanOrEqual(600);
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
     await page.waitForSelector('.ai-translator-inline-loading', { state: 'detached', timeout: 3000 });
   });
