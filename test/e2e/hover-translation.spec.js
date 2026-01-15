@@ -247,6 +247,11 @@ test.describe('Hover Translation', () => {
     await expect(paragraph.locator('.ai-translator-selection-translation')).toHaveCount(1);
     await expect(paragraph.locator('.ai-translator-selection-translation')).toBeVisible();
     await expect(page.locator('p + .ai-translator-selection-translation')).toHaveCount(0);
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.ai-translator-selection-translation');
+      if (!el) return false;
+      return window.getComputedStyle(el).display === 'inline';
+    });
   });
 
   test('selection translation works when hover translation is disabled', async ({ page }) => {

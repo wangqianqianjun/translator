@@ -433,6 +433,10 @@
       padding: 0;
       box-sizing: border-box;
     `;
+    translationEl.style.setProperty('display', 'inline', 'important');
+    translationEl.style.setProperty('margin-top', '0', 'important');
+    translationEl.style.setProperty('margin-bottom', '0', 'important');
+    translationEl.style.setProperty('padding', '0', 'important');
 
     if (isError) {
       translationEl.classList.add('ai-translator-error');

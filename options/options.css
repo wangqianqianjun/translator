@@ -450,13 +450,15 @@ body::before {
 
 .inline-setting-controls {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(160px, 220px) auto;
   align-items: center;
   gap: 12px;
 }
 
 .inline-setting-controls select {
-  min-width: 180px;
+  min-width: 0;
+  max-width: 220px;
+  width: 100%;
   height: 40px;
 }
 
@@ -692,8 +694,12 @@ body::before {
   }
 
   .inline-setting-controls {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(140px, 1fr) auto;
     width: 100%;
+  }
+
+  .inline-setting-controls select {
+    max-width: none;
   }
 
   .actions {
