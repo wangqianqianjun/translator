@@ -133,42 +133,40 @@
           </div>
 
           <div class="inline-setting">
-            <div class="inline-setting-label">
-              <label for="enableSelection" data-i18n="enableSelectionTranslation">Enable Selection Translation</label>
-              <span class="hint" data-i18n-hint="hintSelectionTranslationMode"></span>
+            <div class="inline-setting-title">
+              <label id="enableSelectionLabel" for="selectionTranslationMode" data-i18n="enableSelectionTranslation">Enable Selection Translation</label>
             </div>
             <div class="inline-setting-controls">
+              <select id="selectionTranslationMode" aria-labelledby="enableSelectionLabel">
+                <option value="inline" data-i18n="selectionTranslationInline">Inline (below paragraph)</option>
+                <option value="popup" data-i18n="selectionTranslationPopup">Popup window</option>
+              </select>
               <label class="toggle-label toggle-only" for="enableSelection">
                 <input type="checkbox" id="enableSelection" checked>
                 <span class="toggle-slider"></span>
               </label>
-              <label class="sr-only" for="selectionTranslationMode" data-i18n="selectionTranslationMode">Selection Translation Display</label>
-              <select id="selectionTranslationMode">
-                <option value="inline" data-i18n="selectionTranslationInline">Inline (below paragraph)</option>
-                <option value="popup" data-i18n="selectionTranslationPopup">Popup window</option>
-              </select>
             </div>
+            <span class="hint" data-i18n-hint="hintSelectionTranslationMode"></span>
           </div>
 
           <div class="inline-setting">
-            <div class="inline-setting-label">
-              <label for="enableHoverTranslation" data-i18n="enableHoverTranslation">Enable Hover Translation</label>
-              <span class="hint" data-i18n-hint="hintHoverTranslationHotkey"></span>
-              <span class="hint" data-i18n-hint="hintInlineCancel"></span>
+            <div class="inline-setting-title">
+              <label id="enableHoverTranslationLabel" for="hoverTranslationHotkey" data-i18n="enableHoverTranslation">Enable Hover Translation</label>
             </div>
             <div class="inline-setting-controls">
-              <label class="toggle-label toggle-only" for="enableHoverTranslation">
-                <input type="checkbox" id="enableHoverTranslation" checked>
-                <span class="toggle-slider"></span>
-              </label>
-              <label class="sr-only" for="hoverTranslationHotkey" data-i18n="hoverTranslationHotkey">Hover Hotkey</label>
-              <select id="hoverTranslationHotkey">
+              <select id="hoverTranslationHotkey" aria-labelledby="enableHoverTranslationLabel">
                 <option value="Shift" data-i18n="hoverHotkeyShift">Shift</option>
                 <option value="Alt" data-i18n="hoverHotkeyAlt">Alt</option>
                 <option value="Control" data-i18n="hoverHotkeyCtrl">Ctrl</option>
                 <option value="Meta" data-i18n="hoverHotkeyMeta">Meta</option>
               </select>
+              <label class="toggle-label toggle-only" for="enableHoverTranslation">
+                <input type="checkbox" id="enableHoverTranslation" checked>
+                <span class="toggle-slider"></span>
+              </label>
             </div>
+            <span class="hint" data-i18n-hint="hintHoverTranslationHotkey"></span>
+            <span class="hint" data-i18n-hint="hintInlineCancel"></span>
           </div>
 
           <div class="toggle-group">

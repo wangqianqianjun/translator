@@ -1,4 +1,5 @@
 // AI Translator Background Script
+import '../i18n/messages.js';
 
 // Update extension icon based on theme
 async function updateIcon(theme) {
@@ -32,6 +33,9 @@ async function updateIcon(theme) {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && changes.theme) {
     updateIcon(changes.theme.newValue);
+  }
+  if (namespace === 'sync' && (changes.targetLang || changes.targetLangSetByUser)) {
+    refreshContextMenuTitles();
   }
 });
 
@@ -139,6 +143,67 @@ const defaultSettings = {
   targetLangSetByUser: false,
   customPrompt: ''
 };
+
+const MENU_IDS = {
+  translateSelection: 'translate-selection',
+  translatePage: 'translate-page',
+  removeInlineTranslation: 'remove-inline-translation',
+};
+
+function getContextMenuLanguage(settings) {
+  const effectiveLang = getEffectiveTargetLang(settings);
+  if (typeof globalThis.getUILanguage === 'function') {
+    return globalThis.getUILanguage(effectiveLang);
+  }
+  return 'en';
+}
+
+function getContextMenuTitle(key, uiLang) {
+  if (typeof globalThis.getMessage === 'function') {
+    return globalThis.getMessage(key, uiLang);
+  }
+  return key;
+}
+
+async function refreshContextMenuTitles() {
+  const settings = await chrome.storage.sync.get(defaultSettings);
+  const uiLang = getContextMenuLanguage(settings);
+
+  chrome.contextMenus.update(MENU_IDS.translateSelection, {
+    title: getContextMenuTitle('contextTranslateSelection', uiLang),
+  });
+  chrome.contextMenus.update(MENU_IDS.translatePage, {
+    title: getContextMenuTitle('contextTranslatePage', uiLang),
+  });
+  chrome.contextMenus.update(MENU_IDS.removeInlineTranslation, {
+    title: getContextMenuTitle('contextRemoveInlineTranslation', uiLang),
+  });
+}
+
+function createContextMenus() {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: MENU_IDS.translateSelection,
+      title: 'Translate Selection',
+      contexts: ['selection']
+    });
+
+    chrome.contextMenus.create({
+      id: MENU_IDS.translatePage,
+      title: 'Translate Page',
+      contexts: ['page']
+    });
+
+    chrome.contextMenus.create({
+      id: MENU_IDS.removeInlineTranslation,
+      title: 'Remove Translation',
+      contexts: ['all'],
+      visible: false
+    });
+
+    refreshContextMenuTitles();
+  });
+}
 
 // Detect if the API endpoint is Anthropic Claude API
 function isClaudeAPI(endpoint) {
@@ -285,6 +350,18 @@ async function callOpenAIAPI(endpoint, apiKey, model, systemPrompt, userContent,
 // Message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
+    case 'INLINE_CONTEXT_MENU_STATE':
+      if (typeof message.visible === 'boolean') {
+        chrome.contextMenus.update(MENU_IDS.removeInlineTranslation, {
+          visible: message.visible
+        }, () => {
+          if (chrome.runtime.lastError) return;
+          if (chrome.contextMenus.refresh) {
+            chrome.contextMenus.refresh();
+          }
+        });
+      }
+      break;
     case 'TRANSLATE':
       handleTranslate(message.text, message.targetLang, message.mode)
         .then(sendResponse)
@@ -311,21 +388,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Context menu for right-click translation
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'translate-selection',
-    title: '翻译选中文本',
-    contexts: ['selection']
-  });
+  createContextMenus();
+});
 
-  chrome.contextMenus.create({
-    id: 'translate-page',
-    title: '翻译整个页面',
-    contexts: ['page']
-  });
+chrome.runtime.onStartup.addListener(() => {
+  createContextMenus();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'translate-selection' && info.selectionText) {
+  if (info.menuItemId === MENU_IDS.translateSelection && info.selectionText) {
     try {
       const settings = await chrome.storage.sync.get(defaultSettings);
       const effectiveLang = getEffectiveTargetLang(settings);
@@ -341,8 +412,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     } catch (error) {
       console.error('Translation failed:', error);
     }
-  } else if (info.menuItemId === 'translate-page') {
+  } else if (info.menuItemId === MENU_IDS.translatePage) {
     chrome.tabs.sendMessage(tab.id, { type: 'TRANSLATE_PAGE' });
+  } else if (info.menuItemId === MENU_IDS.removeInlineTranslation) {
+    chrome.tabs.sendMessage(tab.id, { type: 'CLEAR_INLINE_TRANSLATION_CONTEXT' });
   }
 });
 

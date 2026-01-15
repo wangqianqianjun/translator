@@ -459,7 +459,7 @@
         if (selectedText) {
           if (!settings.enableSelection) break;
           if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.translateSelectionInline) {
-            ctx.translateSelectionInline(selectedText, state.lastSelectionElement);
+            ctx.translateSelectionInline(selectedText, state.lastSelectionElement, state.lastSelectionRange);
           } else {
             const pos = state.lastSelectionPos.x ? state.lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             if (ctx.showTranslationPopup) ctx.showTranslationPopup(selectedText, pos.x, pos.y);

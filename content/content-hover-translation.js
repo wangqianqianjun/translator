@@ -26,6 +26,7 @@
   const inlineTranslationSources = new WeakMap();
   const hoverRequestIds = new Map();
   const selectionRequestIds = new Map();
+  let lastContextBlock = null;
 
   const translationCache = new WeakMap();
 
@@ -97,6 +98,30 @@
     return hoverTranslations.has(block) || selectionTranslations.has(block);
   }
 
+  function updateInlineContextMenu(visible) {
+    if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) return;
+    try {
+      chrome.runtime.sendMessage({
+        type: 'INLINE_CONTEXT_MENU_STATE',
+        visible: !!visible
+      });
+    } catch (error) {
+      // Ignore context menu sync errors
+    }
+  }
+
+  function setInlineTranslationContext(block) {
+    lastContextBlock = block || null;
+    updateInlineContextMenu(!!lastContextBlock);
+  }
+
+  function clearInlineTranslationContext() {
+    if (!lastContextBlock) return;
+    clearInlineTranslationsForBlock(lastContextBlock);
+    lastContextBlock = null;
+    updateInlineContextMenu(false);
+  }
+
   function setupHoverTranslation() {
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('keyup', handleKeyUp, true);
@@ -138,11 +163,11 @@
     hotkeyDown = true;
     activeHotkey = event.key;
 
-    const block = resolveBlockFromTarget(getHoveredTarget());
+    const block = resolveBlockFromInteractionTarget(getHoveredTarget());
     if (!block) return;
 
-    if (hoverTranslations.has(block)) {
-      removeInlineTranslation(block, 'hover');
+    if (hasInlineTranslation(block)) {
+      clearInlineTranslationsForBlock(block);
       return;
     }
 
@@ -163,8 +188,8 @@
       activeHotkey = getHoverHotkey();
     }
 
-    const block = resolveBlockFromTarget(event.target);
-    if (!block || hoverTranslations.has(block)) return;
+    const block = resolveBlockFromInteractionTarget(event.target);
+    if (!block || hasInlineTranslation(block)) return;
 
     translateHoverBlock(block);
   }
@@ -172,14 +197,17 @@
   function handleContextMenu(event) {
     const translationEl = event.target.closest('.ai-translator-inline-block');
     if (translationEl && inlineTranslationSources.has(translationEl)) {
-      const block = inlineTranslationSources.get(translationEl);
-      if (block) clearInlineTranslationsForBlock(block);
+      setInlineTranslationContext(inlineTranslationSources.get(translationEl));
       return;
     }
 
     const block = resolveBlockFromTarget(event.target);
-    if (!block || !hasInlineTranslation(block)) return;
-    clearInlineTranslationsForBlock(block);
+    if (block && hasInlineTranslation(block)) {
+      setInlineTranslationContext(block);
+      return;
+    }
+
+    setInlineTranslationContext(null);
   }
 
   function clearHoverTranslation() {
@@ -208,6 +236,15 @@
     }
 
     return null;
+  }
+
+  function resolveBlockFromInteractionTarget(target) {
+    if (!target) return null;
+    const translationEl = target.closest?.('.ai-translator-inline-block');
+    if (translationEl && inlineTranslationSources.has(translationEl)) {
+      return inlineTranslationSources.get(translationEl) || null;
+    }
+    return resolveBlockFromTarget(target);
   }
 
   function isValidBlock(element) {
@@ -248,7 +285,7 @@
   }
 
   async function translateHoverBlock(block) {
-    if (!block || hoverTranslations.has(block)) return;
+    if (!block || hasInlineTranslation(block)) return;
 
     const { text, mathElements } = getBlockText(block);
     if (!text || text.length < 2 || text.length > 2000) return;
@@ -350,7 +387,76 @@
     return anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
   }
 
-  async function translateSelectionInline(text, anchorEl) {
+  function resolveSelectionRange(selectionRange) {
+    if (selectionRange && selectionRange.startContainer) return selectionRange;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    return selection.getRangeAt(0);
+  }
+
+  function normalizeComparableText(text) {
+    if (!text) return '';
+    return text
+      .replace(/\{\{\d+\}\}/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isSelectionRangeInsideBlock(range, block) {
+    if (!range || range.collapsed || !block) return false;
+    return block.contains(range.startContainer) && block.contains(range.endContainer);
+  }
+
+  function isFullBlockSelection(selectionText, blockText) {
+    const normalizedSelection = normalizeComparableText(selectionText);
+    const normalizedBlock = normalizeComparableText(blockText);
+    return normalizedSelection && normalizedSelection === normalizedBlock;
+  }
+
+  function renderSelectionTranslation(block, translation, mathElements, selectionRange, options = {}) {
+    const { isError, selectionText } = options;
+    const blockText = getBlockText(block).text;
+    const range = resolveSelectionRange(selectionRange);
+    const shouldInline = selectionText && !isFullBlockSelection(selectionText, blockText);
+
+    if (!shouldInline || !isSelectionRangeInsideBlock(range, block)) {
+      return renderInlineTranslation(block, translation, mathElements, { kind: 'selection', isError });
+    }
+
+    const translationEl = document.createElement('span');
+    translationEl.className = 'ai-translator-inline-block ai-translator-selection-translation';
+
+    const computedStyle = window.getComputedStyle(block);
+    translationEl.style.cssText = buildBaseStyle(computedStyle, isError) + `
+      display: inline;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    `;
+
+    if (isError) {
+      translationEl.classList.add('ai-translator-error');
+    }
+
+    translationEl.appendChild(document.createTextNode(' ('));
+    if (mathElements.length && ctx.buildTranslationContentWithMath) {
+      ctx.buildTranslationContentWithMath(translationEl, translation, mathElements);
+    } else {
+      translationEl.appendChild(document.createTextNode(translation));
+    }
+    translationEl.appendChild(document.createTextNode(')'));
+
+    try {
+      const insertionRange = range.cloneRange();
+      insertionRange.collapse(false);
+      insertionRange.insertNode(translationEl);
+      return translationEl;
+    } catch (error) {
+      return renderInlineTranslation(block, translation, mathElements, { kind: 'selection', isError });
+    }
+  }
+
+  async function translateSelectionInline(text, anchorEl, selectionRange) {
     if (!text || !ctx.isSelectionInlineEnabled || !ctx.isSelectionInlineEnabled()) return;
 
     const anchor = resolveSelectionAnchor(anchorEl);
@@ -368,7 +474,9 @@
     const cacheKey = buildCacheKey(safeText, targetLang);
     const cached = getCachedTranslation(block, cacheKey);
     if (cached) {
-      const translationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'selection' });
+      const translationEl = renderSelectionTranslation(block, cached, mathElements, selectionRange, {
+        selectionText: safeText
+      });
       trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
       return;
@@ -376,7 +484,10 @@
 
     const requestId = bumpRequestId(selectionRequestIds, block);
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
-      const translationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'selection', isError: true });
+      const translationEl = renderSelectionTranslation(block, t('extensionContextInvalidated'), [], selectionRange, {
+        isError: true,
+        selectionText: safeText
+      });
       trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
       return;
@@ -396,7 +507,10 @@
       }
 
       if (response?.error) {
-        const translationEl = renderInlineTranslation(block, response.error, [], { kind: 'selection', isError: true });
+        const translationEl = renderSelectionTranslation(block, response.error, [], selectionRange, {
+          isError: true,
+          selectionText: safeText
+        });
         trackInlineTranslation(block, translationEl, 'selection');
         state.selectionTranslationPending = false;
         return;
@@ -404,7 +518,9 @@
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
-      const translationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'selection' });
+      const translationEl = renderSelectionTranslation(block, translation, mathElements, selectionRange, {
+        selectionText: safeText
+      });
       trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
     } catch (error) {
@@ -415,13 +531,16 @@
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
-      const translationEl = renderInlineTranslation(block, message, [], { kind: 'selection', isError: true });
+      const translationEl = renderSelectionTranslation(block, message, [], selectionRange, {
+        isError: true,
+        selectionText: safeText
+      });
       trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
     }
   }
 
-  function showInlineSelectionTranslation(text, translation, anchorEl) {
+  function showInlineSelectionTranslation(text, translation, anchorEl, selectionRange) {
     if (!text || !ctx.isSelectionInlineEnabled || !ctx.isSelectionInlineEnabled()) return;
 
     const anchor = resolveSelectionAnchor(anchorEl);
@@ -429,7 +548,9 @@
     if (!block) return;
 
     clearSelectionTranslation();
-    const translationEl = renderInlineTranslation(block, translation || '', [], { kind: 'selection' });
+    const translationEl = renderSelectionTranslation(block, translation || '', [], selectionRange, {
+      selectionText: text
+    });
     trackInlineTranslation(block, translationEl, 'selection');
   }
 
@@ -549,6 +670,7 @@
   ctx.setupHoverTranslation = setupHoverTranslation;
   ctx.clearHoverTranslation = clearHoverTranslation;
   ctx.clearSelectionTranslation = clearSelectionTranslation;
+  ctx.clearInlineTranslationContext = clearInlineTranslationContext;
   ctx.translateSelectionInline = translateSelectionInline;
   ctx.showInlineSelectionTranslation = showInlineSelectionTranslation;
 })();

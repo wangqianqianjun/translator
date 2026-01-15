@@ -173,6 +173,25 @@ async function setExtensionSettings(page, settings) {
   }, settings);
 }
 
+/**
+ * Send a message to the active tab from the extension service worker
+ * @param {import('@playwright/test').Page} page
+ * @param {object} message
+ */
+async function sendMessageToActiveTab(page, message) {
+  const context = page.context();
+  let worker = context.serviceWorkers()[0];
+  if (!worker) {
+    worker = await context.waitForEvent('serviceworker');
+  }
+  await worker.evaluate(async (msg) => {
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, msg);
+    }
+  }, message);
+}
+
 module.exports = {
   waitForFloatBall,
   openFloatBallMenu,
@@ -184,4 +203,5 @@ module.exports = {
   floatBallExists,
   getCurrentTheme,
   setExtensionSettings,
+  sendMessageToActiveTab,
 };

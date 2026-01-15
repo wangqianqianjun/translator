@@ -30,12 +30,17 @@
         const selectedText = getSelectedText();
         if (selectedText && selectedText.length >= 2 && selectedText.length <= 5000) {
           // Show translate button instead of auto-translating
+          const selection = window.getSelection();
+          state.lastSelectionRange = selection && selection.rangeCount > 0
+            ? selection.getRangeAt(0).cloneRange()
+            : null;
           state.lastSelectedText = selectedText;
           state.lastSelectionPos = { x: e.clientX, y: e.clientY };
           state.lastSelectionElement = getSelectionElement();
           showSelectionButton(e.clientX, e.clientY);
         } else {
           state.lastSelectionElement = null;
+          state.lastSelectionRange = null;
           hideSelectionButton();
         }
       }, 100);
@@ -45,6 +50,7 @@
     document.addEventListener('mousedown', (e) => {
       if (state.selectionButton && !state.selectionButton.contains(e.target)) {
         hideSelectionButton();
+        state.lastSelectionRange = null;
       }
     });
 
@@ -55,6 +61,7 @@
       if (selectedText) return;
       if (state.selectionButton || state.selectionTranslationPending) return;
       state.lastSelectionElement = null;
+      state.lastSelectionRange = null;
       hideSelectionButton();
     });
 
@@ -103,10 +110,11 @@
       e.stopPropagation();
       if (!state.lastSelectedText) return;
       if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.translateSelectionInline) {
-        ctx.translateSelectionInline(state.lastSelectedText, state.lastSelectionElement);
+        ctx.translateSelectionInline(state.lastSelectedText, state.lastSelectionElement, state.lastSelectionRange);
       } else if (ctx.showTranslationPopup) {
         ctx.showTranslationPopup(state.lastSelectedText, state.lastSelectionPos.x, state.lastSelectionPos.y);
       }
+      state.lastSelectionRange = null;
       hideSelectionButton();
     });
   }

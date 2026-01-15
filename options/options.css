@@ -423,9 +423,7 @@ body::before {
 /* Inline settings */
 .inline-setting {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 16px;
-  align-items: center;
+  gap: 8px;
   padding: 12px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -443,22 +441,40 @@ body::before {
   padding-bottom: 0;
 }
 
-.inline-setting-label label {
+.inline-setting-title label {
   display: block;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 6px;
 }
 
 .inline-setting-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
 }
 
 .inline-setting-controls select {
   min-width: 180px;
+  height: 40px;
+}
+
+.inline-setting .toggle-slider {
+  width: 64px;
+  height: 40px;
+  border-radius: 999px;
+}
+
+.inline-setting .toggle-slider::after {
+  width: 30px;
+  height: 30px;
+  top: 4px;
+  left: 4px;
+}
+
+.inline-setting .toggle-label input:checked + .toggle-slider::after {
+  transform: translateX(26px);
 }
 
 /* Actions */
@@ -672,12 +688,11 @@ body::before {
   }
 
   .inline-setting {
-    grid-template-columns: 1fr;
     align-items: start;
   }
 
   .inline-setting-controls {
-    justify-content: space-between;
+    grid-template-columns: 1fr auto;
     width: 100%;
   }
 

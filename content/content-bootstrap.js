@@ -52,6 +52,7 @@
       lastSelectedText: '',
       lastSelectionPos: { x: 0, y: 0 },
       lastSelectionElement: null,
+      lastSelectionRange: null,
       isTranslatingPage: false,
       floatBallDragged: false,
       translationsVisible: true,

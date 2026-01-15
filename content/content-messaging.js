@@ -5,7 +5,7 @@
   const ctx = window.AI_TRANSLATOR_CONTENT;
   if (!ctx) return;
 
-  const { settings } = ctx;
+  const { settings, state } = ctx;
   const applyTheme = ctx.applyTheme;
 
   function setupMessageListener() {
@@ -21,9 +21,14 @@
           // 右键菜单翻译选中文本的结果显示
           if (!settings.enableSelection) break;
           if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.showInlineSelectionTranslation) {
-            ctx.showInlineSelectionTranslation(message.text, message.translation);
+            ctx.showInlineSelectionTranslation(message.text, message.translation, state.lastSelectionElement, state.lastSelectionRange);
           } else if (ctx.showTranslationResult) {
             ctx.showTranslationResult(message.text, message.translation, message.phonetic, message.isWord);
+          }
+          break;
+        case 'CLEAR_INLINE_TRANSLATION_CONTEXT':
+          if (ctx.clearInlineTranslationContext) {
+            ctx.clearInlineTranslationContext();
           }
           break;
         case 'SETTINGS_UPDATED':
