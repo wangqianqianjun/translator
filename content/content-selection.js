@@ -102,7 +102,7 @@
     state.selectionButton.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!state.lastSelectedText) return;
-      if (settings.enableHoverTranslation && ctx.translateSelectionInline) {
+      if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.translateSelectionInline) {
         ctx.translateSelectionInline(state.lastSelectedText, state.lastSelectionElement);
       } else if (ctx.showTranslationPopup) {
         ctx.showTranslationPopup(state.lastSelectedText, state.lastSelectionPos.x, state.lastSelectionPos.y);

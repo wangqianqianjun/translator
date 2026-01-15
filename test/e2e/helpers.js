@@ -162,7 +162,12 @@ async function getCurrentTheme(page) {
  * @param {object} settings
  */
 async function setExtensionSettings(page, settings) {
-  await page.evaluate((newSettings) => {
+  const context = page.context();
+  let worker = context.serviceWorkers()[0];
+  if (!worker) {
+    worker = await context.waitForEvent('serviceworker');
+  }
+  await worker.evaluate((newSettings) => {
     return new Promise((resolve) => {
       chrome.storage.sync.set(newSettings, resolve);
     });

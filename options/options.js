@@ -1,11 +1,6 @@
 // Default prompt template
-const DEFAULT_PROMPT = `You are a professional translator. Translate the given text to {targetLang}.
-Rules:
-1. Provide ONLY the translation, no explanations or notes
-2. Maintain the original formatting (line breaks, punctuation)
-3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-4. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
-5. Translate naturally, not literally`;
+const DEFAULT_PROMPT_KEY = 'promptStandard';
+
 
 // Provider configurations
 const PROVIDERS = {
@@ -113,116 +108,36 @@ function applyI18n(lang) {
       el.title = text;
     }
   });
-  
-  // Update document title
-  document.title = `AI Translator - ${t('settings')}`;
-}
 
-// Hint translations map
-const hintTranslations = {
-  'en': {
-    apiEndpoint: 'Supports OpenAI compatible API',
-    apiKey: 'Your API key is stored securely locally',
-    enableSelection: 'Show translate button on text selection',
-    enableHoverTranslation: 'Hold Shift while hovering paragraphs to translate',
-    showFloatBall: 'Show quick translation button at page corner',
-    customPrompt: 'Available variable: {targetLang} - target language. Leave empty for default.',
-    presetPrompts: 'Click to apply a preset translation style'
-  },
-  'zh-CN': {
-    apiEndpoint: '支持 OpenAI 兼容的 API 接口',
-    apiKey: '你的 API 密钥将安全存储在本地',
-    enableSelection: '选中文本后显示翻译按钮',
-    enableHoverTranslation: '按住 Shift 悬停段落进行翻译',
-    showFloatBall: '页面右下角显示快捷翻译按钮',
-    customPrompt: '可用变量: {targetLang} - 目标语言名称。留空使用默认 Prompt。',
-    presetPrompts: '点击快速应用预设翻译风格'
-  },
-  'zh-TW': {
-    apiEndpoint: '支持 OpenAI 相容的 API 接口',
-    apiKey: '你的 API 密鑰將安全存儲在本地',
-    enableSelection: '選中文本後顯示翻譯按鈕',
-    enableHoverTranslation: '按住 Shift 懸停段落進行翻譯',
-    showFloatBall: '頁面右下角顯示快捷翻譯按鈕',
-    customPrompt: '可用變量: {targetLang} - 目標語言名稱。留空使用默認 Prompt。',
-    presetPrompts: '點擊快速應用預設翻譯風格'
-  },
-  'ja': {
-    apiEndpoint: 'OpenAI互換APIをサポート',
-    apiKey: 'APIキーはローカルに安全に保存されます',
-    enableSelection: 'テキスト選択時に翻訳ボタンを表示',
-    enableHoverTranslation: 'Shift を押しながら段落にホバーして翻訳',
-    showFloatBall: 'ページの角にクイック翻訳ボタンを表示',
-    customPrompt: '使用可能な変数: {targetLang} - ターゲット言語。空欄でデフォルトを使用。',
-    presetPrompts: 'クリックしてプリセット翻訳スタイルを適用'
-  },
-  'ko': {
-    apiEndpoint: 'OpenAI 호환 API 지원',
-    apiKey: 'API 키는 로컬에 안전하게 저장됩니다',
-    enableSelection: '텍스트 선택 시 번역 버튼 표시',
-    enableHoverTranslation: 'Shift 를 누른 채 문단에 마우스를 올리면 번역',
-    showFloatBall: '페이지 모서리에 빠른 번역 버튼 표시',
-    customPrompt: '사용 가능한 변수: {targetLang} - 대상 언어. 기본값을 사용하려면 비워 두세요.',
-    presetPrompts: '클릭하여 프리셋 번역 스타일 적용'
-  },
-  'fr': {
-    apiEndpoint: 'Prend en charge l\'API compatible OpenAI',
-    apiKey: 'Votre clé API est stockée en toute sécurité localement',
-    enableSelection: 'Afficher le bouton de traduction lors de la sélection de texte',
-    enableHoverTranslation: 'Maintenez Shift et survolez un paragraphe pour traduire',
-    showFloatBall: 'Afficher le bouton de traduction rapide dans le coin de la page',
-    customPrompt: 'Variable disponible: {targetLang} - langue cible. Laissez vide pour utiliser le défaut.',
-    presetPrompts: 'Cliquez pour appliquer un style de traduction prédéfini'
-  },
-  'de': {
-    apiEndpoint: 'Unterstützt OpenAI-kompatible API',
-    apiKey: 'Ihr API-Schlüssel wird sicher lokal gespeichert',
-    enableSelection: 'Übersetzungsschaltfläche bei Textauswahl anzeigen',
-    enableHoverTranslation: 'Mit Shift über Absätze fahren, um zu übersetzen',
-    showFloatBall: 'Schnellübersetzungsschaltfläche in der Seitenecke anzeigen',
-    customPrompt: 'Verfügbare Variable: {targetLang} - Zielsprache. Leer lassen für Standard.',
-    presetPrompts: 'Klicken Sie, um einen voreingestellten Übersetzungsstil anzuwenden'
-  },
-  'es': {
-    apiEndpoint: 'Compatible con API de OpenAI',
-    apiKey: 'Su clave API se almacena de forma segura localmente',
-    enableSelection: 'Mostrar botón de traducción al seleccionar texto',
-    enableHoverTranslation: 'Mantén Shift y pasa el ratón por un párrafo para traducir',
-    showFloatBall: 'Mostrar botón de traducción rápida en la esquina de la página',
-    customPrompt: 'Variable disponible: {targetLang} - idioma de destino. Dejar vacío para usar el valor predeterminado.',
-    presetPrompts: 'Haga clic para aplicar un estilo de traducción predefinido'
-  },
-  'pt': {
-    apiEndpoint: 'Suporta API compatível com OpenAI',
-    apiKey: 'Sua chave API é armazenada com segurança localmente',
-    enableSelection: 'Mostrar botão de tradução ao selecionar texto',
-    enableHoverTranslation: 'Segure Shift e passe o mouse no parágrafo para traduzir',
-    showFloatBall: 'Mostrar botão de tradução rápida no canto da página',
-    customPrompt: 'Variável disponível: {targetLang} - idioma de destino. Deixe vazio para usar o padrão.',
-    presetPrompts: 'Clique para aplicar um estilo de tradução predefinido'
-  },
-  'ru': {
-    apiEndpoint: 'Поддерживает API, совместимый с OpenAI',
-    apiKey: 'Ваш API-ключ надёжно хранится локально',
-    enableSelection: 'Показывать кнопку перевода при выделении текста',
-    enableHoverTranslation: 'Удерживайте Shift и наведите на абзац для перевода',
-    showFloatBall: 'Показывать кнопку быстрого перевода в углу страницы',
-    customPrompt: 'Доступная переменная: {targetLang} - целевой язык. Оставьте пустым для значения по умолчанию.',
-    presetPrompts: 'Нажмите, чтобы применить предустановленный стиль перевода'
-  }
-};
-
-// Apply hints i18n
-function applyHintsI18n(lang) {
-  const uiLang = getUILanguage(lang);
-  const hints = hintTranslations[uiLang] || hintTranslations['en'];
-  
-  document.querySelectorAll('[data-i18n-hint]').forEach(el => {
-    const key = el.getAttribute('data-i18n-hint');
-    if (hints[key]) {
-      el.textContent = hints[key];
+  // Update alt attributes
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+    const key = el.getAttribute('data-i18n-alt');
+    const text = t(key);
+    if (text && text !== key) {
+      el.setAttribute('alt', text);
     }
   });
+
+  // Update hint text (allow inline markup)
+  document.querySelectorAll('[data-i18n-hint]').forEach(el => {
+    const key = el.getAttribute('data-i18n-hint');
+    const text = t(key);
+    if (text && text !== key) {
+      el.innerHTML = text;
+    }
+  });
+
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const text = t(key);
+    if (text && text !== key) {
+      el.setAttribute('placeholder', text);
+    }
+  });
+  
+  // Update document title
+  document.title = `${t('appName')} - ${t('settings')}`;
 }
 
 // DOM Elements
@@ -235,7 +150,9 @@ const elements = {
   modelName: document.getElementById('modelName'),
   targetLang: document.getElementById('targetLang'),
   enableSelection: document.getElementById('enableSelection'),
+  selectionTranslationMode: document.getElementById('selectionTranslationMode'),
   enableHoverTranslation: document.getElementById('enableHoverTranslation'),
+  hoverTranslationHotkey: document.getElementById('hoverTranslationHotkey'),
   showFloatBall: document.getElementById('showFloatBall'),
   autoDetect: document.getElementById('autoDetect'),
   customPrompt: document.getElementById('customPrompt'),
@@ -250,29 +167,9 @@ const elements = {
 
 // Preset prompt templates
 const PROMPT_PRESETS = {
-  standard: `You are a professional translator. Translate the given text to {targetLang}.
-Rules:
-1. Provide ONLY the translation, no explanations or notes
-2. Maintain the original formatting (line breaks, punctuation)
-3. Keep technical terms, brand names, and proper nouns in their original form when appropriate
-4. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)
-5. Translate naturally, not literally`,
-
-  literal: `You are a precise translator. Translate the given text to {targetLang}.
-Rules:
-1. Provide ONLY the translation, no explanations
-2. Translate as literally as possible while maintaining grammatical correctness
-3. Preserve the original sentence structure when possible
-4. Keep all technical terms, names, and proper nouns unchanged
-5. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)`,
-
-  creative: `You are a creative translator and language artist. Translate the given text to {targetLang}.
-Rules:
-1. Provide ONLY the translation, no explanations
-2. Prioritize natural, fluent expression in the target language
-3. Adapt idioms and cultural references to equivalent expressions in the target culture
-4. Maintain the tone and emotion of the original text
-5. If the text is already in the target language, return it EXACTLY as is (no paraphrasing or reordering)`
+  standard: 'promptStandard',
+  literal: 'promptLiteral',
+  creative: 'promptCreative'
 };
 
 // Get browser language and map to supported language
@@ -327,6 +224,8 @@ const defaultSettings = {
   targetLangSetByUser: false, // Track if user ever set the language
   enableSelection: true,
   enableHoverTranslation: true,
+  selectionTranslationMode: 'inline',
+  hoverTranslationHotkey: 'Shift',
   showFloatBall: true,
   autoDetect: true,
   customPrompt: '',
@@ -345,7 +244,8 @@ function updateModelDropdown(providerKey, currentModel = '') {
     // Add default empty option
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
-    defaultOption.textContent = '-- Select Model --';
+    defaultOption.dataset.i18n = 'selectModelPlaceholder';
+    defaultOption.textContent = t('selectModelPlaceholder');
     select.appendChild(defaultOption);
 
     // Add model options
@@ -373,7 +273,8 @@ function updateModelDropdown(providerKey, currentModel = '') {
     // No predefined models, use custom input only
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
-    defaultOption.textContent = '-- Enter model name --';
+    defaultOption.dataset.i18n = 'enterModelPlaceholder';
+    defaultOption.textContent = t('enterModelPlaceholder');
     select.appendChild(defaultOption);
     elements.modelName.value = currentModel;
   }
@@ -479,7 +380,9 @@ async function loadSettings() {
     elements.apiKey.value = result.apiKey;
     elements.targetLang.value = targetLang;
     elements.enableSelection.checked = result.enableSelection;
+    elements.selectionTranslationMode.value = result.selectionTranslationMode || 'inline';
     elements.enableHoverTranslation.checked = result.enableHoverTranslation;
+    elements.hoverTranslationHotkey.value = result.hoverTranslationHotkey || 'Shift';
     elements.showFloatBall.checked = result.showFloatBall;
     elements.autoDetect.checked = result.autoDetect;
     elements.customPrompt.value = result.customPrompt || '';
@@ -489,7 +392,6 @@ async function loadSettings() {
 
     // Apply i18n based on target language
     applyI18n(targetLang);
-    applyHintsI18n(targetLang);
   } catch (error) {
     console.error('Failed to load settings:', error);
     showStatus(t('connectionFailed'), 'error');
@@ -537,6 +439,8 @@ async function saveSettings() {
     targetLangSetByUser: true, // Mark that user has explicitly set the language
     enableSelection: elements.enableSelection.checked,
     enableHoverTranslation: elements.enableHoverTranslation.checked,
+    selectionTranslationMode: elements.selectionTranslationMode.value,
+    hoverTranslationHotkey: elements.hoverTranslationHotkey.value,
     showFloatBall: elements.showFloatBall.checked,
     autoDetect: elements.autoDetect.checked,
     customPrompt: elements.customPrompt.value.trim(),
@@ -559,7 +463,7 @@ async function saveSettings() {
   }
 
   if (!settings.modelName) {
-    showStatus(t('pleaseEnterModelName') || 'Please select or enter a model name', 'error');
+    showStatus(t('pleaseEnterModelName'), 'error');
     elements.modelName.focus();
     return;
   }
@@ -573,7 +477,6 @@ async function saveSettings() {
 
     // Update UI language if target language changed
     applyI18n(settings.targetLang);
-    applyHintsI18n(settings.targetLang);
   } catch (error) {
     console.error('Failed to save settings:', error);
     showStatus(t('connectionFailed'), 'error');
@@ -673,15 +576,16 @@ async function testConnection() {
 
 // Reset prompt to default
 function resetPrompt() {
-  elements.customPrompt.value = DEFAULT_PROMPT;
+  elements.customPrompt.value = t(DEFAULT_PROMPT_KEY);
   showStatus(t('resetToDefault'), 'success');
 }
 
 // Apply preset prompt
 function applyPresetPrompt(presetName) {
-  if (PROMPT_PRESETS[presetName]) {
-    elements.customPrompt.value = PROMPT_PRESETS[presetName];
-    showStatus(t('presetApplied') || 'Preset applied', 'success');
+  const presetKey = PROMPT_PRESETS[presetName];
+  if (presetKey) {
+    elements.customPrompt.value = t(presetKey);
+    showStatus(t('presetApplied'), 'success');
   }
 }
 

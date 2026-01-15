@@ -10,10 +10,10 @@
   <div class="container">
     <header class="header">
       <div class="logo">
-        <img src="../icons/icon128.png" width="56" height="56" alt="AI Translator">
+        <img src="../icons/icon128.png" width="56" height="56" data-i18n-alt="appName" alt="">
       </div>
       <div class="header-text">
-        <h1>AI Translator</h1>
+        <h1 data-i18n="appName"></h1>
         <p data-i18n="settings">Settings</p>
       </div>
       <!-- Theme Toggle -->
@@ -51,14 +51,14 @@
           <div class="form-group">
             <label for="provider" data-i18n="provider">Provider</label>
             <select id="provider">
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic Claude</option>
-              <option value="gemini">Google Gemini</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="ollama">Ollama (Local)</option>
-              <option value="lmstudio">LM Studio (Local)</option>
-              <option value="custom">Custom</option>
+              <option value="openai" data-i18n="providerOpenai"></option>
+              <option value="anthropic" data-i18n="providerAnthropic"></option>
+              <option value="gemini" data-i18n="providerGemini"></option>
+              <option value="deepseek" data-i18n="providerDeepseek"></option>
+              <option value="openrouter" data-i18n="providerOpenrouter"></option>
+              <option value="ollama" data-i18n="providerOllama"></option>
+              <option value="lmstudio" data-i18n="providerLmstudio"></option>
+              <option value="custom" data-i18n="providerCustom"></option>
             </select>
           </div>
 
@@ -67,9 +67,9 @@
             <input
               type="url"
               id="apiEndpoint"
-              placeholder="https://api.openai.com/v1/chat/completions"
+              data-i18n-placeholder="placeholderApiEndpoint" placeholder=""
             >
-            <span class="hint" data-i18n-hint="apiEndpoint">Supports OpenAI compatible API</span>
+            <span class="hint" data-i18n-hint="hintApiEndpoint"></span>
           </div>
 
           <div class="form-group">
@@ -78,28 +78,28 @@
               <input
                 type="password"
                 id="apiKey"
-                placeholder="sk-xxxxxxxxxxxxxxxx"
+                data-i18n-placeholder="placeholderApiKey" placeholder=""
               >
-              <button type="button" id="toggleApiKey" class="btn-icon" title="Show/Hide">
+              <button type="button" id="toggleApiKey" class="btn-icon" data-i18n-title="toggleApiKey">
                 <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               </button>
             </div>
-            <span class="hint" data-i18n-hint="apiKey">Your API key is stored securely locally</span>
+            <span class="hint" data-i18n-hint="hintApiKey"></span>
           </div>
 
           <div class="form-group">
             <label for="modelName" data-i18n="modelName">Model</label>
             <div class="model-select-group">
               <select id="modelSelect">
-                <option value="">-- Select Model --</option>
+                <option value="" data-i18n="selectModelPlaceholder"></option>
               </select>
               <input
                 type="text"
                 id="modelName"
-                placeholder="Or enter custom model name"
+                data-i18n-placeholder="placeholderCustomModelName" placeholder=""
                 class="model-custom-input"
               >
             </div>
@@ -119,16 +119,16 @@
           <div class="form-group">
             <label for="targetLang" data-i18n="targetLanguage">Target Language</label>
             <select id="targetLang">
-              <option value="zh-CN">简体中文</option>
-              <option value="zh-TW">繁体中文</option>
-              <option value="en">English</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="es">Español</option>
-              <option value="pt">Português</option>
-              <option value="ru">Русский</option>
+              <option value="zh-CN" data-i18n="langZhCN"></option>
+              <option value="zh-TW" data-i18n="langZhTW"></option>
+              <option value="en" data-i18n="langEn"></option>
+              <option value="ja" data-i18n="langJa"></option>
+              <option value="ko" data-i18n="langKo"></option>
+              <option value="fr" data-i18n="langFr"></option>
+              <option value="de" data-i18n="langDe"></option>
+              <option value="es" data-i18n="langEs"></option>
+              <option value="pt" data-i18n="langPt"></option>
+              <option value="ru" data-i18n="langRu"></option>
             </select>
           </div>
 
@@ -138,7 +138,16 @@
               <input type="checkbox" id="enableSelection" checked>
               <span class="toggle-slider"></span>
             </label>
-            <span class="hint" data-i18n-hint="enableSelection">Show translate button on text selection</span>
+            <span class="hint" data-i18n-hint="hintEnableSelection"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="selectionTranslationMode" data-i18n="selectionTranslationMode">Selection Translation Display</label>
+            <select id="selectionTranslationMode">
+              <option value="inline" data-i18n="selectionTranslationInline">Inline (below paragraph)</option>
+              <option value="popup" data-i18n="selectionTranslationPopup">Popup window</option>
+            </select>
+            <span class="hint" data-i18n-hint="hintSelectionTranslationMode"></span>
           </div>
 
           <div class="toggle-group">
@@ -147,7 +156,18 @@
               <input type="checkbox" id="enableHoverTranslation" checked>
               <span class="toggle-slider"></span>
             </label>
-            <span class="hint" data-i18n-hint="enableHoverTranslation">Hold Shift while hovering paragraphs to translate</span>
+            <span class="hint" data-i18n-hint="hintEnableHoverTranslation"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="hoverTranslationHotkey" data-i18n="hoverTranslationHotkey">Hover Hotkey</label>
+            <select id="hoverTranslationHotkey">
+              <option value="Shift" data-i18n="hoverHotkeyShift">Shift</option>
+              <option value="Alt" data-i18n="hoverHotkeyAlt">Alt</option>
+              <option value="Control" data-i18n="hoverHotkeyCtrl">Ctrl</option>
+              <option value="Meta" data-i18n="hoverHotkeyMeta">Meta</option>
+            </select>
+            <span class="hint" data-i18n-hint="hintHoverTranslationHotkey"></span>
           </div>
 
           <div class="toggle-group">
@@ -156,7 +176,7 @@
               <input type="checkbox" id="showFloatBall" checked>
               <span class="toggle-slider"></span>
             </label>
-            <span class="hint" data-i18n-hint="showFloatBall">Show quick translation button at page corner</span>
+            <span class="hint" data-i18n-hint="hintShowFloatBall"></span>
           </div>
 
           <div class="toggle-group">
@@ -208,7 +228,7 @@
               <span data-i18n="presetCreative">Creative</span>
             </button>
           </div>
-          <span class="hint" data-i18n-hint="presetPrompts">Click to apply a preset translation style</span>
+          <span class="hint" data-i18n-hint="hintPresetPrompts"></span>
         </div>
 
         <div class="form-group">
@@ -216,10 +236,10 @@
           <textarea
             id="customPrompt"
             rows="6"
-            placeholder="You are a professional translator..."
+            data-i18n-placeholder="placeholderCustomPrompt" placeholder=""
           ></textarea>
-          <span class="hint" data-i18n-hint="customPrompt">
-            Available variable: <code>{targetLang}</code> - target language name. Leave empty for default.
+          <span class="hint" data-i18n-hint="hintCustomPrompt">
+            
           </span>
         </div>
         <button id="resetPrompt" class="btn btn-text">
@@ -255,7 +275,7 @@
     </main>
 
     <footer class="footer">
-      <span>AI Translator v1.0.0</span>
+      <span data-i18n="appNameVersion"></span>
       <a href="https://github.com/wangqianqianjun/translator" target="_blank" class="github-link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>

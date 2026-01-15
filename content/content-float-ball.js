@@ -457,7 +457,8 @@
       case 'translate-selection': {
         const selectedText = (ctx.getSelectedText ? ctx.getSelectedText() : '') || state.lastSelectedText;
         if (selectedText) {
-          if (settings.enableHoverTranslation && ctx.translateSelectionInline) {
+          if (!settings.enableSelection) break;
+          if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.translateSelectionInline) {
             ctx.translateSelectionInline(selectedText, state.lastSelectionElement);
           } else {
             const pos = state.lastSelectionPos.x ? state.lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };

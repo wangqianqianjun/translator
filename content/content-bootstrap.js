@@ -32,6 +32,8 @@
     ctx.settings = {
       enableSelection: true,
       enableHoverTranslation: true,
+      hoverTranslationHotkey: 'Shift',
+      selectionTranslationMode: 'inline',
       showFloatBall: true,
       autoDetect: true,
       targetLang: 'zh-CN',
@@ -65,6 +67,10 @@
     return getMessage(key, uiLang);
   };
 
+  ctx.isSelectionInlineEnabled = function() {
+    return !!(ctx.settings.enableSelection && ctx.settings.selectionTranslationMode === 'inline');
+  };
+
   ctx.applyTheme = function(theme) {
     document.documentElement.setAttribute('data-ai-translator-theme', theme);
   };
@@ -85,6 +91,8 @@
       const result = await chrome.storage.sync.get({
         enableSelection: true,
         enableHoverTranslation: true,
+        hoverTranslationHotkey: 'Shift',
+        selectionTranslationMode: 'inline',
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
@@ -97,6 +105,8 @@
       Object.assign(ctx.settings, {
         enableSelection: true,
         enableHoverTranslation: true,
+        hoverTranslationHotkey: 'Shift',
+        selectionTranslationMode: 'inline',
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
@@ -113,17 +123,32 @@
     chrome.storage.onChanged.addListener((changes, namespace) => {
       if (namespace !== 'sync') return;
 
+      Object.keys(changes).forEach((key) => {
+        ctx.settings[key] = changes[key].newValue;
+      });
+
       if (changes.showFloatBall) {
         console.log('AI Translator: Storage changed, showFloatBall:', changes.showFloatBall.oldValue, '->', changes.showFloatBall.newValue);
-        ctx.settings.showFloatBall = changes.showFloatBall.newValue;
         if (ctx.updateFloatBallVisibility) {
           ctx.updateFloatBallVisibility();
         }
       }
 
       if (changes.theme) {
-        ctx.settings.theme = changes.theme.newValue;
         ctx.applyTheme(ctx.settings.theme);
+      }
+
+      if (changes.enableHoverTranslation && !ctx.settings.enableHoverTranslation) {
+        if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
+      }
+
+      if (changes.enableSelection && !ctx.settings.enableSelection) {
+        if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+        if (ctx.hideSelectionButton) ctx.hideSelectionButton();
+      }
+
+      if (changes.selectionTranslationMode && ctx.settings.selectionTranslationMode !== 'inline') {
+        if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
       }
     });
   };

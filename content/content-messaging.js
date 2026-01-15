@@ -19,7 +19,8 @@
           break;
         case 'SHOW_TRANSLATION':
           // 右键菜单翻译选中文本的结果显示
-          if (settings.enableHoverTranslation && ctx.showInlineSelectionTranslation) {
+          if (!settings.enableSelection) break;
+          if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.showInlineSelectionTranslation) {
             ctx.showInlineSelectionTranslation(message.text, message.translation);
           } else if (ctx.showTranslationResult) {
             ctx.showTranslationResult(message.text, message.translation, message.phonetic, message.isWord);
@@ -42,6 +43,13 @@
           }
           if ('enableHoverTranslation' in message.settings && !message.settings.enableHoverTranslation) {
             if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
+            if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+          }
+          if ('enableSelection' in message.settings && !message.settings.enableSelection) {
+            if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+            if (ctx.hideSelectionButton) ctx.hideSelectionButton();
+          }
+          if ('selectionTranslationMode' in message.settings && message.settings.selectionTranslationMode !== 'inline') {
             if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
           }
           break;

@@ -17,7 +17,8 @@
   const SKIP_TAG_SELECTOR = 'script, style, noscript, iframe, textarea, input, select, code, pre, svg, canvas, kbd, samp, var';
   const POSITION_CLASSES = /\b(absolute|fixed|sticky|relative|inset-\S*|top-\S*|bottom-\S*|left-\S*|right-\S*|z-\S*)\b/g;
 
-  let shiftDown = false;
+  let hotkeyDown = false;
+  let activeHotkey = null;
   let hoverBlock = null;
   let hoverTranslationEl = null;
   let hoverRequestId = 0;
@@ -30,25 +31,68 @@
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('keyup', handleKeyUp, true);
     document.addEventListener('mouseover', handleMouseOver, true);
-    document.addEventListener('mouseout', handleMouseOut, true);
+  }
+
+  function getHoverHotkey() {
+    const hotkey = settings.hoverTranslationHotkey || 'Shift';
+    if (hotkey === 'Shift' || hotkey === 'Alt' || hotkey === 'Control' || hotkey === 'Meta') {
+      return hotkey;
+    }
+    return 'Shift';
+  }
+
+  function isHotkeyEvent(event) {
+    return event.key === getHoverHotkey();
+  }
+
+  function isHotkeyModifierActive(event) {
+    const hotkey = getHoverHotkey();
+    if (hotkey === 'Shift') return event.shiftKey;
+    if (hotkey === 'Alt') return event.altKey;
+    if (hotkey === 'Control') return event.ctrlKey;
+    if (hotkey === 'Meta') return event.metaKey;
+    return false;
+  }
+
+  function getHoveredTarget() {
+    const hovered = document.querySelectorAll(':hover');
+    return hovered.length ? hovered[hovered.length - 1] : null;
   }
 
   function handleKeyDown(event) {
-    if (event.key !== 'Shift') return;
     if (!settings.enableHoverTranslation) return;
-    shiftDown = true;
+    if (!isHotkeyEvent(event)) return;
+    if (event.repeat) return;
+
+    hotkeyDown = true;
+    activeHotkey = event.key;
+
+    const block = resolveBlockFromTarget(getHoveredTarget());
+    if (!block) return;
+
+    if (hoverBlock === block && hoverTranslationEl) {
+      clearHoverTranslation();
+      return;
+    }
+
+    removeHoverTranslationElement();
+    hoverBlock = block;
+    translateHoverBlock(block);
   }
 
   function handleKeyUp(event) {
-    if (event.key !== 'Shift') return;
-    shiftDown = false;
-    clearHoverTranslation();
+    if (event.key !== activeHotkey) return;
+    hotkeyDown = false;
+    activeHotkey = null;
   }
 
   function handleMouseOver(event) {
-    const shiftActive = shiftDown || event.shiftKey;
-    if (!shiftActive || !settings.enableHoverTranslation) return;
-    shiftDown = true;
+    const hotkeyActive = hotkeyDown || isHotkeyModifierActive(event);
+    if (!hotkeyActive || !settings.enableHoverTranslation) return;
+    if (!hotkeyDown) {
+      hotkeyDown = true;
+      activeHotkey = getHoverHotkey();
+    }
 
     const block = resolveBlockFromTarget(event.target);
     if (!block || block === hoverBlock) return;
@@ -56,13 +100,6 @@
     removeHoverTranslationElement();
     hoverBlock = block;
     translateHoverBlock(block);
-  }
-
-  function handleMouseOut(event) {
-    if (!hoverBlock) return;
-    const related = event.relatedTarget;
-    if (related && hoverBlock.contains(related)) return;
-    clearHoverTranslation();
   }
 
   function clearHoverTranslation() {
@@ -171,7 +208,7 @@
         mode: 'text'
       });
 
-      if (requestId !== hoverRequestId || block !== hoverBlock || !shiftDown) return;
+      if (requestId !== hoverRequestId || block !== hoverBlock) return;
 
       if (response?.error) {
         hoverTranslationEl = renderInlineTranslation(block, response.error, [], { kind: 'hover', isError: true });
@@ -182,7 +219,7 @@
       setCachedTranslation(block, cacheKey, translation);
       hoverTranslationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'hover' });
     } catch (error) {
-      if (requestId !== hoverRequestId || block !== hoverBlock || !shiftDown) return;
+      if (requestId !== hoverRequestId || block !== hoverBlock) return;
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
@@ -242,7 +279,7 @@
   }
 
   async function translateSelectionInline(text, anchorEl) {
-    if (!text || !settings.enableHoverTranslation) return;
+    if (!text || !ctx.isSelectionInlineEnabled || !ctx.isSelectionInlineEnabled()) return;
 
     const anchor = resolveSelectionAnchor(anchorEl);
     const block = resolveBlockFromTarget(anchor);
@@ -308,7 +345,7 @@
   }
 
   function showInlineSelectionTranslation(text, translation, anchorEl) {
-    if (!text || !settings.enableHoverTranslation) return;
+    if (!text || !ctx.isSelectionInlineEnabled || !ctx.isSelectionInlineEnabled()) return;
 
     const anchor = resolveSelectionAnchor(anchorEl);
     const block = resolveBlockFromTarget(anchor);
