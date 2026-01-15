@@ -405,11 +405,11 @@
     return offset;
   }
 
-  function extractLatexPlaceholders(text) {
+  function extractLatexPlaceholders(text, startIndex = 0) {
     if (!text) return { text: '', mathElements: [] };
 
     const mathElements = [];
-    let mathIndex = 0;
+    let mathIndex = startIndex;
 
     function addPlaceholder(raw) {
       mathIndex += 1;
@@ -431,6 +431,41 @@
     });
 
     return { text: result, mathElements };
+  }
+
+  function extractSelectionPlaceholders(selectionText, selectionRange) {
+    const range = resolveSelectionRange(selectionRange);
+    let baseText = selectionText || '';
+    let mathElements = [];
+
+    if (range && ctx.getTextWithMathPlaceholders) {
+      const fragment = range.cloneContents();
+      const container = document.createElement('span');
+      container.appendChild(fragment);
+
+      if (MATH_CONTAINER_SELECTOR) {
+        container.querySelectorAll(MATH_CONTAINER_SELECTOR).forEach((node) => {
+          const id = node.getAttribute?.('id');
+          if (!id) return;
+          const original = document.getElementById(id);
+          if (original && original !== node && original.matches?.(MATH_CONTAINER_SELECTOR)) {
+            node.replaceWith(original.cloneNode(true));
+          }
+        });
+      }
+
+      const extracted = ctx.getTextWithMathPlaceholders(container);
+      if (extracted?.text) {
+        baseText = extracted.text;
+        mathElements = Array.isArray(extracted.mathElements) ? extracted.mathElements : [];
+      }
+    }
+
+    const extractedLatex = extractLatexPlaceholders(baseText, mathElements.length);
+    return {
+      text: extractedLatex.text,
+      mathElements: mathElements.concat(extractedLatex.mathElements)
+    };
   }
 
   function resolveSelectionAnchor(anchorEl) {
@@ -590,7 +625,7 @@
     state.selectionTranslationPending = true;
     clearSelectionTranslation();
 
-    const extracted = extractLatexPlaceholders(text);
+    const extracted = extractSelectionPlaceholders(text, selectionRange);
     const safeText = extracted.text;
     const mathElements = extracted.mathElements;
 
@@ -671,9 +706,10 @@
     const block = resolveBlockFromTarget(anchor);
     if (!block) return;
 
+    const extracted = extractSelectionPlaceholders(text, selectionRange);
     clearSelectionTranslation();
-    const translationEl = renderSelectionTranslation(block, translation || '', [], selectionRange, {
-      selectionText: text
+    const translationEl = renderSelectionTranslation(block, translation || '', extracted.mathElements, selectionRange, {
+      selectionText: extracted.text || text
     });
     trackInlineTranslation(block, translationEl, 'selection');
   }

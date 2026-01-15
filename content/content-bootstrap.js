@@ -12,7 +12,7 @@
       DOCK_PADDING_FRONT: -6,
       DOCK_PADDING_BACK: 8,
       DOCK_PADDING_VERTICAL: 4,
-      MATH_CONTAINER_SELECTOR: 'math, mjx-container, mjx-math, .MathJax, .MathJax_Display, .MathJax_CHTML, .mjx-chtml, .mjx-math, .MJXc-display, .katex, .katex-display',
+      MATH_CONTAINER_SELECTOR: 'math, mjx-container, mjx-math, .MathJax, .MathJax_Display, .MathJax_CHTML, .mjx-chtml, .mjx-math, .MJXc-display, .katex, .katex-display, .ltx_Math',
       TARGET_LANGUAGE_OPTIONS: [
         { value: 'zh-CN', label: '简体中文' },
         { value: 'zh-TW', label: '繁体中文' },
