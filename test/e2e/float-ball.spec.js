@@ -40,7 +40,7 @@ test.describe('Float Ball', () => {
     expect(exists).toBe(true);
 
     // Navigate within SPA
-    await page.click(site.selectors.spaLink);
+    await page.getByRole('link', { name: 'Reference', exact: true }).click();
     await page.waitForLoadState('networkidle');
 
     // Wait a bit for any React hydration
@@ -67,9 +67,12 @@ test.describe('Float Ball', () => {
     const initialBox = await floatBall.boundingBox();
 
     // Drag float ball
-    await floatBall.dragTo(page.locator('body'), {
-      targetPosition: { x: 100, y: 100 },
-    });
+    const startX = initialBox.x + initialBox.width / 2;
+    const startY = initialBox.y + initialBox.height / 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(100, 100);
+    await page.mouse.up();
 
     const newBox = await floatBall.boundingBox();
 

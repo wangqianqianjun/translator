@@ -96,8 +96,6 @@ test.describe('Flex Layout Detection', () => {
       </nav>
     `);
 
-    await waitForFloatBall(page);
-
     // Inject test to check flex detection
     const isHorizontalFlex = await page.evaluate(() => {
       const link = document.getElementById('test-link');
@@ -121,8 +119,6 @@ test.describe('Flex Layout Detection', () => {
         <a href="#">Contact</a>
       </nav>
     `);
-
-    await waitForFloatBall(page);
 
     // Inject test to check flex detection
     const isHorizontalFlex = await page.evaluate(() => {

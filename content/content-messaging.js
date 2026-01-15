@@ -19,7 +19,9 @@
           break;
         case 'SHOW_TRANSLATION':
           // 右键菜单翻译选中文本的结果显示
-          if (ctx.showTranslationResult) {
+          if (settings.enableHoverTranslation && ctx.showInlineSelectionTranslation) {
+            ctx.showInlineSelectionTranslation(message.text, message.translation);
+          } else if (ctx.showTranslationResult) {
             ctx.showTranslationResult(message.text, message.translation, message.phonetic, message.isWord);
           }
           break;
@@ -37,6 +39,10 @@
           }
           if (message.settings.theme) {
             applyTheme(message.settings.theme);
+          }
+          if ('enableHoverTranslation' in message.settings && !message.settings.enableHoverTranslation) {
+            if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
+            if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
           }
           break;
         case 'TOGGLE_FLOAT_BALL':

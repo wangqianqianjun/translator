@@ -28,8 +28,10 @@ const test = base.extend({
       viewport: { width: 1280, height: 720 },
     });
 
-    // Wait for extension to be ready
-    await context.waitForEvent('page');
+    // Ensure at least one page exists to avoid hanging on page event
+    if (context.pages().length === 0) {
+      await context.newPage();
+    }
 
     await use(context);
     await context.close();

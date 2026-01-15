@@ -1355,4 +1355,11 @@
   }
 
   ctx.translatePage = translatePage;
+  ctx.getTextWithMathPlaceholders = getTextWithMathPlaceholders;
+  ctx.buildTranslationContentWithMath = buildTranslationContentWithMath;
+  ctx.isMathElement = isMathElement;
+  ctx.isIconElement = isIconElement;
+  ctx.isHorizontalFlexParent = isHorizontalFlexParent;
+  ctx.getInlineTranslationTarget = getInlineTranslationTarget;
+  ctx.getTextOffsetLeft = getTextOffsetLeft;
 })();

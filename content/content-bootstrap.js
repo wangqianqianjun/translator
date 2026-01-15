@@ -31,6 +31,7 @@
   if (!ctx.settings) {
     ctx.settings = {
       enableSelection: true,
+      enableHoverTranslation: true,
       showFloatBall: true,
       autoDetect: true,
       targetLang: 'zh-CN',
@@ -48,6 +49,7 @@
       selectionButton: null,
       lastSelectedText: '',
       lastSelectionPos: { x: 0, y: 0 },
+      lastSelectionElement: null,
       isTranslatingPage: false,
       floatBallDragged: false,
       translationsVisible: true,
@@ -81,6 +83,7 @@
     try {
       const result = await chrome.storage.sync.get({
         enableSelection: true,
+        enableHoverTranslation: true,
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
@@ -92,6 +95,7 @@
       console.error('AI Translator: Failed to load settings', error);
       Object.assign(ctx.settings, {
         enableSelection: true,
+        enableHoverTranslation: true,
         showFloatBall: true,
         autoDetect: true,
         targetLang: 'zh-CN',
@@ -128,6 +132,7 @@
     try {
       await ctx.loadSettings();
       if (ctx.setupSelectionListener) ctx.setupSelectionListener();
+      if (ctx.setupHoverTranslation) ctx.setupHoverTranslation();
       if (ctx.setupMessageListener) ctx.setupMessageListener();
       ctx.setupStorageListener();
       if (ctx.createFloatBall) ctx.createFloatBall();

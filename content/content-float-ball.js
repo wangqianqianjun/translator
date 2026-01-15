@@ -16,6 +16,7 @@
 
   const t = ctx.t;
   const applyTheme = ctx.applyTheme;
+  let floatBallWatchdog = null;
 
   // Ensure float ball exists in DOM (recreate if removed by page's JS)
   function ensureFloatBallExists() {
@@ -34,6 +35,22 @@
       return true; // Was recreated
     }
     return false; // Already existed
+  }
+
+  function startFloatBallWatchdog() {
+    if (floatBallWatchdog) return;
+    floatBallWatchdog = setInterval(() => {
+      if (settings.showFloatBall === false) return;
+      if (!document.body) return;
+
+      if (!state.floatBall || !document.body.contains(state.floatBall)) {
+        ensureFloatBallExists();
+      }
+
+      if (document.documentElement.getAttribute('data-ai-translator-theme') !== settings.theme) {
+        applyTheme(settings.theme);
+      }
+    }, 1000);
   }
 
   function createFloatBall() {
@@ -129,6 +146,7 @@
 
     // Setup drag and click handling
     setupFloatBallInteraction();
+    startFloatBallWatchdog();
 
     // Update visibility based on settings
     // Re-read from storage to ensure we have the latest value
@@ -439,8 +457,12 @@
       case 'translate-selection': {
         const selectedText = (ctx.getSelectedText ? ctx.getSelectedText() : '') || state.lastSelectedText;
         if (selectedText) {
-          const pos = state.lastSelectionPos.x ? state.lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-          if (ctx.showTranslationPopup) ctx.showTranslationPopup(selectedText, pos.x, pos.y);
+          if (settings.enableHoverTranslation && ctx.translateSelectionInline) {
+            ctx.translateSelectionInline(selectedText, state.lastSelectionElement);
+          } else {
+            const pos = state.lastSelectionPos.x ? state.lastSelectionPos : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            if (ctx.showTranslationPopup) ctx.showTranslationPopup(selectedText, pos.x, pos.y);
+          }
           if (ctx.hideSelectionButton) ctx.hideSelectionButton();
         }
         break;

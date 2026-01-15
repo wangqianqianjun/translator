@@ -124,6 +124,7 @@ const hintTranslations = {
     apiEndpoint: 'Supports OpenAI compatible API',
     apiKey: 'Your API key is stored securely locally',
     enableSelection: 'Show translate button on text selection',
+    enableHoverTranslation: 'Hold Shift while hovering paragraphs to translate',
     showFloatBall: 'Show quick translation button at page corner',
     customPrompt: 'Available variable: {targetLang} - target language. Leave empty for default.',
     presetPrompts: 'Click to apply a preset translation style'
@@ -132,6 +133,7 @@ const hintTranslations = {
     apiEndpoint: '支持 OpenAI 兼容的 API 接口',
     apiKey: '你的 API 密钥将安全存储在本地',
     enableSelection: '选中文本后显示翻译按钮',
+    enableHoverTranslation: '按住 Shift 悬停段落进行翻译',
     showFloatBall: '页面右下角显示快捷翻译按钮',
     customPrompt: '可用变量: {targetLang} - 目标语言名称。留空使用默认 Prompt。',
     presetPrompts: '点击快速应用预设翻译风格'
@@ -140,6 +142,7 @@ const hintTranslations = {
     apiEndpoint: '支持 OpenAI 相容的 API 接口',
     apiKey: '你的 API 密鑰將安全存儲在本地',
     enableSelection: '選中文本後顯示翻譯按鈕',
+    enableHoverTranslation: '按住 Shift 懸停段落進行翻譯',
     showFloatBall: '頁面右下角顯示快捷翻譯按鈕',
     customPrompt: '可用變量: {targetLang} - 目標語言名稱。留空使用默認 Prompt。',
     presetPrompts: '點擊快速應用預設翻譯風格'
@@ -148,6 +151,7 @@ const hintTranslations = {
     apiEndpoint: 'OpenAI互換APIをサポート',
     apiKey: 'APIキーはローカルに安全に保存されます',
     enableSelection: 'テキスト選択時に翻訳ボタンを表示',
+    enableHoverTranslation: 'Shift を押しながら段落にホバーして翻訳',
     showFloatBall: 'ページの角にクイック翻訳ボタンを表示',
     customPrompt: '使用可能な変数: {targetLang} - ターゲット言語。空欄でデフォルトを使用。',
     presetPrompts: 'クリックしてプリセット翻訳スタイルを適用'
@@ -156,6 +160,7 @@ const hintTranslations = {
     apiEndpoint: 'OpenAI 호환 API 지원',
     apiKey: 'API 키는 로컬에 안전하게 저장됩니다',
     enableSelection: '텍스트 선택 시 번역 버튼 표시',
+    enableHoverTranslation: 'Shift 를 누른 채 문단에 마우스를 올리면 번역',
     showFloatBall: '페이지 모서리에 빠른 번역 버튼 표시',
     customPrompt: '사용 가능한 변수: {targetLang} - 대상 언어. 기본값을 사용하려면 비워 두세요.',
     presetPrompts: '클릭하여 프리셋 번역 스타일 적용'
@@ -164,6 +169,7 @@ const hintTranslations = {
     apiEndpoint: 'Prend en charge l\'API compatible OpenAI',
     apiKey: 'Votre clé API est stockée en toute sécurité localement',
     enableSelection: 'Afficher le bouton de traduction lors de la sélection de texte',
+    enableHoverTranslation: 'Maintenez Shift et survolez un paragraphe pour traduire',
     showFloatBall: 'Afficher le bouton de traduction rapide dans le coin de la page',
     customPrompt: 'Variable disponible: {targetLang} - langue cible. Laissez vide pour utiliser le défaut.',
     presetPrompts: 'Cliquez pour appliquer un style de traduction prédéfini'
@@ -172,6 +178,7 @@ const hintTranslations = {
     apiEndpoint: 'Unterstützt OpenAI-kompatible API',
     apiKey: 'Ihr API-Schlüssel wird sicher lokal gespeichert',
     enableSelection: 'Übersetzungsschaltfläche bei Textauswahl anzeigen',
+    enableHoverTranslation: 'Mit Shift über Absätze fahren, um zu übersetzen',
     showFloatBall: 'Schnellübersetzungsschaltfläche in der Seitenecke anzeigen',
     customPrompt: 'Verfügbare Variable: {targetLang} - Zielsprache. Leer lassen für Standard.',
     presetPrompts: 'Klicken Sie, um einen voreingestellten Übersetzungsstil anzuwenden'
@@ -180,6 +187,7 @@ const hintTranslations = {
     apiEndpoint: 'Compatible con API de OpenAI',
     apiKey: 'Su clave API se almacena de forma segura localmente',
     enableSelection: 'Mostrar botón de traducción al seleccionar texto',
+    enableHoverTranslation: 'Mantén Shift y pasa el ratón por un párrafo para traducir',
     showFloatBall: 'Mostrar botón de traducción rápida en la esquina de la página',
     customPrompt: 'Variable disponible: {targetLang} - idioma de destino. Dejar vacío para usar el valor predeterminado.',
     presetPrompts: 'Haga clic para aplicar un estilo de traducción predefinido'
@@ -188,6 +196,7 @@ const hintTranslations = {
     apiEndpoint: 'Suporta API compatível com OpenAI',
     apiKey: 'Sua chave API é armazenada com segurança localmente',
     enableSelection: 'Mostrar botão de tradução ao selecionar texto',
+    enableHoverTranslation: 'Segure Shift e passe o mouse no parágrafo para traduzir',
     showFloatBall: 'Mostrar botão de tradução rápida no canto da página',
     customPrompt: 'Variável disponível: {targetLang} - idioma de destino. Deixe vazio para usar o padrão.',
     presetPrompts: 'Clique para aplicar um estilo de tradução predefinido'
@@ -196,6 +205,7 @@ const hintTranslations = {
     apiEndpoint: 'Поддерживает API, совместимый с OpenAI',
     apiKey: 'Ваш API-ключ надёжно хранится локально',
     enableSelection: 'Показывать кнопку перевода при выделении текста',
+    enableHoverTranslation: 'Удерживайте Shift и наведите на абзац для перевода',
     showFloatBall: 'Показывать кнопку быстрого перевода в углу страницы',
     customPrompt: 'Доступная переменная: {targetLang} - целевой язык. Оставьте пустым для значения по умолчанию.',
     presetPrompts: 'Нажмите, чтобы применить предустановленный стиль перевода'
@@ -225,6 +235,7 @@ const elements = {
   modelName: document.getElementById('modelName'),
   targetLang: document.getElementById('targetLang'),
   enableSelection: document.getElementById('enableSelection'),
+  enableHoverTranslation: document.getElementById('enableHoverTranslation'),
   showFloatBall: document.getElementById('showFloatBall'),
   autoDetect: document.getElementById('autoDetect'),
   customPrompt: document.getElementById('customPrompt'),
@@ -315,6 +326,7 @@ const defaultSettings = {
   targetLang: '', // Empty means use browser language
   targetLangSetByUser: false, // Track if user ever set the language
   enableSelection: true,
+  enableHoverTranslation: true,
   showFloatBall: true,
   autoDetect: true,
   customPrompt: '',
@@ -467,6 +479,7 @@ async function loadSettings() {
     elements.apiKey.value = result.apiKey;
     elements.targetLang.value = targetLang;
     elements.enableSelection.checked = result.enableSelection;
+    elements.enableHoverTranslation.checked = result.enableHoverTranslation;
     elements.showFloatBall.checked = result.showFloatBall;
     elements.autoDetect.checked = result.autoDetect;
     elements.customPrompt.value = result.customPrompt || '';
@@ -523,6 +536,7 @@ async function saveSettings() {
     targetLang: elements.targetLang.value,
     targetLangSetByUser: true, // Mark that user has explicitly set the language
     enableSelection: elements.enableSelection.checked,
+    enableHoverTranslation: elements.enableHoverTranslation.checked,
     showFloatBall: elements.showFloatBall.checked,
     autoDetect: elements.autoDetect.checked,
     customPrompt: elements.customPrompt.value.trim(),

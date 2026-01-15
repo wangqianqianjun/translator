@@ -44,3 +44,7 @@ test/results/
 test/reports/
 playwright-report/
 test-results/
+
+# Local design docs
+docs/plans/
+design/

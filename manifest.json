@@ -44,6 +44,7 @@
         "content/content-popup.js",
         "content/content-input-dialog.js",
         "content/content-page-translation.js",
+        "content/content-hover-translation.js",
         "content/content-messaging.js",
         "content/content.js"
       ],

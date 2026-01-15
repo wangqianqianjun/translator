@@ -32,8 +32,10 @@
           // Show translate button instead of auto-translating
           state.lastSelectedText = selectedText;
           state.lastSelectionPos = { x: e.clientX, y: e.clientY };
+          state.lastSelectionElement = getSelectionElement();
           showSelectionButton(e.clientX, e.clientY);
         } else {
+          state.lastSelectionElement = null;
           hideSelectionButton();
         }
       }, 100);
@@ -46,11 +48,22 @@
       }
     });
 
+    // Clear inline selection translation when selection is cleared
+    document.addEventListener('selectionchange', () => {
+      if (!settings.enableSelection) return;
+      const selectedText = getSelectedText();
+      if (selectedText) return;
+      state.lastSelectionElement = null;
+      if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+    });
+
     // Hide popup on Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (ctx.hideTranslationPopup) ctx.hideTranslationPopup();
         if (ctx.hideFloatMenu) ctx.hideFloatMenu();
+        if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
+        if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
         hideSelectionButton();
       }
     });
@@ -87,10 +100,13 @@
     // Click to translate
     state.selectionButton.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (state.lastSelectedText && ctx.showTranslationPopup) {
+      if (!state.lastSelectedText) return;
+      if (settings.enableHoverTranslation && ctx.translateSelectionInline) {
+        ctx.translateSelectionInline(state.lastSelectedText, state.lastSelectionElement);
+      } else if (ctx.showTranslationPopup) {
         ctx.showTranslationPopup(state.lastSelectedText, state.lastSelectionPos.x, state.lastSelectionPos.y);
-        hideSelectionButton();
       }
+      hideSelectionButton();
     });
   }
 
@@ -107,8 +123,18 @@
     return selection.toString().trim();
   }
 
+  function getSelectionElement() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const range = selection.getRangeAt(0);
+    const node = range.commonAncestorContainer;
+    if (!node) return null;
+    return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  }
+
   ctx.setupSelectionListener = setupSelectionListener;
   ctx.showSelectionButton = showSelectionButton;
   ctx.hideSelectionButton = hideSelectionButton;
   ctx.getSelectedText = getSelectedText;
+  ctx.getSelectionElement = getSelectionElement;
 })();
