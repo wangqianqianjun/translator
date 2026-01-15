@@ -465,23 +465,6 @@ body::before {
   width: 100%;
 }
 
-.inline-setting .toggle-slider {
-  width: 68px;
-  height: var(--control-height);
-  border-radius: 999px;
-}
-
-.inline-setting .toggle-slider::after {
-  width: 32px;
-  height: 32px;
-  top: 6px;
-  left: 6px;
-}
-
-.inline-setting .toggle-label input:checked + .toggle-slider::after {
-  transform: translateX(30px);
-}
-
 /* Actions */
 .actions {
   display: flex;
