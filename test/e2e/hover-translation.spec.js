@@ -254,6 +254,67 @@ test.describe('Hover Translation', () => {
     });
   });
 
+  test('selection translation avoids inserting into math containers', async ({ page }) => {
+    await page.goto('https://example.com');
+    await page.waitForSelector('#ai-translator-float-ball');
+
+    await setExtensionSettings(page, {
+      selectionTranslationMode: 'inline',
+    });
+
+    await page.evaluate(() => {
+      const existing = document.getElementById('ai-translator-math-selection');
+      if (existing) return;
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <p id="ai-translator-math-selection">
+          Energy
+          <span id="ai-translator-math-inline" class="katex">E=mc^2</span>
+          equation.
+        </p>
+      `;
+      document.body.appendChild(container);
+    });
+
+    await page.evaluate(() => {
+      const paragraph = document.getElementById('ai-translator-math-selection');
+      const mathEl = document.getElementById('ai-translator-math-inline');
+      if (!paragraph || !mathEl || !mathEl.firstChild) return;
+
+      const startNode = paragraph.firstChild;
+      const range = document.createRange();
+      range.setStart(startNode, Math.min(2, startNode.textContent.length));
+      range.setEnd(mathEl.firstChild, Math.min(2, mathEl.firstChild.textContent.length));
+
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+    const paragraphBox = await page.locator('#ai-translator-math-selection').boundingBox();
+    if (paragraphBox) {
+      await page.dispatchEvent('#ai-translator-math-selection', 'mouseup', {
+        clientX: paragraphBox.x + Math.min(10, paragraphBox.width / 2),
+        clientY: paragraphBox.y + Math.min(10, paragraphBox.height / 2),
+      });
+    }
+
+    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    const selectedText = await page.evaluate(() => window.getSelection().toString().trim());
+
+    await sendMessageToActiveTab(page, {
+      type: 'SHOW_TRANSLATION',
+      text: selectedText || 'Energy',
+      translation: 'Translated',
+      phonetic: '',
+      isWord: false,
+    });
+
+    const translation = page.locator('.ai-translator-selection-translation');
+    await expect(translation).toHaveCount(1);
+    await expect(page.locator('#ai-translator-math-inline .ai-translator-selection-translation')).toHaveCount(0);
+  });
+
   test('selection translation works when hover translation is disabled', async ({ page }) => {
     await page.goto('https://example.com');
     await page.waitForSelector('#ai-translator-float-ball');

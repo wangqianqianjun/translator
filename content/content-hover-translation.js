@@ -413,6 +413,56 @@
     return normalizedSelection && normalizedSelection === normalizedBlock;
   }
 
+  function resolveMathContainer(element) {
+    if (!element) return null;
+    const el = element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
+    if (!el) return null;
+
+    let mathContainer = null;
+    if (MATH_CONTAINER_SELECTOR) {
+      mathContainer = el.closest(MATH_CONTAINER_SELECTOR);
+      if (mathContainer) {
+        let parent = mathContainer.parentElement;
+        while (parent && parent.matches?.(MATH_CONTAINER_SELECTOR)) {
+          mathContainer = parent;
+          parent = parent.parentElement;
+        }
+      }
+    }
+
+    if (!mathContainer && ctx.isMathElement) {
+      let current = el;
+      while (current && current !== document.body && current !== document.documentElement) {
+        if (ctx.isMathElement(current)) {
+          mathContainer = current;
+          break;
+        }
+        current = current.parentElement;
+      }
+    }
+
+    return mathContainer;
+  }
+
+  function resolveSafeInsertionRange(range, block) {
+    if (!range) return null;
+    const insertionRange = range.cloneRange();
+    insertionRange.collapse(false);
+
+    const endContainer = insertionRange.endContainer;
+    const endElement = endContainer.nodeType === Node.ELEMENT_NODE ? endContainer : endContainer.parentElement;
+    if (!endElement) return insertionRange;
+
+    const mathContainer = resolveMathContainer(endElement);
+    if (!mathContainer) return insertionRange;
+    if (block && !block.contains(mathContainer)) return insertionRange;
+
+    const safeRange = document.createRange();
+    safeRange.setStartAfter(mathContainer);
+    safeRange.collapse(true);
+    return safeRange;
+  }
+
   function renderSelectionTranslation(block, translation, mathElements, selectionRange, options = {}) {
     const { isError, selectionText } = options;
     const blockText = getBlockText(block).text;
@@ -451,8 +501,10 @@
     translationEl.appendChild(document.createTextNode(')'));
 
     try {
-      const insertionRange = range.cloneRange();
-      insertionRange.collapse(false);
+      const insertionRange = resolveSafeInsertionRange(range, block);
+      if (!insertionRange || !block.contains(insertionRange.startContainer)) {
+        return renderInlineTranslation(block, translation, mathElements, { kind: 'selection', isError });
+      }
       insertionRange.insertNode(translationEl);
       return translationEl;
     } catch (error) {
