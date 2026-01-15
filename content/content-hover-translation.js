@@ -21,11 +21,15 @@
   let activeHotkey = null;
 
   const INLINE_SOURCE_CLASS = 'ai-translator-inline-source';
+  const INLINE_LOADING_CLASS = 'ai-translator-inline-loading';
   const hoverTranslations = new Map();
   const selectionTranslations = new Map();
   const inlineTranslationSources = new WeakMap();
   const hoverRequestIds = new Map();
   const selectionRequestIds = new Map();
+  const hoverLoadingStarts = new Map();
+  const selectionLoadingStarts = new Map();
+  const MIN_LOADING_MS = 120;
   let lastContextBlock = null;
 
   const translationCache = new WeakMap();
@@ -71,10 +75,49 @@
     return next;
   }
 
+  function getLoadingMap(kind) {
+    return kind === 'hover' ? hoverLoadingStarts : selectionLoadingStarts;
+  }
+
+  function recordLoadingStart(block, kind) {
+    if (!block) return;
+    const map = getLoadingMap(kind);
+    map.set(block, Date.now());
+  }
+
+  function clearLoadingStart(block, kind) {
+    if (!block) return;
+    const map = getLoadingMap(kind);
+    map.delete(block);
+  }
+
+  function scheduleInlineReplacement(block, kind, requestId, renderFn, onComplete) {
+    const requestMap = kind === 'hover' ? hoverRequestIds : selectionRequestIds;
+    const loadingMap = getLoadingMap(kind);
+    const startedAt = loadingMap.get(block);
+    const elapsed = startedAt ? Date.now() - startedAt : 0;
+    const delay = startedAt ? Math.max(0, MIN_LOADING_MS - elapsed) : 0;
+
+    const applyReplacement = () => {
+      if (requestMap.get(block) !== requestId) return;
+      loadingMap.delete(block);
+      const translationEl = renderFn();
+      trackInlineTranslation(block, translationEl, kind);
+      if (onComplete) onComplete();
+    };
+
+    if (delay > 0) {
+      setTimeout(applyReplacement, delay);
+    } else {
+      applyReplacement();
+    }
+  }
+
   function removeInlineTranslation(block, kind) {
     const map = kind === 'hover' ? hoverTranslations : selectionTranslations;
     if (!block || !map.has(block)) return;
     bumpRequestId(kind === 'hover' ? hoverRequestIds : selectionRequestIds, block);
+    clearLoadingStart(block, kind);
     const translationEl = map.get(block);
     if (translationEl) {
       inlineTranslationSources.delete(translationEl);
@@ -300,9 +343,16 @@
     }
 
     const requestId = bumpRequestId(hoverRequestIds, block);
+    const loadingEl = renderInlineLoading(block, { kind: 'hover' });
+    trackInlineTranslation(block, loadingEl, 'hover');
+    recordLoadingStart(block, 'hover');
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
-      const translationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'hover', isError: true });
-      trackInlineTranslation(block, translationEl, 'hover');
+      scheduleInlineReplacement(
+        block,
+        'hover',
+        requestId,
+        () => renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'hover', isError: true })
+      );
       return;
     }
 
@@ -317,22 +367,34 @@
       if (hoverRequestIds.get(block) !== requestId) return;
 
       if (response?.error) {
-        const translationEl = renderInlineTranslation(block, response.error, [], { kind: 'hover', isError: true });
-        trackInlineTranslation(block, translationEl, 'hover');
+        scheduleInlineReplacement(
+          block,
+          'hover',
+          requestId,
+          () => renderInlineTranslation(block, response.error, [], { kind: 'hover', isError: true })
+        );
         return;
       }
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
-      const translationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'hover' });
-      trackInlineTranslation(block, translationEl, 'hover');
+      scheduleInlineReplacement(
+        block,
+        'hover',
+        requestId,
+        () => renderInlineTranslation(block, translation, mathElements, { kind: 'hover' })
+      );
     } catch (error) {
       if (hoverRequestIds.get(block) !== requestId) return;
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
-      const translationEl = renderInlineTranslation(block, message, [], { kind: 'hover', isError: true });
-      trackInlineTranslation(block, translationEl, 'hover');
+      scheduleInlineReplacement(
+        block,
+        'hover',
+        requestId,
+        () => renderInlineTranslation(block, message, [], { kind: 'hover', isError: true })
+      );
     }
   }
 
@@ -615,6 +677,48 @@
     }
   }
 
+  function renderSelectionLoading(block, selectionRange, options = {}) {
+    const { selectionText } = options;
+    const blockText = getBlockText(block).text;
+    const range = resolveSelectionRange(selectionRange);
+    const shouldInline = selectionText && !isFullBlockSelection(selectionText, blockText);
+
+    if (!shouldInline || !isSelectionRangeInsideBlock(range, block)) {
+      return renderInlineLoading(block, { kind: 'selection' });
+    }
+
+    const loadingEl = document.createElement('span');
+    loadingEl.className = 'ai-translator-inline-block ai-translator-selection-translation';
+
+    const computedStyle = window.getComputedStyle(block);
+    loadingEl.style.cssText = buildBaseStyle(computedStyle) + `
+      display: inline;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    `;
+    loadingEl.style.setProperty('display', 'inline', 'important');
+    loadingEl.style.setProperty('margin-top', '0', 'important');
+    loadingEl.style.setProperty('margin-bottom', '0', 'important');
+    loadingEl.style.setProperty('padding', '0', 'important');
+
+    loadingEl.appendChild(document.createTextNode(' ('));
+    const dots = createLoadingDots();
+    loadingEl.appendChild(dots);
+    loadingEl.appendChild(document.createTextNode(')'));
+
+    try {
+      const insertionRange = resolveSafeInsertionRange(range, block);
+      if (!insertionRange || !block.contains(insertionRange.startContainer)) {
+        return renderInlineLoading(block, { kind: 'selection' });
+      }
+      insertionRange.insertNode(loadingEl);
+      return loadingEl;
+    } catch (error) {
+      return renderInlineLoading(block, { kind: 'selection' });
+    }
+  }
+
   async function translateSelectionInline(text, anchorEl, selectionRange) {
     if (!text || !ctx.isSelectionInlineEnabled || !ctx.isSelectionInlineEnabled()) return;
 
@@ -642,13 +746,22 @@
     }
 
     const requestId = bumpRequestId(selectionRequestIds, block);
+    const loadingEl = renderSelectionLoading(block, selectionRange, { selectionText: safeText });
+    trackInlineTranslation(block, loadingEl, 'selection');
+    recordLoadingStart(block, 'selection');
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
-      const translationEl = renderSelectionTranslation(block, t('extensionContextInvalidated'), [], selectionRange, {
-        isError: true,
-        selectionText: safeText
-      });
-      trackInlineTranslation(block, translationEl, 'selection');
-      state.selectionTranslationPending = false;
+      scheduleInlineReplacement(
+        block,
+        'selection',
+        requestId,
+        () => renderSelectionTranslation(block, t('extensionContextInvalidated'), [], selectionRange, {
+          isError: true,
+          selectionText: safeText
+        }),
+        () => {
+          state.selectionTranslationPending = false;
+        }
+      );
       return;
     }
 
@@ -666,22 +779,34 @@
       }
 
       if (response?.error) {
-        const translationEl = renderSelectionTranslation(block, response.error, [], selectionRange, {
-          isError: true,
-          selectionText: safeText
-        });
-        trackInlineTranslation(block, translationEl, 'selection');
-        state.selectionTranslationPending = false;
+        scheduleInlineReplacement(
+          block,
+          'selection',
+          requestId,
+          () => renderSelectionTranslation(block, response.error, [], selectionRange, {
+            isError: true,
+            selectionText: safeText
+          }),
+          () => {
+            state.selectionTranslationPending = false;
+          }
+        );
         return;
       }
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
-      const translationEl = renderSelectionTranslation(block, translation, mathElements, selectionRange, {
-        selectionText: safeText
-      });
-      trackInlineTranslation(block, translationEl, 'selection');
-      state.selectionTranslationPending = false;
+      scheduleInlineReplacement(
+        block,
+        'selection',
+        requestId,
+        () => renderSelectionTranslation(block, translation, mathElements, selectionRange, {
+          selectionText: safeText
+        }),
+        () => {
+          state.selectionTranslationPending = false;
+        }
+      );
     } catch (error) {
       if (selectionRequestIds.get(block) !== requestId) {
         state.selectionTranslationPending = false;
@@ -690,12 +815,18 @@
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
-      const translationEl = renderSelectionTranslation(block, message, [], selectionRange, {
-        isError: true,
-        selectionText: safeText
-      });
-      trackInlineTranslation(block, translationEl, 'selection');
-      state.selectionTranslationPending = false;
+      scheduleInlineReplacement(
+        block,
+        'selection',
+        requestId,
+        () => renderSelectionTranslation(block, message, [], selectionRange, {
+          isError: true,
+          selectionText: safeText
+        }),
+        () => {
+          state.selectionTranslationPending = false;
+        }
+      );
     }
   }
 
@@ -725,6 +856,78 @@
       letter-spacing: ${computedStyle.letterSpacing};
       opacity: 0.85;
     `;
+  }
+
+  function createLoadingDots() {
+    const dots = document.createElement('span');
+    dots.className = INLINE_LOADING_CLASS;
+    return dots;
+  }
+
+  function renderInlineLoading(block, options = {}) {
+    const { kind } = options;
+    const isHorizontalFlex = ctx.isHorizontalFlexParent ? ctx.isHorizontalFlexParent(block) : false;
+    const inlineTarget = isHorizontalFlex && ctx.getInlineTranslationTarget
+      ? ctx.getInlineTranslationTarget(block)
+      : block;
+    const computedStyle = window.getComputedStyle(inlineTarget);
+    const className = kind === 'hover' ? 'ai-translator-hover-translation' : 'ai-translator-selection-translation';
+
+    if (isHorizontalFlex) {
+      const loadingEl = document.createElement('span');
+      loadingEl.className = `ai-translator-inline-block ai-translator-inline-right ${className} ${INLINE_LOADING_CLASS}`;
+      loadingEl.style.cssText = `
+        font-size: 0.85em;
+        font-family: ${computedStyle.fontFamily};
+        font-weight: ${computedStyle.fontWeight};
+        line-height: ${computedStyle.lineHeight};
+        color: ${computedStyle.color};
+        letter-spacing: ${computedStyle.letterSpacing};
+        opacity: 0.7;
+        display: inline;
+        margin: 0;
+        padding: 0;
+      `;
+      inlineTarget.appendChild(loadingEl);
+      return loadingEl;
+    }
+
+    const loadingEl = document.createElement(block.tagName);
+    if (block.className) {
+      loadingEl.className = block.className
+        .replace('ai-translator-translated', '')
+        .replace(POSITION_CLASSES, '')
+        .trim();
+    }
+    loadingEl.classList.add('ai-translator-inline-block', className, INLINE_LOADING_CLASS);
+    loadingEl.style.cssText = buildBaseStyle(computedStyle) + `
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    `;
+
+    if (ctx.getTextOffsetLeft) {
+      const textOffset = ctx.getTextOffsetLeft(block);
+      if (textOffset > 0) {
+        loadingEl.style.setProperty('padding-left', `${textOffset}px`, 'important');
+      }
+    }
+
+    if (block.hasAttribute('slot')) {
+      const internalLoading = document.createElement('span');
+      internalLoading.className = `ai-translator-inline-block ${className} ${INLINE_LOADING_CLASS}`;
+      internalLoading.style.cssText = buildBaseStyle(computedStyle) + `
+        display: block;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      `;
+      block.appendChild(internalLoading);
+      return internalLoading;
+    }
+
+    block.after(loadingEl);
+    return loadingEl;
   }
 
   function renderInlineTranslation(block, translation, mathElements = [], options = {}) {

@@ -82,6 +82,24 @@ test.describe('Hover Translation', () => {
     await page.keyboard.up('Alt');
   });
 
+  test('hover translation shows inline loading indicator', async ({ page }) => {
+    await page.goto('https://example.com');
+    await page.waitForSelector('#ai-translator-float-ball');
+
+    const paragraph = page.locator('p').first();
+    await paragraph.scrollIntoViewIfNeeded();
+
+    await page.keyboard.down('Shift');
+    const loadingPromise = page.waitForSelector('.ai-translator-inline-loading', { state: 'attached', timeout: 3000 });
+    await paragraph.hover();
+
+    await loadingPromise;
+    await page.waitForSelector('.ai-translator-hover-translation', { state: 'attached' });
+    await page.waitForSelector('.ai-translator-inline-loading', { state: 'detached', timeout: 3000 });
+
+    await page.keyboard.up('Shift');
+  });
+
   test('selection translation persists after selection clears', async ({ page }) => {
     await page.goto('https://example.com');
     await page.waitForSelector('#ai-translator-float-ball');
@@ -105,6 +123,34 @@ test.describe('Hover Translation', () => {
     await page.evaluate(() => window.getSelection().removeAllRanges());
     await page.waitForTimeout(200);
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
+  });
+
+  test('selection translation shows inline loading indicator', async ({ page }) => {
+    await page.goto('https://example.com');
+    await page.waitForSelector('#ai-translator-float-ball');
+
+    await setExtensionSettings(page, {
+      selectionTranslationMode: 'inline',
+    });
+
+    const paragraph = page.locator('p').first();
+    await paragraph.scrollIntoViewIfNeeded();
+    await paragraph.selectText();
+    const box = await paragraph.boundingBox();
+    if (box) {
+      await page.dispatchEvent('p', 'mouseup', {
+        clientX: box.x + Math.min(10, box.width / 2),
+        clientY: box.y + Math.min(10, box.height / 2),
+      });
+    }
+
+    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    const loadingPromise = page.waitForSelector('.ai-translator-inline-loading', { state: 'attached', timeout: 3000 });
+    await page.click('#ai-translator-selection-btn');
+
+    await loadingPromise;
+    await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
+    await page.waitForSelector('.ai-translator-inline-loading', { state: 'detached', timeout: 3000 });
   });
 
   test('escape clears all inline translations', async ({ page }) => {

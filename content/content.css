@@ -434,12 +434,28 @@
   display: none !important;
 }
 
+.ai-translator-inline-loading::after {
+  content: '...';
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: baseline;
+  width: 0;
+  white-space: nowrap;
+  animation: ai-translator-loading-dots 1s steps(4, end) infinite;
+}
+
 @keyframes ai-translator-block-fade-in {
   from {
     opacity: 0;
   }
   to {
     opacity: 0.85;
+  }
+}
+
+@keyframes ai-translator-loading-dots {
+  to {
+    width: 1.5em;
   }
 }
 
