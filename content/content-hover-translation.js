@@ -336,6 +336,75 @@
     }
   }
 
+  function shouldTreatAsInlineLatex(content) {
+    const trimmed = content.trim();
+    if (!trimmed) return false;
+    if (/^\d[\d,.\s]*$/.test(trimmed)) return false;
+    if (/\\/.test(trimmed)) return true;
+    if (/[\^_={}|<>]/.test(trimmed)) return true;
+    if (/[\p{Sm}]/u.test(trimmed)) return true;
+    if (/[\p{L}]/u.test(trimmed)) return true;
+    return false;
+  }
+
+  function findInlineLatexRanges(text) {
+    if (!text) return [];
+    const ranges = [];
+
+    const addRange = (start, end) => {
+      if (start >= 0 && end > start) {
+        ranges.push({ start, end });
+      }
+    };
+
+    const addMatches = (regex) => {
+      regex.lastIndex = 0;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        addRange(match.index, match.index + match[0].length);
+        if (match[0].length === 0) {
+          regex.lastIndex += 1;
+        }
+      }
+    };
+
+    addMatches(/\\\(([\s\S]+?)\\\)/g);
+    addMatches(/\\\[([\s\S]+?)\\\]/g);
+    addMatches(/\$\$([\s\S]+?)\$\$/g);
+
+    const inlineRegex = /(^|[^\\])\$([^\n$]+?)\$/g;
+    inlineRegex.lastIndex = 0;
+    let match;
+    while ((match = inlineRegex.exec(text)) !== null) {
+      const prefix = match[1] || '';
+      const inner = match[2] || '';
+      if (!shouldTreatAsInlineLatex(inner)) {
+        if (match[0].length === 0) {
+          inlineRegex.lastIndex += 1;
+        }
+        continue;
+      }
+      const start = match.index + prefix.length;
+      const end = start + inner.length + 2;
+      addRange(start, end);
+      if (match[0].length === 0) {
+        inlineRegex.lastIndex += 1;
+      }
+    }
+
+    return ranges;
+  }
+
+  function resolveLatexSafeOffset(text, offset) {
+    const ranges = findInlineLatexRanges(text);
+    for (const range of ranges) {
+      if (offset > range.start && offset < range.end) {
+        return Math.min(range.end, text.length);
+      }
+    }
+    return offset;
+  }
+
   function extractLatexPlaceholders(text) {
     if (!text) return { text: '', mathElements: [] };
 
@@ -347,17 +416,6 @@
       const placeholder = `{{${mathIndex}}}`;
       mathElements.push({ placeholder, type: 'text', text: raw });
       return placeholder;
-    }
-
-    function shouldTreatAsInlineLatex(content) {
-      const trimmed = content.trim();
-      if (!trimmed) return false;
-      if (/^\d[\d,.\s]*$/.test(trimmed)) return false;
-      if (/\\/.test(trimmed)) return true;
-      if (/[\^_={}|<>]/.test(trimmed)) return true;
-      if (/[\p{Sm}]/u.test(trimmed)) return true;
-      if (/[\p{L}]/u.test(trimmed)) return true;
-      return false;
     }
 
     let result = text;
@@ -454,13 +512,23 @@
     if (!endElement) return insertionRange;
 
     const mathContainer = resolveMathContainer(endElement);
-    if (!mathContainer) return insertionRange;
-    if (block && !block.contains(mathContainer)) return insertionRange;
+    if (mathContainer) {
+      if (block && !block.contains(mathContainer)) return insertionRange;
+      const safeRange = document.createRange();
+      safeRange.setStartAfter(mathContainer);
+      safeRange.collapse(true);
+      return safeRange;
+    }
 
-    const safeRange = document.createRange();
-    safeRange.setStartAfter(mathContainer);
-    safeRange.collapse(true);
-    return safeRange;
+    if (endContainer.nodeType === Node.TEXT_NODE) {
+      const safeOffset = resolveLatexSafeOffset(endContainer.textContent || '', insertionRange.endOffset);
+      if (safeOffset !== insertionRange.endOffset) {
+        insertionRange.setStart(endContainer, safeOffset);
+        insertionRange.collapse(true);
+      }
+    }
+
+    return insertionRange;
   }
 
   function renderSelectionTranslation(block, translation, mathElements, selectionRange, options = {}) {

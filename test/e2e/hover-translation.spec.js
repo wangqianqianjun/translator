@@ -315,6 +315,66 @@ test.describe('Hover Translation', () => {
     await expect(page.locator('#ai-translator-math-inline .ai-translator-selection-translation')).toHaveCount(0);
   });
 
+  test('selection translation does not split inline LaTeX', async ({ page }) => {
+    await page.goto('https://example.com');
+    await page.waitForSelector('#ai-translator-float-ball');
+
+    await setExtensionSettings(page, {
+      selectionTranslationMode: 'inline',
+    });
+
+    await page.evaluate(() => {
+      const existing = document.getElementById('ai-translator-inline-latex');
+      if (existing) return;
+      const paragraph = document.createElement('p');
+      paragraph.id = 'ai-translator-inline-latex';
+      paragraph.textContent = 'Energy $E=mc^2$ equation.';
+      document.body.appendChild(paragraph);
+    });
+
+    await page.evaluate(() => {
+      const paragraph = document.getElementById('ai-translator-inline-latex');
+      const textNode = paragraph?.firstChild;
+      if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+      const text = textNode.textContent || '';
+      const latexStart = text.indexOf('$');
+      if (latexStart === -1) return;
+      const endOffset = Math.min(latexStart + 6, text.length);
+      const range = document.createRange();
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, endOffset);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+    const box = await page.locator('#ai-translator-inline-latex').boundingBox();
+    if (box) {
+      await page.dispatchEvent('#ai-translator-inline-latex', 'mouseup', {
+        clientX: box.x + Math.min(10, box.width / 2),
+        clientY: box.y + Math.min(10, box.height / 2),
+      });
+    }
+
+    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    const selectedText = await page.evaluate(() => window.getSelection().toString().trim());
+
+    await sendMessageToActiveTab(page, {
+      type: 'SHOW_TRANSLATION',
+      text: selectedText || 'Energy',
+      translation: 'Translated',
+      phonetic: '',
+      isWord: false,
+    });
+
+    const latexPreserved = await page.evaluate(() => {
+      const paragraph = document.getElementById('ai-translator-inline-latex');
+      return paragraph?.textContent?.includes('$E=mc^2$');
+    });
+
+    expect(latexPreserved).toBe(true);
+  });
+
   test('selection translation works when hover translation is disabled', async ({ page }) => {
     await page.goto('https://example.com');
     await page.waitForSelector('#ai-translator-float-ball');
