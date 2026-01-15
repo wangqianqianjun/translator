@@ -132,42 +132,43 @@
             </select>
           </div>
 
-          <div class="toggle-group">
-            <label class="toggle-label">
-              <span data-i18n="enableSelectionTranslation">Enable Selection Translation</span>
-              <input type="checkbox" id="enableSelection" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="hint" data-i18n-hint="hintEnableSelection"></span>
+          <div class="inline-setting">
+            <div class="inline-setting-label">
+              <label for="enableSelection" data-i18n="enableSelectionTranslation">Enable Selection Translation</label>
+              <span class="hint" data-i18n-hint="hintSelectionTranslationMode"></span>
+            </div>
+            <div class="inline-setting-controls">
+              <label class="toggle-label toggle-only" for="enableSelection">
+                <input type="checkbox" id="enableSelection" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="sr-only" for="selectionTranslationMode" data-i18n="selectionTranslationMode">Selection Translation Display</label>
+              <select id="selectionTranslationMode">
+                <option value="inline" data-i18n="selectionTranslationInline">Inline (below paragraph)</option>
+                <option value="popup" data-i18n="selectionTranslationPopup">Popup window</option>
+              </select>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="selectionTranslationMode" data-i18n="selectionTranslationMode">Selection Translation Display</label>
-            <select id="selectionTranslationMode">
-              <option value="inline" data-i18n="selectionTranslationInline">Inline (below paragraph)</option>
-              <option value="popup" data-i18n="selectionTranslationPopup">Popup window</option>
-            </select>
-            <span class="hint" data-i18n-hint="hintSelectionTranslationMode"></span>
-          </div>
-
-          <div class="toggle-group">
-            <label class="toggle-label">
-              <span data-i18n="enableHoverTranslation">Enable Hover Translation</span>
-              <input type="checkbox" id="enableHoverTranslation" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="hint" data-i18n-hint="hintEnableHoverTranslation"></span>
-          </div>
-
-          <div class="form-group">
-            <label for="hoverTranslationHotkey" data-i18n="hoverTranslationHotkey">Hover Hotkey</label>
-            <select id="hoverTranslationHotkey">
-              <option value="Shift" data-i18n="hoverHotkeyShift">Shift</option>
-              <option value="Alt" data-i18n="hoverHotkeyAlt">Alt</option>
-              <option value="Control" data-i18n="hoverHotkeyCtrl">Ctrl</option>
-              <option value="Meta" data-i18n="hoverHotkeyMeta">Meta</option>
-            </select>
-            <span class="hint" data-i18n-hint="hintHoverTranslationHotkey"></span>
+          <div class="inline-setting">
+            <div class="inline-setting-label">
+              <label for="enableHoverTranslation" data-i18n="enableHoverTranslation">Enable Hover Translation</label>
+              <span class="hint" data-i18n-hint="hintHoverTranslationHotkey"></span>
+              <span class="hint" data-i18n-hint="hintInlineCancel"></span>
+            </div>
+            <div class="inline-setting-controls">
+              <label class="toggle-label toggle-only" for="enableHoverTranslation">
+                <input type="checkbox" id="enableHoverTranslation" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="sr-only" for="hoverTranslationHotkey" data-i18n="hoverTranslationHotkey">Hover Hotkey</label>
+              <select id="hoverTranslationHotkey">
+                <option value="Shift" data-i18n="hoverHotkeyShift">Shift</option>
+                <option value="Alt" data-i18n="hoverHotkeyAlt">Alt</option>
+                <option value="Control" data-i18n="hoverHotkeyCtrl">Ctrl</option>
+                <option value="Meta" data-i18n="hoverHotkeyMeta">Meta</option>
+              </select>
+            </div>
           </div>
 
           <div class="toggle-group">

@@ -55,7 +55,7 @@
       if (selectedText) return;
       if (state.selectionButton || state.selectionTranslationPending) return;
       state.lastSelectionElement = null;
-      if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+      hideSelectionButton();
     });
 
     // Hide popup on Escape key

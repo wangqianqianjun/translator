@@ -43,7 +43,6 @@
           }
           if ('enableHoverTranslation' in message.settings && !message.settings.enableHoverTranslation) {
             if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
-            if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
           }
           if ('enableSelection' in message.settings && !message.settings.enableSelection) {
             if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();

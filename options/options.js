@@ -392,6 +392,8 @@ async function loadSettings() {
 
     // Apply i18n based on target language
     applyI18n(targetLang);
+
+    syncInlineSettingState();
   } catch (error) {
     console.error('Failed to load settings:', error);
     showStatus(t('connectionFailed'), 'error');
@@ -633,6 +635,9 @@ function setupEventListeners() {
   // Model select change handler
   elements.modelSelect.addEventListener('change', onModelSelectChange);
 
+  elements.enableSelection.addEventListener('change', syncInlineSettingState);
+  elements.enableHoverTranslation.addEventListener('change', syncInlineSettingState);
+
   // Preset prompt buttons
   document.querySelectorAll('.btn-preset').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -648,4 +653,12 @@ function setupEventListeners() {
       saveSettings();
     }
   });
+}
+
+function syncInlineSettingState() {
+  const selectionEnabled = elements.enableSelection.checked;
+  const hoverEnabled = elements.enableHoverTranslation.checked;
+
+  elements.selectionTranslationMode.disabled = !selectionEnabled;
+  elements.hoverTranslationHotkey.disabled = !hoverEnabled;
 }

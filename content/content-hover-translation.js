@@ -19,18 +19,89 @@
 
   let hotkeyDown = false;
   let activeHotkey = null;
-  let hoverBlock = null;
-  let hoverTranslationEl = null;
-  let hoverRequestId = 0;
-  let selectionTranslationEl = null;
-  let selectionRequestId = 0;
+
+  const INLINE_SOURCE_CLASS = 'ai-translator-inline-source';
+  const hoverTranslations = new Map();
+  const selectionTranslations = new Map();
+  const inlineTranslationSources = new WeakMap();
+  const hoverRequestIds = new Map();
+  const selectionRequestIds = new Map();
 
   const translationCache = new WeakMap();
+
+  function markInlineSource(block, kind) {
+    if (!block) return;
+    block.classList.add(INLINE_SOURCE_CLASS);
+    if (kind === 'hover') {
+      block.dataset.aiTranslatorInlineHover = '1';
+    } else if (kind === 'selection') {
+      block.dataset.aiTranslatorInlineSelection = '1';
+    }
+  }
+
+  function unmarkInlineSource(block, kind) {
+    if (!block) return;
+    if (kind === 'hover') {
+      delete block.dataset.aiTranslatorInlineHover;
+    } else if (kind === 'selection') {
+      delete block.dataset.aiTranslatorInlineSelection;
+    }
+    if (!block.dataset.aiTranslatorInlineHover && !block.dataset.aiTranslatorInlineSelection) {
+      block.classList.remove(INLINE_SOURCE_CLASS);
+    }
+  }
+
+  function trackInlineTranslation(block, translationEl, kind) {
+    if (!block || !translationEl) return;
+    const map = kind === 'hover' ? hoverTranslations : selectionTranslations;
+    const existing = map.get(block);
+    if (existing && existing !== translationEl) {
+      inlineTranslationSources.delete(existing);
+      existing.remove();
+    }
+    map.set(block, translationEl);
+    inlineTranslationSources.set(translationEl, block);
+    markInlineSource(block, kind);
+  }
+
+  function bumpRequestId(map, block) {
+    const next = (map.get(block) || 0) + 1;
+    map.set(block, next);
+    return next;
+  }
+
+  function removeInlineTranslation(block, kind) {
+    const map = kind === 'hover' ? hoverTranslations : selectionTranslations;
+    if (!block || !map.has(block)) return;
+    bumpRequestId(kind === 'hover' ? hoverRequestIds : selectionRequestIds, block);
+    const translationEl = map.get(block);
+    if (translationEl) {
+      inlineTranslationSources.delete(translationEl);
+      translationEl.remove();
+    }
+    map.delete(block);
+    unmarkInlineSource(block, kind);
+  }
+
+  function clearInlineTranslations(map, kind) {
+    const blocks = Array.from(map.keys());
+    blocks.forEach((block) => removeInlineTranslation(block, kind));
+  }
+
+  function clearInlineTranslationsForBlock(block) {
+    removeInlineTranslation(block, 'hover');
+    removeInlineTranslation(block, 'selection');
+  }
+
+  function hasInlineTranslation(block) {
+    return hoverTranslations.has(block) || selectionTranslations.has(block);
+  }
 
   function setupHoverTranslation() {
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('keyup', handleKeyUp, true);
     document.addEventListener('mouseover', handleMouseOver, true);
+    document.addEventListener('contextmenu', handleContextMenu, true);
   }
 
   function getHoverHotkey() {
@@ -70,13 +141,11 @@
     const block = resolveBlockFromTarget(getHoveredTarget());
     if (!block) return;
 
-    if (hoverBlock === block && hoverTranslationEl) {
-      clearHoverTranslation();
+    if (hoverTranslations.has(block)) {
+      removeInlineTranslation(block, 'hover');
       return;
     }
 
-    removeHoverTranslationElement();
-    hoverBlock = block;
     translateHoverBlock(block);
   }
 
@@ -95,32 +164,30 @@
     }
 
     const block = resolveBlockFromTarget(event.target);
-    if (!block || block === hoverBlock) return;
+    if (!block || hoverTranslations.has(block)) return;
 
-    removeHoverTranslationElement();
-    hoverBlock = block;
     translateHoverBlock(block);
   }
 
-  function clearHoverTranslation() {
-    hoverRequestId += 1;
-    removeHoverTranslationElement();
-    hoverBlock = null;
+  function handleContextMenu(event) {
+    const translationEl = event.target.closest('.ai-translator-inline-block');
+    if (translationEl && inlineTranslationSources.has(translationEl)) {
+      const block = inlineTranslationSources.get(translationEl);
+      if (block) clearInlineTranslationsForBlock(block);
+      return;
+    }
+
+    const block = resolveBlockFromTarget(event.target);
+    if (!block || !hasInlineTranslation(block)) return;
+    clearInlineTranslationsForBlock(block);
   }
 
-  function removeHoverTranslationElement() {
-    if (hoverTranslationEl) {
-      hoverTranslationEl.remove();
-      hoverTranslationEl = null;
-    }
+  function clearHoverTranslation() {
+    clearInlineTranslations(hoverTranslations, 'hover');
   }
 
   function clearSelectionTranslation() {
-    selectionRequestId += 1;
-    if (selectionTranslationEl) {
-      selectionTranslationEl.remove();
-      selectionTranslationEl = null;
-    }
+    clearInlineTranslations(selectionTranslations, 'selection');
   }
 
   function resolveBlockFromTarget(target) {
@@ -181,7 +248,7 @@
   }
 
   async function translateHoverBlock(block) {
-    if (!block) return;
+    if (!block || hoverTranslations.has(block)) return;
 
     const { text, mathElements } = getBlockText(block);
     if (!text || text.length < 2 || text.length > 2000) return;
@@ -190,13 +257,15 @@
     const cacheKey = buildCacheKey(text, targetLang);
     const cached = getCachedTranslation(block, cacheKey);
     if (cached) {
-      hoverTranslationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'hover' });
+      const translationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'hover' });
+      trackInlineTranslation(block, translationEl, 'hover');
       return;
     }
 
-    const requestId = ++hoverRequestId;
+    const requestId = bumpRequestId(hoverRequestIds, block);
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
-      hoverTranslationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'hover', isError: true });
+      const translationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'hover', isError: true });
+      trackInlineTranslation(block, translationEl, 'hover');
       return;
     }
 
@@ -208,22 +277,25 @@
         mode: 'text'
       });
 
-      if (requestId !== hoverRequestId || block !== hoverBlock) return;
+      if (hoverRequestIds.get(block) !== requestId) return;
 
       if (response?.error) {
-        hoverTranslationEl = renderInlineTranslation(block, response.error, [], { kind: 'hover', isError: true });
+        const translationEl = renderInlineTranslation(block, response.error, [], { kind: 'hover', isError: true });
+        trackInlineTranslation(block, translationEl, 'hover');
         return;
       }
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
-      hoverTranslationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'hover' });
+      const translationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'hover' });
+      trackInlineTranslation(block, translationEl, 'hover');
     } catch (error) {
-      if (requestId !== hoverRequestId || block !== hoverBlock) return;
+      if (hoverRequestIds.get(block) !== requestId) return;
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
-      hoverTranslationEl = renderInlineTranslation(block, message, [], { kind: 'hover', isError: true });
+      const translationEl = renderInlineTranslation(block, message, [], { kind: 'hover', isError: true });
+      trackInlineTranslation(block, translationEl, 'hover');
     }
   }
 
@@ -296,14 +368,16 @@
     const cacheKey = buildCacheKey(safeText, targetLang);
     const cached = getCachedTranslation(block, cacheKey);
     if (cached) {
-      selectionTranslationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'selection' });
+      const translationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'selection' });
+      trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
       return;
     }
 
-    const requestId = ++selectionRequestId;
+    const requestId = bumpRequestId(selectionRequestIds, block);
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
-      selectionTranslationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'selection', isError: true });
+      const translationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'selection', isError: true });
+      trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
       return;
     }
@@ -316,30 +390,33 @@
         mode: 'text'
       });
 
-      if (requestId !== selectionRequestId) {
+      if (selectionRequestIds.get(block) !== requestId) {
         state.selectionTranslationPending = false;
         return;
       }
 
       if (response?.error) {
-        selectionTranslationEl = renderInlineTranslation(block, response.error, [], { kind: 'selection', isError: true });
+        const translationEl = renderInlineTranslation(block, response.error, [], { kind: 'selection', isError: true });
+        trackInlineTranslation(block, translationEl, 'selection');
         state.selectionTranslationPending = false;
         return;
       }
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
-      selectionTranslationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'selection' });
+      const translationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'selection' });
+      trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
     } catch (error) {
-      if (requestId !== selectionRequestId) {
+      if (selectionRequestIds.get(block) !== requestId) {
         state.selectionTranslationPending = false;
         return;
       }
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
-      selectionTranslationEl = renderInlineTranslation(block, message, [], { kind: 'selection', isError: true });
+      const translationEl = renderInlineTranslation(block, message, [], { kind: 'selection', isError: true });
+      trackInlineTranslation(block, translationEl, 'selection');
       state.selectionTranslationPending = false;
     }
   }
@@ -352,7 +429,8 @@
     if (!block) return;
 
     clearSelectionTranslation();
-    selectionTranslationEl = renderInlineTranslation(block, translation || '', [], { kind: 'selection' });
+    const translationEl = renderInlineTranslation(block, translation || '', [], { kind: 'selection' });
+    trackInlineTranslation(block, translationEl, 'selection');
   }
 
   function buildBaseStyle(computedStyle, omitColor = false) {

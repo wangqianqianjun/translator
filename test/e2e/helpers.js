@@ -32,8 +32,7 @@ async function openFloatBallMenu(page) {
  */
 async function triggerPageTranslation(page) {
   await openFloatBallMenu(page);
-  // Click the first menu item (translate page)
-  await page.click('.ai-translator-menu-item:first-child');
+  await page.click('.ai-translator-menu-item[data-action="translate-page"]');
 }
 
 /**

@@ -378,8 +378,9 @@
       // 跳过不需要翻译的元素
       if (skipTags.includes(tagName)) return;
       if (element.isContentEditable) return;
-      if (element.closest('.ai-translator-popup, .ai-translator-translated, .ai-translator-inline-block, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
+      if (element.closest('.ai-translator-popup, .ai-translator-translated, .ai-translator-inline-source, .ai-translator-inline-block, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn')) return;
       if (element.classList.contains('ai-translator-translated')) return;
+      if (element.classList.contains('ai-translator-inline-source')) return;
 
       // 跳过被 skipTags 包含的元素
       if (element.closest(skipTags.map(t => t.toLowerCase()).join(','))) return;
@@ -929,6 +930,7 @@
 
     // 检查是否已经翻译过，防止重复
     if (element.classList.contains('ai-translator-translated')) return;
+    if (element.classList.contains('ai-translator-inline-source')) return;
 
     // 标记为已翻译
     element.classList.add('ai-translator-translated');

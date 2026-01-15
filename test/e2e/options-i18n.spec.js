@@ -21,3 +21,23 @@ test('options hints use i18n keys', async ({ page, extensionId }) => {
   await expect(page.locator('#provider option[value="openai"]')).toHaveText(getMessage('providerOpenai', 'en'));
   await expect(page.locator('#targetLang option[value="zh-CN"]')).toHaveText(getMessage('langZhCN', 'en'));
 });
+
+test('options disable selects when toggles are off', async ({ page, extensionId }) => {
+  await setExtensionSettings(page, {
+    targetLang: 'en',
+    targetLangSetByUser: true,
+  });
+
+  const optionsUrl = `chrome-extension://${extensionId}/options/options.html`;
+  await page.goto(optionsUrl);
+  await page.waitForSelector('#provider');
+
+  await expect(page.locator('#selectionTranslationMode')).toBeEnabled();
+  await expect(page.locator('#hoverTranslationHotkey')).toBeEnabled();
+
+  await page.click('label:has(#enableSelection)');
+  await expect(page.locator('#selectionTranslationMode')).toBeDisabled();
+
+  await page.click('label:has(#enableHoverTranslation)');
+  await expect(page.locator('#hoverTranslationHotkey')).toBeDisabled();
+});
