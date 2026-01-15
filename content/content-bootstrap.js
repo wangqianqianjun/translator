@@ -55,7 +55,8 @@
       translationsVisible: true,
       translationProgress: { current: 0, total: 0 },
       pageHasBeenTranslated: false,
-      translationRequestId: 0
+      translationRequestId: 0,
+      selectionTranslationPending: false
     };
   }
 

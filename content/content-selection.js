@@ -53,6 +53,7 @@
       if (!settings.enableSelection) return;
       const selectedText = getSelectedText();
       if (selectedText) return;
+      if (state.selectionButton || state.selectionTranslationPending) return;
       state.lastSelectionElement = null;
       if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
     });
@@ -126,10 +127,9 @@
   function getSelectionElement() {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return null;
-    const range = selection.getRangeAt(0);
-    const node = range.commonAncestorContainer;
-    if (!node) return null;
-    return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const anchorNode = selection.anchorNode || selection.focusNode;
+    if (!anchorNode) return null;
+    return anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
   }
 
   ctx.setupSelectionListener = setupSelectionListener;

@@ -5,7 +5,7 @@
   const ctx = window.AI_TRANSLATOR_CONTENT;
   if (!ctx) return;
 
-  const { settings, constants } = ctx;
+  const { settings, constants, state } = ctx;
   const { MATH_CONTAINER_SELECTOR } = constants;
   const t = ctx.t;
 
@@ -248,6 +248,7 @@
     const block = resolveBlockFromTarget(anchor);
     if (!block) return;
 
+    state.selectionTranslationPending = true;
     clearSelectionTranslation();
 
     const extracted = extractLatexPlaceholders(text);
@@ -259,12 +260,14 @@
     const cached = getCachedTranslation(block, cacheKey);
     if (cached) {
       selectionTranslationEl = renderInlineTranslation(block, cached, mathElements, { kind: 'selection' });
+      state.selectionTranslationPending = false;
       return;
     }
 
     const requestId = ++selectionRequestId;
     if (!ctx.isExtensionContextAvailable || !ctx.isExtensionContextAvailable()) {
       selectionTranslationEl = renderInlineTranslation(block, t('extensionContextInvalidated'), [], { kind: 'selection', isError: true });
+      state.selectionTranslationPending = false;
       return;
     }
 
@@ -276,22 +279,31 @@
         mode: 'text'
       });
 
-      if (requestId !== selectionRequestId) return;
+      if (requestId !== selectionRequestId) {
+        state.selectionTranslationPending = false;
+        return;
+      }
 
       if (response?.error) {
         selectionTranslationEl = renderInlineTranslation(block, response.error, [], { kind: 'selection', isError: true });
+        state.selectionTranslationPending = false;
         return;
       }
 
       const translation = response?.translation || '';
       setCachedTranslation(block, cacheKey, translation);
       selectionTranslationEl = renderInlineTranslation(block, translation, mathElements, { kind: 'selection' });
+      state.selectionTranslationPending = false;
     } catch (error) {
-      if (requestId !== selectionRequestId) return;
+      if (requestId !== selectionRequestId) {
+        state.selectionTranslationPending = false;
+        return;
+      }
       const message = ctx.isExtensionContextInvalidated && ctx.isExtensionContextInvalidated(error)
         ? t('extensionContextInvalidated')
         : t('translationFailed');
       selectionTranslationEl = renderInlineTranslation(block, message, [], { kind: 'selection', isError: true });
+      state.selectionTranslationPending = false;
     }
   }
 
