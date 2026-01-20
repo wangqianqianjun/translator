@@ -2,7 +2,7 @@
  * Hover translation E2E tests
  */
 const { test, expect } = require('./fixtures');
-const { setExtensionSettings, sendMessageToActiveTab } = require('./helpers');
+const { setExtensionSettings, sendMessageToActiveTab, triggerSelectionHotkey } = require('./helpers');
 
 async function addTestParagraphs(page) {
   await page.evaluate(() => {
@@ -125,22 +125,28 @@ test.describe('Hover Translation', () => {
     const paragraph = page.locator('p').first();
     await paragraph.scrollIntoViewIfNeeded();
     await paragraph.selectText();
-    const box = await paragraph.boundingBox();
-    if (box) {
-      await page.dispatchEvent('p', 'mouseup', {
-        clientX: box.x + Math.min(10, box.width / 2),
-        clientY: box.y + Math.min(10, box.height / 2),
-      });
-    }
-
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
-    await page.click('#ai-translator-selection-btn');
+    await triggerSelectionHotkey(page);
 
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
 
     await page.evaluate(() => window.getSelection().removeAllRanges());
     await page.waitForTimeout(200);
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
+  });
+
+  test('selection hotkey toggles translation on and off', async ({ page }) => {
+    await page.goto('https://example.com');
+    await page.waitForSelector('#ai-translator-float-ball');
+
+    const paragraph = page.locator('p').first();
+    await paragraph.scrollIntoViewIfNeeded();
+    await paragraph.selectText();
+
+    await triggerSelectionHotkey(page);
+    await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
+
+    await triggerSelectionHotkey(page);
+    await page.waitForSelector('.ai-translator-selection-translation', { state: 'detached' });
   });
 
   test('selection translation shows inline loading indicator', async ({ page }) => {
@@ -154,17 +160,8 @@ test.describe('Hover Translation', () => {
     const paragraph = page.locator('p').first();
     await paragraph.scrollIntoViewIfNeeded();
     await paragraph.selectText();
-    const box = await paragraph.boundingBox();
-    if (box) {
-      await page.dispatchEvent('p', 'mouseup', {
-        clientX: box.x + Math.min(10, box.width / 2),
-        clientY: box.y + Math.min(10, box.height / 2),
-      });
-    }
-
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
     const loadingPromise = page.waitForSelector('.ai-translator-inline-loading', { state: 'attached', timeout: 3000 });
-    await page.click('#ai-translator-selection-btn');
+    await triggerSelectionHotkey(page);
 
     await loadingPromise;
 
@@ -281,8 +278,7 @@ test.describe('Hover Translation', () => {
       });
     }
 
-    await page.waitForSelector('#ai-translator-selection-btn');
-    await page.click('#ai-translator-selection-btn');
+    await triggerSelectionHotkey(page);
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
 
     await paragraph.hover();
@@ -322,8 +318,7 @@ test.describe('Hover Translation', () => {
       });
     }
 
-    await page.waitForSelector('#ai-translator-selection-btn');
-    await page.click('#ai-translator-selection-btn');
+    await triggerSelectionHotkey(page);
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
 
     await expect(paragraph.locator('.ai-translator-selection-translation')).toHaveCount(1);
@@ -381,7 +376,7 @@ test.describe('Hover Translation', () => {
       });
     }
 
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    await page.waitForTimeout(150);
     const selectedText = await page.evaluate(() => window.getSelection().toString().trim());
 
     await sendMessageToActiveTab(page, {
@@ -441,7 +436,7 @@ test.describe('Hover Translation', () => {
       });
     }
 
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    await page.waitForTimeout(150);
 
     await sendMessageToActiveTab(page, {
       type: 'SHOW_TRANSLATION',
@@ -498,7 +493,7 @@ test.describe('Hover Translation', () => {
       });
     }
 
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
+    await page.waitForTimeout(150);
     const selectedText = await page.evaluate(() => window.getSelection().toString().trim());
 
     await sendMessageToActiveTab(page, {
@@ -529,16 +524,7 @@ test.describe('Hover Translation', () => {
     const paragraph = page.locator('p').first();
     await paragraph.scrollIntoViewIfNeeded();
     await paragraph.selectText();
-    const box = await paragraph.boundingBox();
-    if (box) {
-      await page.dispatchEvent('p', 'mouseup', {
-        clientX: box.x + Math.min(10, box.width / 2),
-        clientY: box.y + Math.min(10, box.height / 2),
-      });
-    }
-
-    await page.waitForSelector('#ai-translator-selection-btn', { state: 'visible' });
-    await page.click('#ai-translator-selection-btn');
+    await triggerSelectionHotkey(page);
 
     await page.waitForSelector('.ai-translator-selection-translation', { state: 'attached' });
   });

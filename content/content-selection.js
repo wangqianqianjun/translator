@@ -7,6 +7,8 @@
 
   const { settings, state } = ctx;
   const t = ctx.t;
+  const HOTKEYS = new Set(['Shift', 'Alt', 'Control', 'Meta']);
+  const SKIP_SELECTOR = '.ai-translator-popup, .ai-translator-inline-block, .ai-translator-hover-translation, .ai-translator-selection-translation, #ai-translator-float-ball, #ai-translator-float-menu, #ai-translator-progress, #ai-translator-selection-btn';
 
   function setupSelectionListener() {
     let selectionTimeout = null;
@@ -29,7 +31,7 @@
       selectionTimeout = setTimeout(() => {
         const selectedText = getSelectedText();
         if (selectedText && selectedText.length >= 2 && selectedText.length <= 5000) {
-          // Show translate button instead of auto-translating
+          // Track selection for hotkey/context menu translation
           const selection = window.getSelection();
           state.lastSelectionRange = selection && selection.rangeCount > 0
             ? selection.getRangeAt(0).cloneRange()
@@ -37,10 +39,10 @@
           state.lastSelectedText = selectedText;
           state.lastSelectionPos = { x: e.clientX, y: e.clientY };
           state.lastSelectionElement = getSelectionElement();
-          showSelectionButton(e.clientX, e.clientY);
         } else {
           state.lastSelectionElement = null;
           state.lastSelectionRange = null;
+          state.lastSelectedText = '';
           hideSelectionButton();
         }
       }, 100);
@@ -62,8 +64,11 @@
       if (state.selectionButton || state.selectionTranslationPending) return;
       state.lastSelectionElement = null;
       state.lastSelectionRange = null;
+      state.lastSelectedText = '';
       hideSelectionButton();
     });
+
+    document.addEventListener('keydown', handleSelectionHotkey, true);
 
     // Hide popup on Escape key
     document.addEventListener('keydown', (e) => {
@@ -72,6 +77,7 @@
         if (ctx.hideFloatMenu) ctx.hideFloatMenu();
         if (ctx.clearHoverTranslation) ctx.clearHoverTranslation();
         if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+        state.selectionTranslationPending = false;
         hideSelectionButton();
       }
     });
@@ -123,6 +129,96 @@
     if (state.selectionButton) {
       state.selectionButton.remove();
       state.selectionButton = null;
+    }
+  }
+
+  function getSelectionHotkey() {
+    const hotkey = settings.selectionTranslationHotkey || 'Control';
+    return HOTKEYS.has(hotkey) ? hotkey : 'Control';
+  }
+
+  function isSelectionHotkeyEvent(event) {
+    return event.key === getSelectionHotkey();
+  }
+
+  function isEditableTarget(target) {
+    if (!target) return false;
+    const el = target.nodeType === Node.ELEMENT_NODE ? target : target.parentElement;
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    if (el.closest?.('input, textarea, select, option')) return true;
+    if (el.closest?.('[contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]')) return true;
+    return false;
+  }
+
+  function isSelectionTriggerIgnored(target) {
+    if (!target) return false;
+    const el = target.nodeType === Node.ELEMENT_NODE ? target : target.parentElement;
+    if (!el) return false;
+    if (el.closest?.(SKIP_SELECTOR)) return true;
+    return isEditableTarget(el);
+  }
+
+  function hasSelectionTranslationVisible() {
+    if (ctx.hasSelectionTranslation && ctx.hasSelectionTranslation()) return true;
+    if (state.translationPopup) return true;
+    return !!document.querySelector('.ai-translator-selection-translation');
+  }
+
+  function cancelSelectionTranslation() {
+    if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
+    if (ctx.hideTranslationPopup) ctx.hideTranslationPopup();
+    state.selectionTranslationPending = false;
+  }
+
+  function resolveSelectionRange() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    return selection.getRangeAt(0).cloneRange();
+  }
+
+  function resolveSelectionPosition(selectionRange, fallbackEvent) {
+    if (selectionRange && selectionRange.getBoundingClientRect) {
+      const rect = selectionRange.getBoundingClientRect();
+      if (rect && (rect.width || rect.height)) {
+        return { x: rect.left + rect.width / 2, y: rect.top };
+      }
+    }
+    if (state.lastSelectionPos) return state.lastSelectionPos;
+    if (fallbackEvent && typeof fallbackEvent.clientX === 'number') {
+      return { x: fallbackEvent.clientX, y: fallbackEvent.clientY };
+    }
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  }
+
+  function handleSelectionHotkey(event) {
+    if (!settings.enableSelection) return;
+    if (!isSelectionHotkeyEvent(event)) return;
+    if (event.repeat) return;
+    if (isSelectionTriggerIgnored(event.target)) return;
+
+    if (hasSelectionTranslationVisible()) {
+      cancelSelectionTranslation();
+      return;
+    }
+
+    const selectedText = getSelectedText();
+    if (!selectedText || selectedText.length < 2 || selectedText.length > 5000) return;
+
+    const selectionRange = resolveSelectionRange();
+    if (!selectionRange) return;
+    const anchorEl = getSelectionElement();
+    const pos = resolveSelectionPosition(selectionRange, event);
+
+    state.lastSelectedText = selectedText;
+    state.lastSelectionRange = selectionRange;
+    state.lastSelectionElement = anchorEl;
+    state.lastSelectionPos = pos;
+
+    if (ctx.isSelectionInlineEnabled && ctx.isSelectionInlineEnabled() && ctx.translateSelectionInline) {
+      ctx.translateSelectionInline(selectedText, anchorEl, selectionRange);
+    } else if (ctx.showTranslationPopup) {
+      ctx.showTranslationPopup(selectedText, pos.x, pos.y);
     }
   }
 

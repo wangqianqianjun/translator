@@ -146,6 +146,15 @@ async function floatBallExists(page) {
 }
 
 /**
+ * Trigger selection translation hotkey.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} hotkey
+ */
+async function triggerSelectionHotkey(page, hotkey = 'Control') {
+  await page.keyboard.press(hotkey);
+}
+
+/**
  * Get current theme
  * @param {import('@playwright/test').Page} page
  */
@@ -201,6 +210,7 @@ module.exports = {
   verifyAlignment,
   countElements,
   floatBallExists,
+  triggerSelectionHotkey,
   getCurrentTheme,
   setExtensionSettings,
   sendMessageToActiveTab,

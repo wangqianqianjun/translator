@@ -1033,6 +1033,9 @@
   ctx.setupHoverTranslation = setupHoverTranslation;
   ctx.clearHoverTranslation = clearHoverTranslation;
   ctx.clearSelectionTranslation = clearSelectionTranslation;
+  ctx.hasSelectionTranslation = function() {
+    return selectionTranslations.size > 0;
+  };
   ctx.clearInlineTranslationContext = clearInlineTranslationContext;
   ctx.translateSelectionInline = translateSelectionInline;
   ctx.showInlineSelectionTranslation = showInlineSelectionTranslation;
