@@ -454,6 +454,12 @@ async function saveSettings() {
   };
 
   // Validation
+  if (settings.enableSelection && settings.enableHoverTranslation
+    && settings.selectionTranslationHotkey === settings.hoverTranslationHotkey) {
+    showStatus(t('hotkeyConflict'), 'error');
+    return;
+  }
+
   if (!settings.apiEndpoint) {
     showStatus(t('pleaseEnterApiEndpoint'), 'error');
     if (providerKey === 'custom') {

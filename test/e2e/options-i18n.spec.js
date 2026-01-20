@@ -43,3 +43,24 @@ test('options disable selects when toggles are off', async ({ page, extensionId 
   await page.click('label:has(#enableHoverTranslation)');
   await expect(page.locator('#hoverTranslationHotkey')).toBeDisabled();
 });
+
+test('options block hotkey conflicts', async ({ page, extensionId }) => {
+  await setExtensionSettings(page, {
+    targetLang: 'en',
+    targetLangSetByUser: true,
+    apiKey: 'sk-test',
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    modelName: 'gpt-4.1-mini',
+    provider: 'openai',
+  });
+
+  const optionsUrl = `chrome-extension://${extensionId}/options/options.html`;
+  await page.goto(optionsUrl);
+  await page.waitForSelector('#provider');
+
+  await page.selectOption('#hoverTranslationHotkey', 'Control');
+  await page.selectOption('#selectionTranslationHotkey', 'Control');
+  await page.click('#saveSettings');
+
+  await expect(page.locator('#statusMessage')).toHaveText(getMessage('hotkeyConflict', 'en'));
+});
