@@ -151,6 +151,7 @@ const elements = {
   targetLang: document.getElementById('targetLang'),
   enableSelection: document.getElementById('enableSelection'),
   selectionTranslationMode: document.getElementById('selectionTranslationMode'),
+  selectionTranslationHotkey: document.getElementById('selectionTranslationHotkey'),
   enableHoverTranslation: document.getElementById('enableHoverTranslation'),
   hoverTranslationHotkey: document.getElementById('hoverTranslationHotkey'),
   showFloatBall: document.getElementById('showFloatBall'),
@@ -225,6 +226,7 @@ const defaultSettings = {
   enableSelection: true,
   enableHoverTranslation: true,
   selectionTranslationMode: 'inline',
+  selectionTranslationHotkey: 'Control',
   hoverTranslationHotkey: 'Shift',
   showFloatBall: true,
   autoDetect: true,
@@ -381,6 +383,7 @@ async function loadSettings() {
     elements.targetLang.value = targetLang;
     elements.enableSelection.checked = result.enableSelection;
     elements.selectionTranslationMode.value = result.selectionTranslationMode || 'inline';
+    elements.selectionTranslationHotkey.value = result.selectionTranslationHotkey || 'Control';
     elements.enableHoverTranslation.checked = result.enableHoverTranslation;
     elements.hoverTranslationHotkey.value = result.hoverTranslationHotkey || 'Shift';
     elements.showFloatBall.checked = result.showFloatBall;
@@ -442,6 +445,7 @@ async function saveSettings() {
     enableSelection: elements.enableSelection.checked,
     enableHoverTranslation: elements.enableHoverTranslation.checked,
     selectionTranslationMode: elements.selectionTranslationMode.value,
+    selectionTranslationHotkey: elements.selectionTranslationHotkey.value,
     hoverTranslationHotkey: elements.hoverTranslationHotkey.value,
     showFloatBall: elements.showFloatBall.checked,
     autoDetect: elements.autoDetect.checked,
@@ -660,5 +664,6 @@ function syncInlineSettingState() {
   const hoverEnabled = elements.enableHoverTranslation.checked;
 
   elements.selectionTranslationMode.disabled = !selectionEnabled;
+  elements.selectionTranslationHotkey.disabled = !selectionEnabled;
   elements.hoverTranslationHotkey.disabled = !hoverEnabled;
 }

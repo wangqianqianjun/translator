@@ -152,6 +152,22 @@
 
           <div class="inline-setting">
             <div class="inline-setting-title">
+              <label id="selectionHotkeyLabel" for="selectionTranslationHotkey" data-i18n="selectionTranslationHotkey">Selection Hotkey</label>
+            </div>
+            <div class="inline-setting-controls">
+              <select id="selectionTranslationHotkey" aria-labelledby="selectionHotkeyLabel">
+                <option value="Shift" data-i18n="hoverHotkeyShift">Shift</option>
+                <option value="Alt" data-i18n="hoverHotkeyAlt">Alt</option>
+                <option value="Control" data-i18n="hoverHotkeyCtrl">Ctrl</option>
+                <option value="Meta" data-i18n="hoverHotkeyMeta">Meta</option>
+              </select>
+              <span aria-hidden="true"></span>
+            </div>
+            <span class="hint" data-i18n-hint="hintSelectionTranslationHotkey"></span>
+          </div>
+
+          <div class="inline-setting">
+            <div class="inline-setting-title">
               <label id="enableHoverTranslationLabel" for="hoverTranslationHotkey" data-i18n="enableHoverTranslation">Enable Hover Translation</label>
             </div>
             <div class="inline-setting-controls">

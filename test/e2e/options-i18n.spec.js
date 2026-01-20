@@ -33,10 +33,12 @@ test('options disable selects when toggles are off', async ({ page, extensionId 
   await page.waitForSelector('#provider');
 
   await expect(page.locator('#selectionTranslationMode')).toBeEnabled();
+  await expect(page.locator('#selectionTranslationHotkey')).toBeEnabled();
   await expect(page.locator('#hoverTranslationHotkey')).toBeEnabled();
 
   await page.click('label:has(#enableSelection)');
   await expect(page.locator('#selectionTranslationMode')).toBeDisabled();
+  await expect(page.locator('#selectionTranslationHotkey')).toBeDisabled();
 
   await page.click('label:has(#enableHoverTranslation)');
   await expect(page.locator('#hoverTranslationHotkey')).toBeDisabled();
