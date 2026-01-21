@@ -22,7 +22,7 @@
     captionsPoll: null,
     video: null,
     lastNowMs: 0,
-    messageHandler: null,
+    trackRequestInFlight: false,
   };
 
   function isYouTube() {
@@ -49,6 +49,7 @@
     state.trackId = '';
     state.skipTranslation = false;
     state.lastNowMs = 0;
+    state.trackRequestInFlight = false;
     if (state.captionsPoll) {
       clearInterval(state.captionsPoll);
       state.captionsPoll = null;
@@ -66,10 +67,6 @@
   function cleanup() {
     state.active = false;
     resetState();
-    if (state.messageHandler) {
-      window.removeEventListener('message', state.messageHandler);
-      state.messageHandler = null;
-    }
   }
 
   function ensureOverlay() {
@@ -102,24 +99,23 @@
     state.overlay.style.display = visible ? 'flex' : 'none';
   }
 
-  function buildTrackProbeScript() {
-    return `(function(){
-      try {
-        const data = window.ytInitialPlayerResponse || {};
-        const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-        const videoId = data?.videoDetails?.videoId || '';
-        window.postMessage({ source: 'ai-translator', type: 'YT_CAPTION_TRACKS', tracks, videoId }, '*');
-      } catch (err) {
-        window.postMessage({ source: 'ai-translator', type: 'YT_CAPTION_TRACKS', tracks: [], error: String(err) }, '*');
+  async function requestCaptionTracks() {
+    if (state.track) return;
+    if (state.trackRequestInFlight) return;
+    state.trackRequestInFlight = true;
+    try {
+      const inlineTracks = getTracksFromInlineScripts();
+      if (inlineTracks && inlineTracks.length) {
+        handleTracks(inlineTracks);
+        return;
       }
-    })();`;
-  }
-
-  function requestCaptionTracks() {
-    const script = document.createElement('script');
-    script.textContent = buildTrackProbeScript();
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
+      const fetchedTracks = await fetchTracksFromWatchPage();
+      if (fetchedTracks && fetchedTracks.length) {
+        handleTracks(fetchedTracks);
+      }
+    } finally {
+      state.trackRequestInFlight = false;
+    }
   }
 
   function getTrackLanguage(track) {
@@ -175,6 +171,44 @@
     return null;
   }
 
+  function extractJsonObject(source, anchorIndex) {
+    const braceStart = source.indexOf('{', anchorIndex);
+    if (braceStart === -1) return null;
+    let depth = 0;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let isEscaped = false;
+    for (let i = braceStart; i < source.length; i += 1) {
+      const char = source[i];
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+      if (char === '\\\\') {
+        isEscaped = true;
+        continue;
+      }
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+      if (inSingleQuote || inDoubleQuote) continue;
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(braceStart, i + 1);
+        }
+      }
+    }
+    return null;
+  }
+
   function splitTopLevelObjects(source) {
     const items = [];
     let start = null;
@@ -224,7 +258,27 @@
       .replace(/\\u002f/g, '/');
   }
 
+  function extractTracksFromResponse(data) {
+    const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || null;
+    if (!Array.isArray(tracks) || !tracks.length) return null;
+    return tracks;
+  }
+
   function parseTracksFromScriptText(text) {
+    const responseIndex = text.indexOf('ytInitialPlayerResponse');
+    if (responseIndex !== -1) {
+      const json = extractJsonObject(text, responseIndex);
+      if (json) {
+        try {
+          const data = JSON.parse(json);
+          const tracks = extractTracksFromResponse(data);
+          if (tracks) return tracks;
+        } catch (error) {
+          // Fall back to lightweight parsing.
+        }
+      }
+    }
+
     // Parse captionTracks without eval to avoid CSP restrictions.
     const anchorIndex = text.indexOf('captionTracks');
     if (anchorIndex === -1) return null;
@@ -248,11 +302,28 @@
     const scripts = Array.from(document.scripts || []);
     for (const script of scripts) {
       const text = script.textContent || '';
-      if (!text.includes('ytInitialPlayerResponse')) continue;
       const tracks = parseTracksFromScriptText(text);
       if (tracks) return tracks;
     }
     return null;
+  }
+
+  function getVideoId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('v') || '';
+  }
+
+  async function fetchTracksFromWatchPage() {
+    const videoId = getVideoId();
+    if (!videoId) return null;
+    try {
+      const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+      if (!response.ok) return null;
+      const html = await response.text();
+      return parseTracksFromScriptText(html);
+    } catch (error) {
+      return null;
+    }
   }
 
   async function fetchTimedText(track) {
@@ -432,27 +503,11 @@
     ensureCaptionsReady(track);
   }
 
-  function setupTrackListener() {
-    if (state.messageHandler) return;
-    state.messageHandler = (event) => {
-      const data = event.data;
-      if (!data || data.source !== 'ai-translator' || data.type !== 'YT_CAPTION_TRACKS') return;
-      handleTracks(data.tracks || []);
-    };
-    window.addEventListener('message', state.messageHandler);
-  }
-
   function start() {
     if (state.active) return;
     state.active = true;
     resetState();
-    setupTrackListener();
     requestCaptionTracks();
-    setTimeout(() => {
-      if (state.track) return;
-      const tracks = getTracksFromInlineScripts();
-      if (tracks && tracks.length) handleTracks(tracks);
-    }, 0);
   }
 
   function handleYouTubeNavigation() {
