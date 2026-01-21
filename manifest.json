@@ -41,6 +41,7 @@
         "content/content-bootstrap.js",
         "content/content-utils.js",
         "content/content-language.js",
+        "content/content-youtube-captions.js",
         "content/content-selection.js",
         "content/content-float-ball.js",
         "content/content-popup.js",

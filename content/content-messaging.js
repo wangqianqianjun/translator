@@ -56,6 +56,13 @@
           if ('selectionTranslationMode' in message.settings && message.settings.selectionTranslationMode !== 'inline') {
             if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
           }
+          if ('enableYoutubeCaptionTranslation' in message.settings) {
+            if (message.settings.enableYoutubeCaptionTranslation) {
+              if (ctx.setupYouTubeCaptionTranslation) ctx.setupYouTubeCaptionTranslation();
+            } else if (ctx.stopYouTubeCaptionTranslation) {
+              ctx.stopYouTubeCaptionTranslation();
+            }
+          }
           break;
         case 'TOGGLE_FLOAT_BALL':
           console.log('AI Translator: TOGGLE_FLOAT_BALL received, show =', message.show);

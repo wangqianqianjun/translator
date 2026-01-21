@@ -68,7 +68,6 @@ test('renders translated line when captions on and language differs', async ({ p
     video.currentTime = 0.5;
     video.dispatchEvent(new Event('timeupdate'));
   });
-
   await expect(page.locator('#ai-translator-youtube-caption-overlay')).toContainText('你好世界');
 });
 

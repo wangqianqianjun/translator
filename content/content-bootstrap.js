@@ -157,6 +157,14 @@
       if (changes.selectionTranslationMode && ctx.settings.selectionTranslationMode !== 'inline') {
         if (ctx.clearSelectionTranslation) ctx.clearSelectionTranslation();
       }
+
+      if (changes.enableYoutubeCaptionTranslation) {
+        if (ctx.settings.enableYoutubeCaptionTranslation) {
+          if (ctx.setupYouTubeCaptionTranslation) ctx.setupYouTubeCaptionTranslation();
+        } else if (ctx.stopYouTubeCaptionTranslation) {
+          ctx.stopYouTubeCaptionTranslation();
+        }
+      }
     });
   };
 
@@ -169,6 +177,7 @@
       if (ctx.setupMessageListener) ctx.setupMessageListener();
       ctx.setupStorageListener();
       if (ctx.createFloatBall) ctx.createFloatBall();
+      if (ctx.setupYouTubeCaptionTranslation) ctx.setupYouTubeCaptionTranslation();
       console.log('AI Translator: Initialization complete, showFloatBall =', ctx.settings.showFloatBall);
     } catch (error) {
       console.error('AI Translator: Initialization failed', error);
