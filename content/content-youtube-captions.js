@@ -3,7 +3,15 @@
   'use strict';
 
   const ctx = window.AI_TRANSLATOR_CONTENT;
-  if (!ctx) return;
+  if (!ctx) {
+    if (window.location.hostname.includes('youtube.com')) {
+      console.warn('AI Translator: YouTube captions skipped, ctx missing');
+    }
+    return;
+  }
+  if (window.location.hostname.includes('youtube.com')) {
+    console.log('AI Translator: YouTube captions script loaded');
+  }
 
   const PREFETCH_MS = 120000;
   const PREFETCH_INTERVAL_MS = 1000;
@@ -24,6 +32,9 @@
     lastNowMs: 0,
     trackRequestInFlight: false,
   };
+
+  let timedtextProxyInjected = false;
+  let timedtextRequestSeq = 0;
 
   function isYouTube() {
     return window.location.hostname.includes('youtube.com');
@@ -104,14 +115,25 @@
     if (state.trackRequestInFlight) return;
     state.trackRequestInFlight = true;
     try {
+      console.log('AI Translator: requestCaptionTracks start', {
+        hasTrack: !!state.track,
+      });
       const inlineTracks = getTracksFromInlineScripts();
       if (inlineTracks && inlineTracks.length) {
+        console.log('AI Translator: inline tracks found', {
+          count: inlineTracks.length,
+        });
         handleTracks(inlineTracks);
         return;
       }
       const fetchedTracks = await fetchTracksFromWatchPage();
       if (fetchedTracks && fetchedTracks.length) {
+        console.log('AI Translator: fetched tracks found', {
+          count: fetchedTracks.length,
+        });
         handleTracks(fetchedTracks);
+      } else {
+        console.log('AI Translator: no caption tracks found');
       }
     } finally {
       state.trackRequestInFlight = false;
@@ -300,10 +322,18 @@
 
   function getTracksFromInlineScripts() {
     const scripts = Array.from(document.scripts || []);
+    console.log('AI Translator: scanning inline scripts', {
+      count: scripts.length,
+    });
     for (const script of scripts) {
       const text = script.textContent || '';
       const tracks = parseTracksFromScriptText(text);
-      if (tracks) return tracks;
+      if (tracks) {
+        console.log('AI Translator: inline script tracks parsed', {
+          count: tracks.length,
+        });
+        return tracks;
+      }
     }
     return null;
   }
@@ -315,32 +345,322 @@
 
   async function fetchTracksFromWatchPage() {
     const videoId = getVideoId();
-    if (!videoId) return null;
+    if (!videoId) {
+      console.warn('AI Translator: missing video id for watch fetch');
+      return null;
+    }
     try {
       const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.warn('AI Translator: watch fetch not ok', {
+          status: response.status,
+        });
+        return null;
+      }
       const html = await response.text();
-      return parseTracksFromScriptText(html);
+      const tracks = parseTracksFromScriptText(html);
+      if (tracks && tracks.length) {
+        console.log('AI Translator: watch fetch tracks parsed', {
+          count: tracks.length,
+        });
+      } else {
+        console.warn('AI Translator: watch fetch tracks missing');
+      }
+      return tracks;
     } catch (error) {
+      console.warn('AI Translator: watch fetch failed', error);
       return null;
     }
   }
 
   async function fetchTimedText(track) {
     if (!track?.baseUrl) return [];
-    try {
-      const url = new URL(track.baseUrl);
-      if (!url.searchParams.get('fmt')) {
-        url.searchParams.set('fmt', 'json3');
+    const jsonUrl = new URL(track.baseUrl);
+    jsonUrl.searchParams.set('fmt', 'json3');
+    const jsonResult = await fetchTimedTextUrl(jsonUrl.toString(), 'json3');
+    if (jsonResult.ok && jsonResult.text) {
+      const trimmed = jsonResult.text.trim();
+      if (jsonResult.contentType.includes('json') || trimmed.startsWith('{')) {
+        try {
+          const data = JSON.parse(jsonResult.text);
+          const cues = parseTimedText(data);
+          console.log('AI Translator: timedtext json3 parsed', {
+            cueCount: cues.length,
+          });
+          return cues;
+        } catch (error) {
+          console.warn('AI Translator: timedtext json parse failed', error);
+        }
+      } else {
+        console.warn('AI Translator: timedtext not json', {
+          contentType: jsonResult.contentType,
+          length: jsonResult.text.length,
+        });
       }
-      const response = await fetch(url.toString());
-      if (!response.ok) return [];
-      const data = await response.json();
-      return parseTimedText(data);
-    } catch (error) {
-      console.warn('AI Translator: Failed to fetch timedtext', error);
-      return [];
     }
+
+    const vttUrl = new URL(track.baseUrl);
+    vttUrl.searchParams.set('fmt', 'vtt');
+    const vttResult = await fetchTimedTextUrl(vttUrl.toString(), 'vtt');
+    if (vttResult.ok && vttResult.text) {
+      const cues = parseVtt(vttResult.text);
+      console.log('AI Translator: timedtext vtt parsed', {
+        cueCount: cues.length,
+      });
+      if (cues.length) return cues;
+    }
+
+    const srv3Url = new URL(track.baseUrl);
+    srv3Url.searchParams.set('fmt', 'srv3');
+    const srv3Result = await fetchTimedTextUrl(srv3Url.toString(), 'srv3');
+    if (!srv3Result.ok || !srv3Result.text) return [];
+    const cues = parseSrv3(srv3Result.text);
+    console.log('AI Translator: timedtext srv3 parsed', {
+      cueCount: cues.length,
+    });
+    if (cues.length) return cues;
+
+    const defaultResult = await fetchTimedTextUrl(track.baseUrl, 'default');
+    if (!defaultResult.ok || !defaultResult.text) return [];
+    return parseTimedTextFallback(defaultResult);
+  }
+
+  async function fetchTimedTextUrl(urlStr, format) {
+    let response;
+    try {
+      response = await fetch(urlStr, {
+        credentials: 'include',
+      });
+      const contentType = response.headers.get('content-type') || '';
+      const contentLength = response.headers.get('content-length') || '';
+      if (!response.ok) {
+        console.warn('AI Translator: timedtext response not ok', {
+          status: response.status,
+          contentType,
+          contentLength,
+          url: urlStr,
+          format,
+        });
+        return {
+          ok: false,
+          status: response.status,
+          contentType,
+          contentLength,
+          text: '',
+        };
+      }
+      const text = await response.text();
+      console.log('AI Translator: timedtext body preview', {
+        format,
+        length: text.length,
+        sample: text.slice(0, 80),
+      });
+      if (!text) {
+        const proxyResult = await requestTimedTextViaPage(urlStr, format);
+        if (proxyResult && proxyResult.text) {
+          return proxyResult;
+        }
+      }
+      return {
+        ok: true,
+        status: response.status,
+        contentType,
+        contentLength,
+        text,
+      };
+    } catch (error) {
+      const proxyResult = await requestTimedTextViaPage(urlStr, format);
+      if (proxyResult && proxyResult.text) {
+        return proxyResult;
+      }
+      console.warn('AI Translator: Failed to fetch timedtext', error, {
+        url: urlStr,
+        format,
+        status: response?.status,
+        contentType: response?.headers?.get('content-type') || '',
+        contentLength: response?.headers?.get('content-length') || '',
+      });
+      return {
+        ok: false,
+        status: response?.status || 0,
+        contentType: response?.headers?.get('content-type') || '',
+        contentLength: response?.headers?.get('content-length') || '',
+        text: '',
+      };
+    }
+  }
+
+  function ensureTimedtextProxy() {
+    if (timedtextProxyInjected) return;
+    timedtextProxyInjected = true;
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('content/youtube-timedtext-proxy.js');
+    script.async = false;
+    (document.head || document.documentElement).appendChild(script);
+    script.addEventListener('load', () => script.remove());
+    script.addEventListener('error', () => {
+      console.warn('AI Translator: timedtext proxy failed to load');
+    });
+  }
+
+  function requestTimedTextViaPage(urlStr, format) {
+    if (!window.location.hostname.includes('youtube.com')) return null;
+    ensureTimedtextProxy();
+    const requestId = `tt-${Date.now()}-${timedtextRequestSeq += 1}`;
+    return new Promise((resolve) => {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', handler);
+        resolve(null);
+      }, 8000);
+      const handler = (event) => {
+        const data = event.data;
+        if (!data || data.source !== 'ai-translator' || data.type !== 'YT_TIMEDTEXT_RESPONSE') return;
+        if (data.requestId !== requestId) return;
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        window.removeEventListener('message', handler);
+        if (data.error) {
+          console.warn('AI Translator: timedtext proxy error', data.error);
+          resolve(null);
+          return;
+        }
+        console.log('AI Translator: timedtext proxy preview', {
+          format,
+          length: (data.text || '').length,
+          sample: (data.text || '').slice(0, 80),
+        });
+        resolve({
+          ok: !!data.ok,
+          status: data.status || 0,
+          contentType: data.contentType || '',
+          contentLength: data.contentLength || '',
+          text: data.text || '',
+        });
+      };
+      window.addEventListener('message', handler);
+      window.postMessage({
+        source: 'ai-translator',
+        type: 'YT_TIMEDTEXT_REQUEST',
+        requestId,
+        url: urlStr,
+        format,
+      }, '*');
+    });
+  }
+
+  function parseVtt(text) {
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    const cues = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      if (!line) {
+        i += 1;
+        continue;
+      }
+      if (line.startsWith('WEBVTT')) {
+        i += 1;
+        continue;
+      }
+      if (line.includes('-->')) {
+        const parts = line.split('-->');
+        const startMs = parseVttTimestamp(parts[0]?.trim() || '');
+        const endPart = parts[1]?.trim() || '';
+        const endMs = parseVttTimestamp(endPart.split(' ')[0] || '');
+        i += 1;
+        const textLines = [];
+        while (i < lines.length && lines[i].trim() !== '') {
+          textLines.push(lines[i]);
+          i += 1;
+        }
+        const cueText = textLines
+          .join(' ')
+          .replace(/<[^>]+>/g, '')
+          .trim();
+        if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs > startMs && cueText) {
+          cues.push({
+            startMs,
+            endMs,
+            text: cueText,
+          });
+        }
+        continue;
+      }
+      i += 1;
+    }
+    return cues;
+  }
+
+  function parseVttTimestamp(value) {
+    if (!value) return Number.NaN;
+    const cleaned = value.replace(',', '.');
+    const parts = cleaned.split(':');
+    if (parts.length < 2) return Number.NaN;
+    const secondsPart = parts.pop() || '0';
+    const minutesPart = parts.pop() || '0';
+    const hoursPart = parts.pop() || '0';
+    const [secStr, msStr = '0'] = secondsPart.split('.');
+    const hours = Number(hoursPart);
+    const minutes = Number(minutesPart);
+    const seconds = Number(secStr);
+    const millis = Number(msStr.padEnd(3, '0').slice(0, 3));
+    if (![hours, minutes, seconds, millis].every(Number.isFinite)) return Number.NaN;
+    return ((hours * 3600 + minutes * 60 + seconds) * 1000) + millis;
+  }
+
+  function parseSrv3(text) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/xml');
+    const nodes = Array.from(doc.getElementsByTagName('text'));
+    const cues = [];
+    for (const node of nodes) {
+      const start = Number(node.getAttribute('start'));
+      const durValue = node.getAttribute('dur') || node.getAttribute('d');
+      const dur = Number(durValue);
+      if (!Number.isFinite(start) || !Number.isFinite(dur) || dur <= 0) continue;
+      const cueText = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!cueText) continue;
+      cues.push({
+        startMs: Math.round(start * 1000),
+        endMs: Math.round((start + dur) * 1000),
+        text: cueText,
+      });
+    }
+    return cues;
+  }
+
+  function parseTimedTextFallback(result) {
+    const text = result.text || '';
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+    if (result.contentType.includes('json') || trimmed.startsWith('{')) {
+      try {
+        const data = JSON.parse(trimmed);
+        const cues = parseTimedText(data);
+        console.log('AI Translator: timedtext default json parsed', {
+          cueCount: cues.length,
+        });
+        return cues;
+      } catch (error) {
+        console.warn('AI Translator: default json parse failed', error);
+      }
+    }
+    if (trimmed.startsWith('WEBVTT') || trimmed.includes('-->')) {
+      const cues = parseVtt(trimmed);
+      console.log('AI Translator: timedtext default vtt parsed', {
+        cueCount: cues.length,
+      });
+      return cues;
+    }
+    const cues = parseSrv3(trimmed);
+    console.log('AI Translator: timedtext default srv3 parsed', {
+      cueCount: cues.length,
+    });
+    return cues;
   }
 
   function parseTimedText(data) {
@@ -457,8 +777,15 @@
   async function startTimedTextFlow(track) {
     state.track = track;
     state.trackId = track?.baseUrl || track?.languageCode || 'track';
+    console.log('AI Translator: startTimedTextFlow', {
+      trackId: state.trackId,
+      baseUrlSample: String(track?.baseUrl || '').slice(0, 80),
+    });
     const cues = await fetchTimedText(track);
     state.cues = cues;
+    console.log('AI Translator: cues loaded', {
+      count: cues.length,
+    });
 
     state.video = getVideoElement();
     if (state.video) {
@@ -469,11 +796,13 @@
 
   function ensureCaptionsReady(track) {
     if (!isCaptionsEnabled()) {
+      console.log('AI Translator: captions disabled, waiting');
       if (!state.captionsPoll) {
         state.captionsPoll = setInterval(() => {
           if (isCaptionsEnabled()) {
             clearInterval(state.captionsPoll);
             state.captionsPoll = null;
+            console.log('AI Translator: captions enabled, starting flow');
             ensureOverlay();
             startTimedTextFlow(track);
           }
@@ -482,21 +811,31 @@
       return;
     }
 
+    console.log('AI Translator: captions enabled, starting flow');
     ensureOverlay();
     startTimedTextFlow(track);
   }
 
   function handleTracks(tracks) {
     if (state.track) return;
+    console.log('AI Translator: handleTracks', {
+      count: tracks?.length || 0,
+    });
     const track = selectTrack(tracks);
     if (!track) return;
 
     state.track = track;
     const trackLang = getTrackLanguage(track);
     const targetLang = getTargetLanguageBase();
+    console.log('AI Translator: track selected', {
+      trackLang,
+      targetLang,
+      baseUrlSample: String(track?.baseUrl || '').slice(0, 80),
+    });
 
     if (trackLang && targetLang && trackLang === targetLang) {
       state.skipTranslation = true;
+      console.log('AI Translator: skip translation, target equals track language');
       return;
     }
 
@@ -517,6 +856,10 @@
   }
 
   ctx.setupYouTubeCaptionTranslation = function() {
+    console.log('AI Translator: setupYouTubeCaptionTranslation', {
+      isYouTube: isYouTube(),
+      enabled: !!ctx.settings?.enableYoutubeCaptionTranslation,
+    });
     if (!isYouTube()) return;
     if (!ctx.settings?.enableYoutubeCaptionTranslation) return;
     start();
