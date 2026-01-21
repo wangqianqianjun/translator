@@ -17,6 +17,20 @@
   const t = ctx.t;
   const applyTheme = ctx.applyTheme;
   let floatBallWatchdog = null;
+  let isFullscreenActive = false;
+  let fullscreenListenerAttached = false;
+
+  function handleFullscreenChange() {
+    isFullscreenActive = !!document.fullscreenElement;
+    updateFloatBallVisibility();
+  }
+
+  function ensureFullscreenListener() {
+    if (fullscreenListenerAttached) return;
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    fullscreenListenerAttached = true;
+    handleFullscreenChange();
+  }
 
   // Ensure float ball exists in DOM (recreate if removed by page's JS)
   function ensureFloatBallExists() {
@@ -147,6 +161,7 @@
     // Setup drag and click handling
     setupFloatBallInteraction();
     startFloatBallWatchdog();
+    ensureFullscreenListener();
 
     // Update visibility based on settings
     // Re-read from storage to ensure we have the latest value
@@ -496,7 +511,7 @@
 
   function updateFloatBallVisibility() {
     // Ensure showFloatBall has a valid boolean value
-    const shouldShow = settings.showFloatBall !== false;
+    const shouldShow = settings.showFloatBall !== false && !isFullscreenActive;
 
     // If should show, ensure float ball exists (recreate if removed by page)
     if (shouldShow) {
