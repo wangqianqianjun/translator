@@ -2,8 +2,10 @@
 const elements = {
   translatePage: document.getElementById('translatePage'),
   toggleFloatBall: document.getElementById('toggleFloatBall'),
+  toggleYoutubeCaptions: document.getElementById('toggleYoutubeCaptions'),
   openSettings: document.getElementById('openSettings'),
   floatBallStatus: document.getElementById('floatBallStatus'),
+  youtubeCaptionsStatus: document.getElementById('youtubeCaptionsStatus'),
   statusText: document.getElementById('statusText')
 };
 
@@ -11,6 +13,7 @@ const elements = {
 const defaultSettings = {
   apiKey: '',
   showFloatBall: true,
+  enableYoutubeCaptionTranslation: false,
   targetLang: 'zh-CN',
   theme: 'light'
 };
@@ -61,6 +64,7 @@ async function checkStatus() {
     
     // Update float ball status
     elements.floatBallStatus.textContent = settings.showFloatBall ? t('on') : t('off');
+    elements.youtubeCaptionsStatus.textContent = settings.enableYoutubeCaptionTranslation ? t('on') : t('off');
     
     // Check if API is configured
     if (!settings.apiKey) {
@@ -128,6 +132,19 @@ async function toggleFloatBall() {
   }
 }
 
+// Toggle YouTube captions translation
+async function toggleYoutubeCaptions() {
+  try {
+    const settings = await chrome.storage.sync.get(defaultSettings);
+    const newState = !settings.enableYoutubeCaptionTranslation;
+
+    await chrome.storage.sync.set({ enableYoutubeCaptionTranslation: newState });
+    elements.youtubeCaptionsStatus.textContent = newState ? t('on') : t('off');
+  } catch (error) {
+    console.error('Failed to toggle YouTube captions:', error);
+  }
+}
+
 // Open settings page
 function openSettings() {
   chrome.runtime.openOptionsPage();
@@ -138,5 +155,6 @@ function openSettings() {
 function setupEventListeners() {
   elements.translatePage.addEventListener('click', translateCurrentPage);
   elements.toggleFloatBall.addEventListener('click', toggleFloatBall);
+  elements.toggleYoutubeCaptions.addEventListener('click', toggleYoutubeCaptions);
   elements.openSettings.addEventListener('click', openSettings);
 }

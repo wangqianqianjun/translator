@@ -37,6 +37,7 @@
       selectionTranslationMode: 'inline',
       showFloatBall: true,
       autoDetect: true,
+      enableYoutubeCaptionTranslation: false,
       targetLang: 'zh-CN',
       theme: 'light'
     };
@@ -98,6 +99,7 @@
         selectionTranslationMode: 'inline',
         showFloatBall: true,
         autoDetect: true,
+        enableYoutubeCaptionTranslation: false,
         targetLang: 'zh-CN',
         theme: 'light'
       });
@@ -113,6 +115,7 @@
         selectionTranslationMode: 'inline',
         showFloatBall: true,
         autoDetect: true,
+        enableYoutubeCaptionTranslation: false,
         targetLang: 'zh-CN',
         theme: 'light'
       });
