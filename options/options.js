@@ -156,6 +156,7 @@ const elements = {
   hoverTranslationHotkey: document.getElementById('hoverTranslationHotkey'),
   showFloatBall: document.getElementById('showFloatBall'),
   autoDetect: document.getElementById('autoDetect'),
+  enableYoutubeCaptionTranslation: document.getElementById('enableYoutubeCaptionTranslation'),
   customPrompt: document.getElementById('customPrompt'),
   saveSettings: document.getElementById('saveSettings'),
   testConnection: document.getElementById('testConnection'),
@@ -230,6 +231,7 @@ const defaultSettings = {
   hoverTranslationHotkey: 'Shift',
   showFloatBall: true,
   autoDetect: true,
+  enableYoutubeCaptionTranslation: false,
   customPrompt: '',
   theme: 'light'
 };
@@ -388,6 +390,7 @@ async function loadSettings() {
     elements.hoverTranslationHotkey.value = result.hoverTranslationHotkey || 'Shift';
     elements.showFloatBall.checked = result.showFloatBall;
     elements.autoDetect.checked = result.autoDetect;
+    elements.enableYoutubeCaptionTranslation.checked = !!result.enableYoutubeCaptionTranslation;
     elements.customPrompt.value = result.customPrompt || '';
 
     // Apply theme
@@ -449,6 +452,7 @@ async function saveSettings() {
     hoverTranslationHotkey: elements.hoverTranslationHotkey.value,
     showFloatBall: elements.showFloatBall.checked,
     autoDetect: elements.autoDetect.checked,
+    enableYoutubeCaptionTranslation: elements.enableYoutubeCaptionTranslation.checked,
     customPrompt: elements.customPrompt.value.trim(),
     theme: document.documentElement.getAttribute('data-theme') || 'light'
   };

@@ -59,6 +59,29 @@ test.describe('Float Ball', () => {
     expect(['dark', 'light']).toContain(theme);
   });
 
+  test('should hide on fullscreen and restore on exit', async ({ page }) => {
+    await page.goto('https://example.com');
+    await waitForFloatBall(page);
+
+    await page.evaluate(() => {
+      const button = document.createElement('button');
+      button.id = 'ai-fs-trigger';
+      button.textContent = 'fullscreen';
+      button.addEventListener('click', () => document.documentElement.requestFullscreen());
+      document.body.appendChild(button);
+    });
+
+    await page.click('#ai-fs-trigger');
+    await page.waitForFunction(() => !!document.fullscreenElement);
+
+    await expect(page.locator('#ai-translator-float-ball')).toBeHidden();
+
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForFunction(() => !document.fullscreenElement);
+
+    await expect(page.locator('#ai-translator-float-ball')).toBeVisible();
+  });
+
   test('should be draggable', async ({ page }) => {
     await page.goto('https://example.com');
     await waitForFloatBall(page);
